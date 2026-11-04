@@ -63,7 +63,8 @@ on `PATH`, or an unwritable cache directory):
 
 ```bash
 t=$(mktemp -d)
-PATH=/tmp/onlyclang TMPDIR="$t" build/pentest run examples/hello.pen
+echo 'print("hi")' > "$t/hello.pen"
+PATH=/tmp/onlyclang TMPDIR="$t" build/pentest run "$t/hello.pen"
 ls "$t"/pentest-*/   # program
 ```
 

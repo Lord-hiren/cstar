@@ -21,7 +21,7 @@ status = "in_progress"
 plans_completed = 1
 
 [loop]
-position = "PLAN"
+position = "APPLY"
 plan = "01-02"
 plan_path = "phases/01-dev-environment-repo-hygiene/01-02-PLAN.md"
 

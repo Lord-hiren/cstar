@@ -1,6 +1,6 @@
 # Runtime internals
 
-`runtime/pentest_rt.{h,c}` (about 6,800 lines of C11, libc + libm only) is linked
+`runtime/pentest_rt.{h,c}` (about 10,400 lines of C11; needs libc, libm and libcurl) is linked
 into every Pentest program. This page explains how it is organised and why. The
 public contract is the header; the semantic contracts are SPEC §5–§9 and the
 stage contracts. Anything marked *runtime-private* in the source is not part of
@@ -22,7 +22,8 @@ the contract between compiler and runtime.
   `gen.c` and link against that object ([CLI reference](../guide/cli.md#the-run-cache)).
   Changing any byte of the runtime (even a comment) changes the key, so the first
   run after editing it recompiles the runtime.
-* The runtime needs only **libc and libm** — no pthread, no other libraries.
+* The runtime needs only **libc, libm and libcurl** (libcurl backs the HTTP
+  builtins) — no pthread, no other libraries.
 
 ## The value model
 

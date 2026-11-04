@@ -181,7 +181,7 @@ the deadline. Result: `lab.pen` executes in **~2.34s vs the C twin's
 
 * **Byte-compat first.** Fast paths are validated A/B against the
   pre-optimization binary with *identical stdout/stderr/exit codes*; the
-  full suite (368 checks: 361 program cases + 7 extra checks, as of this
+  full suite (372 checks: 365 program cases + 7 extra checks, as of this
   writing) is the gate for every change.
 * **Interleaved min-of-N A/B, CPU-pinned.** Benchmarks compare the minimum
   of N runs — ≥ 5 for large effects, ≥ 30 when reading small ones — with

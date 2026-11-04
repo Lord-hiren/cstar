@@ -17,9 +17,9 @@ See: .paul/PROJECT.md (updated 2026-11-04)
 
 Milestone: v0.3 cstar Foundation (v0.3.0)
 Phase: 1 of 4 (Dev environment & repo hygiene) — Applying
-Plan: 01-02 approved, executing
-Status: Applying 01-02
-Last activity: 2026-11-04 — Plan 01-02 approved; APPLY started
+Plan: 01-02 applied (4/4 tasks), awaiting UNIFY
+Status: APPLY complete, ready for UNIFY
+Last activity: 2026-11-04 — 01-02 applied: build/ untracked, docs corrected, check_docs 0 broken links
 
 Progress:
 - Milestone: [█░░░░░░░░░] 11% (1 of 9 plans)
@@ -30,7 +30,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ◉        ○     [Applying 01-02]
+  ✓        ✓        ○     [APPLY complete — ready for UNIFY]
 ```
 
 ## Accumulated Context
@@ -44,6 +44,7 @@ PLAN ──▶ APPLY ──▶ UNIFY
 | GPU/AI libraries loaded at runtime (proposed) | v0.8 | Binaries keep working without a GPU |
 | Build the Windows checkout from WSL via `/mnt/c` | Phase 1 (01-01) | All commands go through `wsl -d Ubuntu-24.04 -- …` |
 | LF line endings enforced by `.gitattributes` | Phase 1 (01-01) | Never convert back to CRLF |
+| 2026-11-04: `examples/` stays private (git-ignored); docs reference no files in it (option C) | Phase 1 (01-02) | Examples in docs are inline code; SQLi/AI files are described, not linked |
 
 ### Deferred Issues
 
@@ -65,8 +66,8 @@ None. (Resolved in 01-01: WSL Ubuntu-24.04 toolchain installed; working tree con
 ## Session Continuity
 
 Last session: 2026-11-04
-Stopped at: Plan 01-02 created
-Next action: Review and approve plan, then run /paul:apply .paul/phases/01-dev-environment-repo-hygiene/01-02-PLAN.md
+Stopped at: Plan 01-02 APPLY complete (4/4 tasks; deviations logged for UNIFY)
+Next action: Run /paul:unify .paul/phases/01-dev-environment-repo-hygiene/01-02-PLAN.md
 Resume file: .paul/phases/01-dev-environment-repo-hygiene/01-02-PLAN.md
 
 ---

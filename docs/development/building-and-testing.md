@@ -34,7 +34,7 @@ shows up in `git status`.
 make test         # or: bash tests/run_tests.sh
 ```
 
-Current size: **368 checks = 361 program cases + 7 extra checks**. A full run
+Current size: **372 checks = 365 program cases + 7 extra checks**. A full run
 takes about 70 seconds on the development machine (measured), because every
 case is a real compile (`clang -O3 -march=native`) and run.
 
@@ -115,7 +115,7 @@ applies.
 ## The editor extension's tests
 
 ```bash
-node editors/vscode/test/smoke.js     # 1234 checks; needs only node
+node editors/vscode/test/smoke.js     # 1294 checks; needs only node
 ```
 
 See [editor extension](editor-extension.md).

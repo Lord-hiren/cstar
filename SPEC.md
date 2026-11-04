@@ -118,8 +118,8 @@ see §13):
 - The CLI requires every source path argument to end in `.pen` or `.pent` (§10).
 - Linux does not require executable extensions; `.pentest` exists to make
   compiled output easy to distinguish from source.
-- A produced executable is standalone apart from the system C library and
-  libm — it does not need the `pentest` toolchain at run time.
+- A produced executable is standalone apart from the system C library,
+  libm and libcurl — it does not need the `pentest` toolchain at run time.
 
 ## 3. Lexical structure
 
@@ -1212,10 +1212,10 @@ TCP fast open is enabled; each request has a 30-second timeout.
 
 **SQL injection in Pentest.** UNION-based GET SQLi and Burp-style raw-POST
 templating are done in `.pen` via `http_get`/`http_post` + `url_encode` —
-see [examples/sqli_union.pen](examples/sqli_union.pen),
-[examples/sqli_post.pen](examples/sqli_post.pen) and the deliberately
-vulnerable local lab [examples/sqli_lab.py](examples/sqli_lab.py)
-(`python3 examples/sqli_lab.py` serves `http://127.0.0.1:8080`).
+see the worked walkthroughs in [docs/guide/sqli.md](docs/guide/sqli.md),
+which run against a deliberately vulnerable local lab on
+`http://127.0.0.1:8080` (the lab and the full scripts are not included in the
+repository).
 
 ### 5.12 Classes, instances and attributes (2C)
 
@@ -2315,7 +2315,8 @@ API (implementation freedom inside that contract). It must provide:
   safe-point triggering, the protect stack, interior-pointer tracking for
   text/bytes buffers, and `collect()`.
 
-The runtime requires **only libc + libm**. `text`/`bytes` are immutable and
+The runtime requires **only libc, libm and libcurl** (libcurl backs the HTTP
+builtins, §5.11.8). `text`/`bytes` are immutable and
 literals may be static; every heap object — concatenated text, collections,
 function values, closure cells, classes, instances — flows through the
 registry and is reclaimed by the collector once unreachable (§7.3).
@@ -2335,7 +2336,7 @@ registry and is reclaimed by the collector once unreachable (§7.3).
 | `src/main.cpp` | CLI driver |
 | `Makefile`, `tools/embed.cpp` | build; precompiles the runtime and embeds it with the sources into `build/runtime_embed.h` (pure C++, no other tooling) |
 | `tests/**` | test harness + cases |
-| `examples/**` | example programs |
+| `examples/**` | local example programs (git-ignored, not in the repository) |
 | `editors/vscode/**` | VSCode extension: grammar, autocomplete, snippets, diagnostics |
 | `SPEC.md`, `README.md`, `CHANGELOG.md`, `docs/**` | documentation (index: [docs/README.md](docs/README.md)) |
 | `build/pentest` | the CLI binary |
@@ -2404,8 +2405,9 @@ cannot change results, and how it is validated. In brief:
 - **Mutating a collection during its own iteration is undefined** (no
   error is guaranteed, §5.8).
 - **Linux x86_64 only.** No other host/target is supported or tested.
-- **File I/O and no networking.** File I/O exists only through `open()` and
-  the file methods (§5.11.3); there is no network I/O, no `argv` builtin,
+- **File I/O and HTTP only.** File I/O exists only through `open()` and
+  the file methods (§5.11.3); network I/O is limited to the HTTP client
+  builtins (§5.11.8); there is no `argv` builtin,
   and `print` is the only output outside files. Programs may span multiple
   files (§14; unreleased in this tree), but the compiled result is still one
   standalone executable.

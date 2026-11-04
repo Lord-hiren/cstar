@@ -231,7 +231,7 @@ them in a named function declaration (`name(…):`). You also cannot name your o
 `len`, `max`, `list`, `id`, `hash`, `format`, `input`, `time`, … — all seventy-eight
 builtin names are reserved
 ([builtins guide](builtins.md)). Check the list before naming helpers;
-`examples/functions.pen` itself once broke when `sum` became reserved.
+an early example program once broke when `sum` became reserved.
 
 ### Variables are not hoisted
 

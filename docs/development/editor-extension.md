@@ -20,7 +20,7 @@ executes code except through the explicit **Run** command.
 | `syntaxes/pentest.tmLanguage.json` | the TextMate grammar | ~190 lines |
 | `snippets/pentest.json` | snippets | 24 prefixes |
 | `language-configuration.json` | comments, brackets, auto-closing pairs, indentation rules | — |
-| `test/smoke.js` | the smoke test | ~1,990 lines, 1241 checks |
+| `test/smoke.js` | the smoke test | ~1,990 lines, 1294 checks |
 
 ### The tables inside `src/extension.js`
 
@@ -83,7 +83,7 @@ node editors/vscode/test/smoke.js      # also: cd editors/vscode && npm test
 No network and no dependencies: it loads the grammar, snippets and manifest,
 tokenises sample lines using the grammar's real regular expressions, and drives
 the completion and hover providers against a stubbed `vscode` API. Exit code `0`
-means every check passed (currently 1241).
+means every check passed (currently 1294).
 
 ## Installing a development copy
 

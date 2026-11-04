@@ -54,9 +54,10 @@ open), so every call after the first skips the TCP + TLS handshake. `headers`
 is `None` or a `text` of newline-separated `Name: value` lines (Burp-style
 raw header blocks). A POST with a body defaults to
 `Content-Type: application/json` unless `headers` supplies its own
-`Content-Type`. See `extras/AI.pen` for a decision client and
-[sqli.md](sqli.md) for worked SQL-injection examples (`examples/sqli_*.pen`
-against `examples/sqli_lab.py` on `http://127.0.0.1:8080`).
+`Content-Type`. See [sqli.md](sqli.md) for worked SQL-injection examples
+against a local lab on `http://127.0.0.1:8080`, and
+[modules](modules.md#a-library-module-built-on-http) for a library module
+built on `http_post`.
 
 ### SIMD vectors (five: `fvec`, `ivec`, and friends)
 

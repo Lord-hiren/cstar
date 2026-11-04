@@ -14,6 +14,13 @@ versions are the strings reported by `pentest --version`. For the narrative see
   ([getting started](docs/guide/getting-started.md#windows-wsl)). A new
   `.gitattributes` keeps line endings LF on every OS; CRLF checkouts broke the
   test harness.
+- Corrected: suite counts (372 checks = 365 cases + 7; 1294 smoke checks) and
+  builtin counts (78) in the README and guides; the "no third-party
+  dependencies / no networking / only libc + libm" claims (programs link
+  libcurl for the HTTP builtins), including SPEC §2, §11 and §12 wording; links
+  to `examples/` and `extras/` files that are not in the repository (the
+  README quick start and getting started now use inline programs). `build/`
+  and `scan.log` are no longer tracked.
 - Reorganised the documentation into a navigable tree under `docs/`
   (`guide/`, `reference/`, `contracts/`, `internals/`, `performance/`,
   `development/`, `history/`) with an index at [docs/README.md](docs/README.md).

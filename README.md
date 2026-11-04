@@ -7,30 +7,33 @@ blocks, functions, collections, classes, exceptions, a `main:` block); the
 `pentest` toolchain translates them to C and builds a standalone Linux binary, so
 your tools run fast and ship as a single file with no interpreter to install.
 
-**Version `0.2.1`** · Linux x86_64 · toolchain in C++17, runtime in C11 · no
-third-party dependencies.
+**Version `0.2.1`** · Linux x86_64 · toolchain in C++17, runtime in C11 · one
+third-party library (libcurl, for the HTTP builtins).
 
 > **Status.** The language core is complete: control flow, collections,
 > text/bytes, functions and closures, classes, exceptions, garbage collection,
-> cross-scope variable access and 70 reserved builtins (43 Python-parity).
+> cross-scope variable access and 78 reserved builtins (43 Python-parity).
 > **In this working tree (unreleased):** multi-file programs — `import`/`from`
 > with selective loading ([guide](docs/guide/modules.md), SPEC §14) — and the
 > `()` call-syntax overhaul. Not yet: generators, inheritance, a standard
-> library (no networking yet) and non-Linux targets. Some bugs are known and
+> library (networking is limited to the HTTP client builtins) and non-Linux
+> targets. Some bugs are known and
 > documented — see [known issues](docs/reference/known-issues.md).
 
 ## Quick start
 
 Requirements: Linux x86_64, `clang`/`clang++` (developed with clang 21; 14+ is the
-stated minimum), GNU `make`, and `sha256sum`. Details in
-[getting started](docs/guide/getting-started.md).
+stated minimum), GNU `make`, `sha256sum` and the libcurl dev headers. Details
+in [getting started](docs/guide/getting-started.md) (including Windows through
+WSL).
 
 ```bash
 make                                    # builds build/pentest
-build/pentest run examples/hello.pen    # compile (cached) and run
-build/pentest build examples/hello.pen -o hello.pentest && ./hello.pentest
-build/pentest check examples/hello.pen  # parse + analyse only
-make test                               # 368 checks (about a minute)
+echo 'print("Hello, Pentest!")' > hello.pen
+build/pentest run hello.pen             # compile (cached) and run
+build/pentest build hello.pen -o hello.pentest && ./hello.pentest
+build/pentest check hello.pen           # parse + analyse only
+make test                               # 372 checks (about a minute)
 ```
 
 ## A taste of the language
@@ -179,7 +182,7 @@ Everything is indexed in **[docs/README.md](docs/README.md)**. The essentials:
 | [Gotchas](docs/guide/gotchas.md) | what surprises Python programmers |
 | [Errors and diagnostics](docs/guide/errors-and-diagnostics.md) | reading messages, exit codes |
 | [CLI reference](docs/guide/cli.md) | `run`, `build`, `check`, the cache |
-| [Builtins guide](docs/guide/builtins.md) | all 70 builtins, methods, files |
+| [Builtins guide](docs/guide/builtins.md) | all 78 builtins, methods, files |
 | [`SPEC.md`](SPEC.md) | the normative specification ([map by topic](docs/reference/spec-map.md)) |
 | [Known issues](docs/reference/known-issues.md) | reproduced bugs with workarounds |
 | [Architecture](docs/internals/architecture.md) | how the compiler and runtime fit together |
@@ -204,8 +207,7 @@ error, `2` usage error. Full reference: [CLI](docs/guide/cli.md).
 |---|---|
 | `src/` | the compiler: driver, lexer, parser, import linker (`modules.cpp`), semantic pass, C code generator, diagnostics |
 | `runtime/` | the C11 runtime (`pentest_rt.{h,c}`) linked into every program |
-| `tests/` | the harness (`run_tests.sh`), 361 cases in `tests/cases/`, and `check_docs.py` |
-| `examples/` | small example programs |
+| `tests/` | the harness (`run_tests.sh`), 365 cases in `tests/cases/`, and `check_docs.py` |
 | `editors/vscode/` | the VSCode extension |
 | `bench/` | benchmark runners, generated cases, C++ twins, recorded results |
 | `tools/` | `embed.cpp`, which embeds the runtime into the compiler |

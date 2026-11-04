@@ -27,9 +27,9 @@ performance decision is made at the point where C is emitted
     │
     ▼  src/main.cpp      writes gen.c (+ runtime sources if needed); links
     │                    the runtime object embedded by `make`, or a cached
-    │                    rt-<key>.o;  clang -O3 -march=native  gen.c  …  -lm
+    │                    rt-<key>.o;  clang -O3 -march=native  gen.c  …  -lm -lcurl
     ▼
- native executable  ──links──►  runtime/pentest_rt.{c,h}  (libc + libm only)
+ native executable  ──links──►  runtime/pentest_rt.{c,h}  (libc, libm, libcurl)
 ```
 
 A program with no imports returns from `link_imports` immediately, so the

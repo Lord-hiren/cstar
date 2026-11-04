@@ -50,7 +50,7 @@ the **current working directory** â€” not next to the source (`tools/scan.pen` â
 an argument. `build` never *serves* from the program cache, but it does use the
 shared compiled-runtime object (below).
 
-The result depends only on the system C library and libm.
+The result depends only on the system C library, libm and libcurl.
 
 ### `check`
 

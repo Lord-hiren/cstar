@@ -284,12 +284,13 @@ program and the next `pentest run` recompiles it. Editing an unrelated file
 does not. Nothing else changes: builds are still single self-contained
 executables that need no module files at run time.
 
-## A real library: the Jev decision client (`extras/AI.pen`)
+## A library module built on HTTP
 
-The repository ships a complete networking module in `extras/AI.pen` — a client
-for the Jev decision playground that uses the `http_post` builtin and falls back
-across three independent sites. It is a good model for building and consuming a
-library module:
+A networking library is an ordinary module whose functions wrap the `http_post`
+builtin. One example is the author's Jev decision client, `AI.pen`. It is kept
+outside the repository, so it isn't included here. It calls the Jev decision
+playground and falls back across three independent sites. Using such a module
+looks like this:
 
 ```text
 # your tool.pen
@@ -305,7 +306,7 @@ main:
 Run it with the library directory on `$PENTEST_PATH`:
 
 ```bash
-PENTEST_PATH=/home/hunter/Projects/Pentest/extras pentest run tool.pen
+PENTEST_PATH=/path/to/library-dir pentest run tool.pen
 ```
 
 Because modules are expanded at compile time, importing `AI` adds zero runtime

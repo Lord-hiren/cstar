@@ -946,7 +946,7 @@ Rules worth knowing (SPEC §6.10):
 
 ## 14. Builtins
 
-Seventy names are reserved as builtins. All of them are **call-only**: they can
+Seventy-eight names are reserved as builtins. All of them are **call-only**: they can
 be called but never read as values, assigned, redeclared, or used as parameter
 or loop names. Arity and named arguments are checked at compile time.
 
@@ -954,6 +954,8 @@ or loop names. Arity and named arguments are checked at compile time.
 |---|---|
 | Core | `print range len str int float bool type encode decode set collect` |
 | Environment | `input time clock` |
+| Network (unreleased) | `http_get http_post url_encode` |
+| SIMD vectors (unreleased) | `fvec ivec fvec_fill ivec_fill dot` |
 | Python-parity (43) | `abs all any ascii bin bytes callable chr delattr dict dir divmod enumerate filter format getattr globals hasattr hash hex id isinstance iter list locals map max min next oct open ord pow repr reversed round setattr slice sorted sum tuple vars zip` |
 | Always-failing stubs (9) | `super property classmethod staticmethod issubclass breakpoint help memoryview object` |
 | Rejected at compile time (3) | `eval exec compile` |
