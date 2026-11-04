@@ -4,6 +4,14 @@
 # Windows) break the build and every test.
 * text=auto eol=lf
 
+# Test expectations are compared byte-for-byte, so git must never convert them.
+# (The initial commit, made with core.autocrlf=true, stripped the intentional
+# CR from tests/cases/file_line_edges.out and broke that case in every fresh
+# clone.)
+tests/cases/*.out -text
+tests/cases/*.err -text
+tests/cases/*.in -text
+
 # Build products and frozen binaries are never text.
 *.o binary
 build/pentest binary
