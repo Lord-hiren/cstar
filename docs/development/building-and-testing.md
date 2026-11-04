@@ -133,3 +133,16 @@ checker are described in the [documentation guide](documentation-guide.md).
 * For performance-sensitive changes: the A/B procedure in
   [optimization §9](../performance/optimization.md) and, where relevant, the bench
   runners ([benchmarking](benchmarking.md)).
+
+### Continuous integration
+
+GitHub Actions (`.github/workflows/ci.yml`) runs four gates on Ubuntu 24.04 for
+every push to `main` or a `phase-*` branch and for every pull request to `main`:
+
+1. a build that fails on any compiler warning;
+2. `make test`;
+3. `node editors/vscode/test/smoke.js`;
+4. `python3 tests/check_docs.py` (code samples and links).
+
+These are the same commands as above, so a change that passes locally passes in
+CI. Windows CI is planned for the cross-platform SDK milestone.

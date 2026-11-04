@@ -1,0 +1,56 @@
+# CI — the four project gates on Linux (docs/development/building-and-testing.md):
+# a warning-free build, the test suite, the editor smoke test and the docs checker.
+name: CI
+
+on:
+  push:
+    branches: [main, "phase-*"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    # bash -eo pipefail: a failing `make` is not hidden by `| tee`
+    shell: bash
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain (clang, make, libcurl dev headers)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang make libcurl4-openssl-dev
+          clang --version
+
+      - name: Build (fails on any compiler warning)
+        run: |
+          make 2>&1 | tee build.log
+          if grep -q "warning:" build.log; then
+            echo "::error::compiler warnings in the build (the project builds warning-free)"
+            exit 1
+          fi
+          build/pentest --version
+
+      - name: Test suite
+        run: make test
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Editor extension smoke test
+        run: node editors/vscode/test/smoke.js
+
+      - name: Docs checker (code samples + links)
+        run: python3 tests/check_docs.py

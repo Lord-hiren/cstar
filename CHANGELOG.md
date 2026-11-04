@@ -7,6 +7,11 @@ versions are the strings reported by `pentest --version`. For the narrative see
 
 ## [Unreleased]
 
+### Tooling
+- GitHub Actions CI (`.github/workflows/ci.yml`): a warning-free build,
+  `make test`, the editor smoke test and the docs checker on Ubuntu 24.04, for
+  pushes to `main`/`phase-*` and pull requests to `main`.
+
 ### Documentation
 - New: [quick reference](docs/guide/quick-reference.md), the whole language and
   all 78 builtins on one page.

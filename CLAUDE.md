@@ -45,6 +45,8 @@ python3 tests/check_docs.py --samples docs/guide/language-tour.md
 
 Before a change lands, `make && make test` and `node editors/vscode/test/smoke.js` should both pass. Exit codes: `0` ok, `1` compile or runtime error, `2` usage error.
 
+**CI:** `.github/workflows/ci.yml` runs four gates on Ubuntu 24.04 for pushes to `main`/`phase-*` and for PRs to `main`: a warning-free `make`, `make test`, the smoke test and `check_docs.py`. Keep local commands and the workflow in sync.
+
 **Seeing the generated C:** the driver deletes `gen.c` after linking. To keep it, put a `clang` shim first on `PATH` that copies `*/gen.c` before calling the real clang (recipe in `docs/internals/code-generation.md` § "Inspecting generated C"). Any clang warning from `gen.c` is a bug.
 
 ## Architecture (pipeline)
