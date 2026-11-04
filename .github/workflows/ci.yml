@@ -40,7 +40,7 @@ jobs:
             echo "::error::compiler warnings in the build (the project builds warning-free)"
             exit 1
           fi
-          build/pentest --version
+          build/cstar --version
 
       - name: Test suite
         run: make test

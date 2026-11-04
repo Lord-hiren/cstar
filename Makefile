@@ -1,13 +1,14 @@
-# Pentest M1 — build system.
-# Produces build/pentest (CLI driver + frontend + codegen) with the embedded
-# runtime sources (build/runtime_embed.h, generated from runtime/pentest_rt.*).
+# cstar — build system.
+# Produces build/cstar (CLI driver + frontend + codegen) with the embedded
+# runtime sources (build/runtime_embed.h, generated from runtime/pentest_rt.*),
+# plus build/pentest, a legacy alias of the same driver (kept until v0.4).
 
 CXX = clang++
 CC = clang
 CXXFLAGS = -std=c++17 -Wall -Wextra -O2 -Isrc -Ibuild
 
 # The runtime TU is precompiled at build time with exactly the flags the
-# driver uses for its on-demand path, then embedded in `build/pentest`.
+# driver uses for its on-demand path, then embedded in `build/cstar`.
 # A first-ever `run`/`build` links against that object instead of spending
 # ~6 s compiling 8k lines of C (TODO.txt cold-start speed goal). The
 # build machine's /proc/cpuinfo `flags` line is embedded as well: the
@@ -22,10 +23,15 @@ SRC = src/main.cpp src/lexer.cpp src/parser.cpp src/semantic.cpp \
 OBJ = $(patsubst src/%.cpp,build/%.o,$(SRC))
 DEP = $(OBJ:.o=.d)
 
-all: build/pentest
+all: build/cstar build/pentest
 
-build/pentest: $(OBJ)
+build/cstar: $(OBJ)
 	$(CXX) $(CXXFLAGS) -o $@ $(OBJ) -lcurl
+
+# Legacy alias (until v0.4): `pentest` runs the same driver. Falls back to a
+# copy where symlinks are unavailable.
+build/pentest: build/cstar
+	ln -sf cstar $@ 2>/dev/null || cp -f build/cstar $@
 
 build/%.o: src/%.cpp build/runtime_embed.h | build
 	$(CXX) $(CXXFLAGS) -MMD -MP -c -o $@ $<
@@ -48,7 +54,7 @@ $(RT_CPU): | build
 build:
 	mkdir -p build
 
-test: build/pentest
+test: build/cstar build/pentest
 	bash tests/run_tests.sh
 
 clean:

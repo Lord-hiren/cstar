@@ -434,8 +434,10 @@ class Linker {
     roots.push_back(importer_dir);
     char cwd[PATH_MAX];
     if (::getcwd(cwd, sizeof cwd) != nullptr) roots.push_back(cwd);
-    const char* env = std::getenv("PENTEST_PATH");
-    if (env != nullptr) {
+    // $CSTAR_PATH first, then the legacy $PENTEST_PATH (accepted until v0.4).
+    for (const char* var : {"CSTAR_PATH", "PENTEST_PATH"}) {
+      const char* env = std::getenv(var);
+      if (env == nullptr) continue;
       std::string paths(env);
       std::size_t start = 0;
       while (start <= paths.size()) {
@@ -452,8 +454,11 @@ class Linker {
       if (root.empty()) continue;
       const std::string base =
           path_is_absolute(root) ? root : path_join(std::string("."), root);
+      // `.cst` first; the legacy `.pen` / `.pent` spellings until v0.4.
       std::vector<std::string> candidates = {
-          path_join(base, rel + ".pen"), path_join(base, rel + ".pent"),
+          path_join(base, rel + ".cst"), path_join(base, rel + ".pen"),
+          path_join(base, rel + ".pent"),
+          path_join(path_join(base, rel), "__init__.cst"),
           path_join(path_join(base, rel), "__init__.pen"),
           path_join(path_join(base, rel), "__init__.pent")};
       for (const std::string& c : candidates) {

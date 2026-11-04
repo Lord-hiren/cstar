@@ -1,4 +1,5 @@
-// src/main.cpp — Pentest M1 CLI driver: run / build / check.
+// src/main.cpp — cstar CLI driver: run / build / check (also reachable as the
+// legacy `pentest` alias until v0.4).
 //
 // Implements the CLI contract in docs/contracts/m1-semantics.md §9 and drives the
 // compile pipeline of §10:
@@ -39,13 +40,14 @@ enum class Mode { Run, Build, Check };
 
 void print_usage(std::FILE* out) {
   std::fputs(
-      "usage: pentest <file.pen|file.pent> [args...]\n"
-      "       pentest run <file.pen|file.pent> [args...]\n"
-      "       pentest build <file.pen|file.pent> [-o out]\n"
-      "       pentest check <file.pen|file.pent>\n"
-      "       pentest --help\n"
-      "       pentest --version\n"
-      "source files use the .pen or .pent extension\n",
+      "usage: cstar <file.cst> [args...]\n"
+      "       cstar run [<file.cst> [args...]]\n"
+      "       cstar build [<file.cst>] [-o out]\n"
+      "       cstar check [<file.cst>]\n"
+      "       cstar --help\n"
+      "       cstar --version\n"
+      "source files use the .cst extension (legacy .pen/.pent accepted until v0.4);\n"
+      "run, build and check without a file use ./index.cst\n",
       out);
 }
 
@@ -146,7 +148,7 @@ std::string make_temp_dir() {
   std::string base =
       (t != nullptr && t[0] != '\0') ? std::string(t) : std::string("/tmp");
   if (!ensure_dir(base)) return std::string();
-  std::string tmpl = base + "/pentest-XXXXXX";
+  std::string tmpl = base + "/cstar-XXXXXX";
   std::vector<char> buf(tmpl.begin(), tmpl.end());
   buf.push_back('\0');
   if (mkdtemp(buf.data()) == nullptr) return std::string();
@@ -163,7 +165,7 @@ void remove_sources(const std::string& dir) {
 }
 
 // ---------------------------------------------------------------------------
-// Cache (run mode): $XDG_CACHE_HOME/pentest (fallback ~/.cache/pentest)
+// Cache (run mode): $XDG_CACHE_HOME/cstar (fallback ~/.cache/cstar)
 // ---------------------------------------------------------------------------
 
 std::string cache_dir() {
@@ -183,7 +185,7 @@ std::string cache_dir() {
       base = std::string(pw->pw_dir) + "/.cache";
     }
   }
-  return base + "/pentest";
+  return base + "/cstar";
 }
 
 std::string shell_single_quote(const std::string& s) {
@@ -218,7 +220,7 @@ std::string compute_cache_key(const std::string& source) {
       (t != nullptr && t[0] != '\0') ? std::string(t) : std::string("/tmp");
   if (!ensure_dir(td)) return std::string();
 
-  std::string tmpl = td + "/pentest-hash-XXXXXX";
+  std::string tmpl = td + "/cstar-hash-XXXXXX";
   std::vector<char> buf(tmpl.begin(), tmpl.end());
   buf.push_back('\0');
   int fd = mkstemp(buf.data());
@@ -234,7 +236,7 @@ std::string compute_cache_key(const std::string& source) {
     return std::string();
   }
   // Toolchain identity: the run cache must not outlive the binary that
-  // produced it. A rebuilt/updated `pentest` has a new size/mtime, so
+  // produced it. A rebuilt/updated `cstar` has a new size/mtime, so
   // compiler or codegen changes re-key every entry — a stale executable
   // can never be served after a `make` (content-addressed keys cannot see
   // .cpp changes). stat(/proc/self/exe) is microseconds; an unchanged
@@ -462,7 +464,7 @@ int compile_program(const pentest::Program& program, std::string& in_out_path) {
   //      It is only used when the host's /proc/cpuinfo flags match the
   //      build host's, so a copied binary cannot execute incompatible code.
   //   2. Otherwise the object is compiled once per distinct embedded-runtime
-  //      content + flags + CPU into $XDG_CACHE_HOME/pentest/rt-<key>.o, and
+  //      content + flags + CPU into $XDG_CACHE_HOME/cstar/rt-<key>.o, and
   //      every program links gen.c against that object (no cross-TU inlining
   //      without LTO, so the result matches the single-invocation build).
   // Any miss or cache problem falls back to — or degrades to — the original
@@ -531,7 +533,7 @@ int compile_program(const pentest::Program& program, std::string& in_out_path) {
                        std::strerror(cerr2));
           if (cerr2 == ENOENT) {
             std::fprintf(stderr,
-                         "error: 'clang' was not found on PATH; the Pentest "
+                         "error: 'clang' was not found on PATH; the cstar "
                          "toolchain requires clang to build programs\n");
           }
         } else if (WIFSIGNALED(cstatus)) {
@@ -573,7 +575,7 @@ int compile_program(const pentest::Program& program, std::string& in_out_path) {
     std::fprintf(stderr, "error: cannot run 'clang': %s\n", std::strerror(err));
     if (err == ENOENT) {
       std::fprintf(stderr,
-                   "error: 'clang' was not found on PATH; the Pentest "
+                   "error: 'clang' was not found on PATH; the cstar "
                    "toolchain requires clang to build programs\n");
     }
     if (!rt_obj_tmp.empty()) ::unlink(rt_obj_tmp.c_str());
@@ -598,13 +600,27 @@ int compile_program(const pentest::Program& program, std::string& in_out_path) {
   return 0;
 }
 
-// True for a Pentest source path: `.pen` or `.pent`.
+// The default entry file for `run` / `build` / `check` without a file.
+constexpr const char kDefaultEntry[] = "index.cst";
+
+// True for a source path: `.cst`, or the legacy `.pen` / `.pent` (accepted
+// until v0.4).
 bool is_source_path(const std::string& p) {
-  return ends_with(p, ".pen") || ends_with(p, ".pent");
+  return ends_with(p, ".cst") || ends_with(p, ".pen") || ends_with(p, ".pent");
 }
 
-// `scanner.pen` / `scanner.pent` -> `scanner.pentest` (in the current
-// directory).
+bool is_regular_file(const std::string& p) {
+  struct stat st;
+  return ::stat(p.c_str(), &st) == 0 && S_ISREG(st.st_mode);
+}
+
+bool is_directory(const std::string& p) {
+  struct stat st;
+  return ::stat(p.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
+}
+
+// `tools/scanner.cst` -> `scanner` (in the current directory): the source
+// basename without its extension. Legacy `.pen` / `.pent` map the same way.
 std::string default_output(const std::string& source_path) {
   std::size_t slash = source_path.rfind('/');
   std::string base = (slash == std::string::npos)
@@ -613,9 +629,8 @@ std::string default_output(const std::string& source_path) {
   if (ends_with(base, ".pent")) {
     base.resize(base.size() - 5);  // strip ".pent"
   } else {
-    base.resize(base.size() - 4);  // strip the validated ".pen" suffix
+    base.resize(base.size() - 4);  // strip the validated ".cst" / ".pen"
   }
-  base += ".pentest";
   return base;
 }
 
@@ -631,7 +646,7 @@ int main(int argc, char** argv) {
     return 0;
   }
   if (args[0] == "--version" || args[0] == "-v") {
-    std::printf("pentest %s\n", kVersion);
+    std::printf("cstar %s\n", kVersion);
     return 0;
   }
 
@@ -639,8 +654,12 @@ int main(int argc, char** argv) {
   std::size_t first = 0;  // index of the source path in args
   if (args[0] == "run" || args[0] == "build" || args[0] == "check") {
     if (args.size() < 2) {
-      return usage_error("'" + args[0] +
-                         "' requires a .pen or .pent source file");
+      // No file: the default entry ./index.cst (like Node's index.js).
+      if (!is_regular_file(kDefaultEntry)) {
+        return usage_error(std::string("no source file given and ./") +
+                           kDefaultEntry + " does not exist");
+      }
+      args.push_back(kDefaultEntry);
     }
     if (args[0] == "run") {
       mode = Mode::Run;
@@ -651,15 +670,16 @@ int main(int argc, char** argv) {
     }
     first = 1;
   }
-  // Anything else is the bare `pentest <file.pen> [args...]` run form.
+  // Anything else is the bare `cstar <file.cst> [args...]` run form.
 
   const std::string source_path = args[first];
   std::vector<std::string> extra(args.begin() + static_cast<long>(first) + 1,
                                  args.end());
 
   if (!is_source_path(source_path)) {
-    return usage_error("source path must end with '.pen' or '.pent': '" +
-                       source_path + "'");
+    return usage_error(
+        "source path must end with '.cst' (or the legacy '.pen'/'.pent'): '" +
+        source_path + "'");
   }
 
   std::string build_out;
@@ -676,11 +696,16 @@ int main(int argc, char** argv) {
         ++i;
       } else {
         return usage_error("unexpected argument '" + extra[i] +
-                           "' (usage: pentest build <file.pen|file.pent> "
-                           "[-o out])");
+                           "' (usage: cstar build [<file.cst>] [-o out])");
       }
     }
-    if (build_out.empty()) build_out = default_output(source_path);
+    if (build_out.empty()) {
+      build_out = default_output(source_path);
+      if (is_directory(build_out)) {
+        return usage_error("default output '" + build_out +
+                           "' is a directory; choose a name with -o");
+      }
+    }
   } else if (mode == Mode::Check) {
     if (!extra.empty()) {
       return usage_error("'check' takes no arguments beyond the source file");
@@ -723,7 +748,7 @@ int main(int argc, char** argv) {
       }
       std::string key = compute_cache_key(key_material);
       if (!key.empty() && ensure_dir(cdir)) {
-        cache_bin = cdir + "/" + key + ".pentest";
+        cache_bin = cdir + "/" + key + ".bin";
         if (::access(cache_bin.c_str(), X_OK) == 0) {
           try_exec(cache_bin, extra);  // falls through only on exec failure
         }
