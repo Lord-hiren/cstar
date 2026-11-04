@@ -16,21 +16,21 @@ See: .paul/PROJECT.md (updated 2026-11-04 after Phase 1)
 ## Current Position
 
 Milestone: v0.3 cstar Foundation (v0.3.0)
-Phase: 2 of 4 (Rename to cstar)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-11-04 — Phase 1 complete (3/3 plans), transitioned to Phase 2
+Phase: 2 of 4 (Rename to cstar) — Applying
+Plan: 02-01 approved, executing
+Status: Applying 02-01
+Last activity: 2026-11-05 — Plan 02-01 approved; APPLY started
 
 Progress:
-- Milestone: [███░░░░░░░] 33% (3 of 9 plans; 1 of 4 phases)
-- Phase 2: [░░░░░░░░░░] 0%
+- Milestone: [███░░░░░░░] 30% (3 of 10 plans; 1 of 4 phases)
+- Phase 2: [░░░░░░░░░░] 0% (0 of 4 plans)
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ○        ○        ○     [Ready for first PLAN of Phase 2]
+  ✓        ◉        ○     [Applying 02-01]
 ```
 
 ## Accumulated Context
@@ -44,6 +44,9 @@ PLAN ──▶ APPLY ──▶ UNIFY
 | LF everywhere; test expectations `-text` (byte-exact) | Phase 1 | Never convert line endings; `.out` files are stored exactly |
 | `examples/` stays private; docs use inline programs | Phase 1 | No links into `examples/` or `extras/` |
 | One branch per phase, a commit per task; no push without approval (repo is public) | Phase 1 | `main` changes only when you ask |
+| 2026-11-05: source extension `.cst`; old names (`.pen`/`.pent`, `PENTEST_PATH`, `pentest` command) keep working until v0.4 | Phase 2 | Rename lands in small steps; nothing breaks |
+| 2026-11-05: `index.cst` is the default entry (`cstar run`/`build`/`check` with no file); build output = source name without extension (`hello.cst` → `hello`) | Phase 2 | No more `.pentest` output files |
+| 2026-11-05: rename internals too (C++ namespace, `pt_` prefixes, `pentest_rt.*`) | Phase 2 | Own plan (02-03); Phase 2 grows to 4 plans |
 
 Full decision log: PROJECT.md → Key Decisions.
 
@@ -51,7 +54,6 @@ Full decision log: PROJECT.md → Key Decisions.
 
 | Issue | Origin | Effort | Revisit |
 |-------|--------|--------|---------|
-| Source extension: `.cstar` or `.cst`? `.pen` transition? Rename internal `pt_` prefixes? | Init | S | **02-01 planning (now)** |
 | D-6: SPEC lacks `fvec`/`ivec`/`fvec_fill`/`ivec_fill`/`dot`; says "seventy" (code has 78) | 01-02 | M | With 02-03 (SPEC) or its own plan |
 | D-7: VSCode extension `RESERVED` lacks the 5 vector builtins | 01-02 | S | 02-02 (editor extension) |
 | D-8: docs/history headers say "current suite is 368 checks" | 01-02 | S | When the rename touches history docs |
@@ -64,17 +66,17 @@ None.
 
 ### Git State
 
-Last commit: (Phase 1 transition commit, see `git log -1`)
-Branch: phase-1-dev-environment (8 commits ahead of main, local only)
+Last commit: 0cb0525 feat(01): dev environment and repo hygiene complete
+Branch: phase-1-dev-environment (7 commits ahead of main, local only)
 main: 6c82d72 (local and remote, unchanged)
 Feature branches merged: none (merge into main and push only when you ask)
 
 ## Session Continuity
 
 Last session: 2026-11-04
-Stopped at: Phase 1 complete, ready to plan Phase 2
-Next action: /paul:plan for Phase 2 (02-01: naming decisions and driver/CLI rename)
-Resume file: .paul/ROADMAP.md
+Stopped at: Plan 02-01 created
+Next action: Review and approve plan, then run /paul:apply .paul/phases/02-rename-to-cstar/02-01-PLAN.md
+Resume file: .paul/phases/02-rename-to-cstar/02-01-PLAN.md
 
 ---
 *STATE.md — Updated after every significant action*

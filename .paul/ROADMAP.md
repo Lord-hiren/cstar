@@ -40,7 +40,7 @@ Phases: 1 of 4 complete
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
 | 1 | Dev environment & repo hygiene | 3/3 | ✅ Complete | 2026-11-04 |
-| 2 | Rename to cstar | 3 | Not started | - |
+| 2 | Rename to cstar | 4 | Planning | - |
 | 3 | Fix known issues | 2 | Not started | - |
 | 4 | Release v0.3.0 | 1 | Not started | - |
 
@@ -71,17 +71,25 @@ VSCode extension and docs.
 **Depends on:** Phase 1 (a passing baseline to compare against)
 **Research:** Unlikely (mechanical, about 1,060 mentions in 114 files)
 
+**Decided (2026-11-05):**
+- Source extension `.cst`
+- Old names (`.pen`/`.pent`, `PENTEST_PATH`, a `pentest` command alias) keep working until v0.4
+- `index.cst` is the default entry file; build output is the source name without its extension
+- Internal names are renamed too
+
 **Scope:**
-- Decide first: the source extension (`.cstar` or `.cst`; not `.cs`, which is C#), whether `.pen`/`.pent` keep working during a transition, and whether internal C prefixes (`pt_`, `pentest_rt`) are renamed
-- Driver: binary name, `--version`, usage text, extension checks, `CSTAR_PATH`, cache folder
-- Tests: harness, `.err` expectations, the extension check
-- VSCode extension: language id, grammar, snippets, smoke test
+- Driver: `cstar` binary (+ `pentest` alias), `--version`, usage text, extension checks, `index.cst`, output naming, `CSTAR_PATH`, cache folder
+- Tests: harness, `.err` expectations, the extension checks; test files `.pen` → `.cst`
+- Language name in error messages (normative: code + SPEC + tests together)
+- VSCode extension: language id, `.cst` association, grammar, snippets, smoke test
+- Internal names: C++ namespace, runtime `pt_` prefixes, `pentest_rt.*`, mangling prefix
 - Docs, SPEC, README, CHANGELOG (SPEC section numbers unchanged)
 
 **Plans:**
-- [ ] 02-01: Naming decisions and driver/CLI rename
-- [ ] 02-02: Tests and editor extension
-- [ ] 02-03: Docs and SPEC
+- [ ] 02-01: `cstar` CLI — binary + alias, `.cst`, `index.cst`, output naming, `CSTAR_PATH`, cache; harness, CI, SPEC CLI sections
+- [ ] 02-02: Language name in messages, test files → `.cst`, editor extension
+- [ ] 02-03: Internal names (namespace, `pt_` prefixes, runtime files)
+- [ ] 02-04: Docs and SPEC wording
 
 ### Phase 3: Fix known issues
 
