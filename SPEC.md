@@ -109,17 +109,16 @@ see §13):
 
 ## 2. Source files and executables
 
-- Pentest source files use the extension **`.pen`** (e.g. `scanner.pen`);
-  the CLI equally accepts **`.pent`** (e.g. `scanner.pent`) everywhere a
-  source path is given. `.pen` is the canonical spelling; `.pentest` is
-  never a source extension.
-- Compiled native executables use the extension **`.pentest`** by convention
-  (e.g. `scanner.pentest`).
-- The CLI requires every source path argument to end in `.pen` or `.pent` (§10).
-- Linux does not require executable extensions; `.pentest` exists to make
-  compiled output easy to distinguish from source.
+- Source files use the extension **`.cst`** (e.g. `scanner.cst`). The legacy
+  extensions **`.pen`** and **`.pent`** are accepted everywhere a source path
+  is given until v0.4. `.pentest` is never a source extension.
+- Compiled native executables have **no extension** on Linux: `cstar build`
+  names the output after the source basename (`scanner.cst` → `scanner`, §10).
+- The CLI requires every source path argument to end in `.cst`, `.pen` or
+  `.pent` (§10). `run`, `build` and `check` without a path use the default
+  entry file **`./index.cst`**.
 - A produced executable is standalone apart from the system C library,
-  libm and libcurl — it does not need the `pentest` toolchain at run time.
+  libm and libcurl — it does not need the `cstar` toolchain at run time.
 
 ## 3. Lexical structure
 
@@ -2105,30 +2104,38 @@ Unchanged from M1:
 
 ## 10. Command-line interface
 
-**Unchanged from M1** (only the version string differs):
+**The `cstar` command.** It was called `pentest` before v0.3; `pentest`
+remains as an alias of the same driver until v0.4.
 
 ```text
-pentest <file.pen|file.pent> [args...]        # = run
-pentest run <file.pen|file.pent> [args...]    # compile (cached) + exec, pass [args] through
-pentest build <file.pen|file.pent> [-o out]   # native executable, default: <base>.pentest
-pentest check <file.pen|file.pent>            # parse + semantic only; silent on success
-pentest --help | -h
-pentest --version | -v              # prints: pentest 0.2.1
+cstar <file.cst> [args...]              # = run
+cstar run [<file.cst> [args...]]        # compile (cached) + exec, pass [args] through
+cstar build [<file.cst>] [-o out]       # native executable, default: ./<base>
+cstar check [<file.cst>]                # parse + semantic only; silent on success
+cstar --help | -h
+cstar --version | -v                    # prints: cstar 0.2.1
 ```
 
-- `pentest <file.pen>` with no subcommand is shorthand for `run`.
-- The source path **must end in `.pen` or `.pent`**, otherwise it is a
-  usage error (exit 2); `.pentest` is rejected as a source path.
-- `build` output default: the source basename with `.pen`/`.pent` replaced
-  by `.pentest`, **written to the current working directory** (e.g.
-  `tools/scan.pen` → `./scan.pentest`, `scan.pent` → `./scan.pentest`);
-  `-o out` overrides it. `build` does not run the program.
+- `cstar <file.cst>` with no subcommand is shorthand for `run`. Bare `cstar`
+  with no arguments is a usage error (exit 2).
+- **Default entry:** `run`, `build` and `check` without a source path use
+  `./index.cst`. If it does not exist, that is a usage error (exit 2,
+  `no source file given and ./index.cst does not exist`).
+- The source path **must end in `.cst`** (or the legacy `.pen` / `.pent`,
+  accepted until v0.4), otherwise it is a usage error (exit 2); `.pentest` is
+  rejected as a source path.
+- `build` output default: the source basename **without its extension**,
+  **written to the current working directory** (e.g. `tools/scan.cst` →
+  `./scan`, `scan.pent` → `./scan`); `-o out` overrides it. If the default
+  name is an existing directory (e.g. `lib.cst` next to a `lib/` module
+  folder), `build` stops with a usage error (exit 2) that asks for `-o`.
+  `build` does not run the program.
 - `check` runs only the lexer/parser and the semantic pass — no code
   generation, no `clang`. It is silent on success; errors → exit 1.
-- **`run` cache:** the cache lives in `$XDG_CACHE_HOME/pentest/`, falling
-  back to `~/.cache/pentest/`. The key is the sha256 of (source bytes +
+- **`run` cache:** the cache lives in `$XDG_CACHE_HOME/cstar/`, falling
+  back to `~/.cache/cstar/`. The key is the sha256 of (source bytes +
   version string + toolchain identity — the size and mtime of the running
-  `pentest` binary, so a rebuilt toolchain automatically re-keys every
+  `cstar` binary, so a rebuilt toolchain automatically re-keys every
   entry and stale executables are never served), computed by invoking
   `sha256sum` through a pipe. If
   `sha256sum` is unavailable, caching is disabled and every `run` compiles.
@@ -2136,8 +2143,8 @@ pentest --version | -v              # prints: pentest 0.2.1
   propagates.
 - **Compile pipeline:** the driver writes the generated `gen.c` plus the
   embedded runtime sources `pentest_rt.h`/`pentest_rt.c` (embedded in the
-  `pentest` binary via `build/runtime_embed.h`) into a temp dir, then runs
-  `clang -std=c11 -O3 -march=native -o <out> gen.c pentest_rt.c -lm`. The
+  `cstar` binary via `build/runtime_embed.h`) into a temp dir, then runs
+  `clang -std=c11 -O3 -march=native -o <out> gen.c pentest_rt.c -lm -lcurl`. The
   runtime translation unit is identical for every program, so `make`
   precompiles it with those same flags and embeds the object (plus the build
   host's `/proc/cpuinfo` `flags` line) in the binary: a first-ever
@@ -2343,11 +2350,12 @@ registry and is reclaimed by the collector once unreachable (§7.3).
 
 ### 11.6 Cache
 
-`run` caches compiled executables under `$XDG_CACHE_HOME/pentest/` (fallback
-`~/.cache/pentest/`), keyed by sha256(entry source bytes + every imported
-module's source bytes + version string + toolchain identity: the size/mtime
-of the running `pentest` binary — a `make` or toolchain update re-keys the
-cache instead of serving stale executables) computed
+`run` caches compiled executables as `<key>.bin` under
+`$XDG_CACHE_HOME/cstar/` (fallback `~/.cache/cstar/`), keyed by sha256(entry
+source bytes + every imported module's source bytes + version string +
+toolchain identity: the size/mtime of the running `cstar` binary — a `make`
+or toolchain update re-keys the cache instead of serving stale executables)
+computed
 via `sha256sum` through a pipe. Editing an imported module therefore
 invalidates the cache exactly like editing the entry file (§14.6).
 No `sha256sum` → no caching. Hit → exec the
@@ -2504,15 +2512,20 @@ For a specifier `a.b`, the relative path is `a/b`. The linker searches these
 roots in order, taking the first existing candidate:
 
 1. the **directory of the importing file** (its canonical parent directory);
-2. the **current working directory** of the `pentest` process;
-3. each colon-separated entry of **`$PENTEST_PATH`** (empty entries are
-   skipped).
+2. the **current working directory** of the `cstar` process;
+3. each colon-separated entry of **`$CSTAR_PATH`** (empty entries are
+   skipped);
+4. each colon-separated entry of the legacy **`$PENTEST_PATH`** (accepted
+   until v0.4; empty entries are skipped).
 
-At each root it tries, in order:
+At each root it tries, in order (`.cst` first; the legacy spellings until
+v0.4):
 
 ```text
+<root>/<rel>.cst
 <root>/<rel>.pen
 <root>/<rel>.pent
+<root>/<rel>/__init__.cst
 <root>/<rel>/__init__.pen
 <root>/<rel>/__init__.pent
 ```

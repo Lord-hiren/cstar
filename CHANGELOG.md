@@ -7,6 +7,22 @@ versions are the strings reported by `pentest --version`. For the narrative see
 
 ## [Unreleased]
 
+### Changed
+- **The CLI is now `cstar`** (the rename from Pentest to cstar begins). The
+  old names keep working until v0.4: `pentest` is an alias of the same driver,
+  `.pen`/`.pent` sources are still accepted, and `$PENTEST_PATH` is still
+  searched after the new `$CSTAR_PATH`.
+- Source files use the **`.cst`** extension; modules resolve `.cst` first
+  (`<rel>.cst`, then `.pen`/`.pent`, then `__init__.cst`/`.pen`/`.pent`).
+- `cstar run`, `cstar build` and `cstar check` **without a file use
+  `./index.cst`** (exit 2 if it does not exist).
+- **`build` output has no extension**: `cstar build tools/scan.cst` writes
+  `./scan` (previously `./scan.pentest`). If that name is an existing
+  directory, `build` stops with exit 2 and asks for `-o`.
+- `--version` prints `cstar 0.2.1`. The run cache moved to
+  `$XDG_CACHE_HOME/cstar/` (`<key>.bin`); scratch folders are `cstar-*`. The
+  old `~/.cache/pentest/` is no longer used and can be deleted.
+
 ### Tooling
 - GitHub Actions CI (`.github/workflows/ci.yml`): a warning-free build,
   `make test`, the editor smoke test and the docs checker on Ubuntu 24.04, for

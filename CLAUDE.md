@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Pentest is a Python-like language for security tooling. The `pentest` toolchain (C++17, `src/`) translates a `.pen`/`.pent` program into **one C11 translation unit**, compiles it with `clang -O3 -march=native`, and links it against a C11 runtime (`runtime/pentest_rt.{h,c}`). There is no IR and no optimiser pass: every performance decision is made where C is emitted.
+cstar (formerly Pentest) is a Python-like language for security tooling. The `cstar` toolchain (C++17, `src/`; `pentest` remains an alias of the same driver until v0.4) translates a `.cst` program (legacy `.pen`/`.pent` are accepted until v0.4; the test cases are still `.pen`) into **one C11 translation unit**, compiles it with `clang -O3 -march=native`, and links it against a C11 runtime (`runtime/pentest_rt.{h,c}`). There is no IR and no optimiser pass: every performance decision is made where C is emitted.
 
 **Linux x86_64 only.** You need `clang`/`clang++`, GNU `make`, `sha256sum`, `/proc/cpuinfo` and the libcurl dev headers (the runtime's `http_get`/`http_post` builtins use libcurl; `Makefile` and `src/main.cpp` link `-lcurl`).
 
@@ -13,7 +13,7 @@ Pentest is a Python-like language for security tooling. The `pentest` toolchain 
 ```bash
 wsl -d Ubuntu-24.04 -- make
 wsl -d Ubuntu-24.04 -- make test
-wsl -d Ubuntu-24.04 -- bash -c 'build/pentest run tests/cases/NAME.pen </dev/null | diff tests/cases/NAME.out -'
+wsl -d Ubuntu-24.04 -- bash -c 'build/cstar run tests/cases/NAME.pen </dev/null | diff tests/cases/NAME.out -'
 wsl -d Ubuntu-24.04 -- python3 tests/check_docs.py
 node editors/vscode/test/smoke.js      # runs natively on Windows
 ```
@@ -26,16 +26,17 @@ node editors/vscode/test/smoke.js      # runs natively on Windows
 ## Commands
 
 ```bash
-make                                   # build/pentest (also precompiles + embeds the runtime)
-make test                              # bash tests/run_tests.sh: every tests/cases/*.pen + 7 CLI checks (~70 s)
+make                                   # build/cstar + the build/pentest alias (also precompiles + embeds the runtime)
+make test                              # bash tests/run_tests.sh: every tests/cases/*.pen + 11 CLI checks (~30 s)
 make clean                             # rm -rf build
 
-build/pentest run  prog.pen [args]     # compile (content-hash cached) and run
-build/pentest build prog.pen -o out    # native executable; default ./<basename>.pentest in CWD
-build/pentest check prog.pen           # lex+parse+link(strict)+semantic only, no clang; silent on success
+build/cstar run  prog.cst [args]       # compile (content-hash cached) and run
+build/cstar build prog.cst -o out      # native executable; default ./<basename> (no extension) in CWD
+build/cstar check prog.cst             # lex+parse+link(strict)+semantic only, no clang; silent on success
+build/cstar run                        # no file: runs ./index.cst (exit 2 if missing)
 
 # Single test case (the harness has no filter): stdin is <name>.in or /dev/null
-build/pentest run tests/cases/NAME.pen </dev/null | diff tests/cases/NAME.out -
+build/cstar run tests/cases/NAME.pen </dev/null | diff tests/cases/NAME.out -
 
 node editors/vscode/test/smoke.js      # editor extension checks (no deps)
 python3 tests/check_docs.py            # run every doc code sample + check links (not part of make test)
@@ -64,7 +65,7 @@ src/main.cpp      CLI, temp dir, sha256sum cache key, runtime-object cache, clan
 
 - **Semantic phases** (in order): declaration discovery (this is why forward references work), globals, top-level/`main:` statements, function bodies (locals, capture analysis/cell boxing, static arity checks), then cross-scope `variable.<q> name` resolution. The last runs after everything else so it can target functions declared later in the file.
 - **Callee identity and builtin shapes are resolved at compile time.** Arity and named-argument errors are compile errors. Each builtin becomes one direct `pt_builtin_*` C call, driven by the table in `src/builtins.h`. Builtins the program doesn't use emit nothing.
-- **Runtime embedding:** `tools/embed.cpp` produces `build/runtime_embed.h` from the runtime sources, a precompiled `build/pentest_rt.o` and the build host's `/proc/cpuinfo` flags line, which acts as an ISA fingerprint. As a result, **any runtime edit rebuilds every TU** and re-keys the runtime cache. If the CPU doesn't match, the driver falls back to `$XDG_CACHE_HOME/pentest/rt-<key>.o`.
+- **Runtime embedding:** `tools/embed.cpp` produces `build/runtime_embed.h` from the runtime sources, a precompiled `build/pentest_rt.o` and the build host's `/proc/cpuinfo` flags line, which acts as an ISA fingerprint. As a result, **any runtime edit rebuilds every TU** and re-keys the runtime cache. If the CPU doesn't match, the driver falls back to `$XDG_CACHE_HOME/cstar/rt-<key>.o`. Module search: importing file's folder, CWD, `$CSTAR_PATH`, then the legacy `$PENTEST_PATH`.
 - **Runtime model:** `pt_value` is a 16-byte tagged union passed by value. Memory is managed by a non-moving mark & sweep GC whose roots are shadow-stack frames (`pt_frame_begin`), registered globals and a protect stack. Runtime errors become exception instances. Every failing operation is passed its source line, so an uncaught error prints `file:line: runtime error: …`.
 - **Codegen invariants** (`docs/internals/code-generation.md` § "Rules the generator must keep"):
   - forward declarations come before all definitions;
@@ -85,7 +86,7 @@ src/main.cpp      CLI, temp dir, sha256sum cache key, runtime-object cache, clan
 | `NAME.in` | stdin |
 
 - Prefixes group cases by area: `rt_` uncaught runtime errors, `err_` compile/runtime failures, `cf_`, `bi_`/`bi_py_`, `col_`, `fn_`, `cls_`/`exc_`/`gc_`, `varq_`/`xvar_`, `imp_` (fixtures in `tests/cases/lib/`), and others. The full table is in `docs/development/building-and-testing.md`.
-- To add a case, start the `.pen` with a one-line comment naming what it proves and its SPEC §. Generate the `.out` with `build/pentest run`, **review it** (cross-check against Python where parity applies), then add `.err`/`.exit` for failures.
+- To add a case, start the `.pen` with a one-line comment naming what it proves and its SPEC §. Generate the `.out` with `build/cstar run`, **review it** (cross-check against Python where parity applies), then add `.err`/`.exit` for failures.
 - Every bug fix lands with a regression case. Never loosen a test to make it pass.
 - The harness isolates `XDG_CACHE_HOME` and scratch dirs per run.
 
@@ -98,9 +99,9 @@ src/main.cpp      CLI, temp dir, sha256sum cache key, runtime-object cache, clan
 - **Moving or renaming a doc** means updating every reference to it (`grep -rn "docs/" src runtime bench editors tests`) and rerunning `check_docs.py --links`.
 - **Doc code samples are executed:** a ```` ```python ```` fence followed by a ```` ```text ```` fence is a test (stdout then stderr). Use `<!-- no-run -->` before the fence to skip one.
 - **Some docs are historical records:** `docs/history/*` and `docs/performance/baseline-*.md` describe a past moment. Add a note to them instead of updating.
-- **Repeated counts and versions:** test counts, "N builtins" and the version string appear in several docs and may already be stale. The real values come from `make test` and `pentest --version`.
-- **Vocabulary:** write *text* (not string) and *map* (not dict), "Pentest" for the language and `pentest` for the CLI.
-- **The language deliberately differs from Python:** `//` is a comment, `and`/`or` return `bool`, an unparenthesised `a, b` joins into text, exception matching is by exact class, and `eval`/`exec` are rejected. Read `docs/guide/gotchas.md` before writing `.pen` code.
+- **Repeated counts and versions:** test counts, "N builtins" and the version string appear in several docs and may already be stale. The real values come from `make test` and `cstar --version`.
+- **Vocabulary:** write *text* (not string) and *map* (not dict). The language is being renamed from Pentest to **cstar** (Phase 2): new text says cstar, and the CLI is `cstar`; older docs still say Pentest until plan 02-04.
+- **The language deliberately differs from Python:** `//` is a comment, `and`/`or` return `bool`, an unparenthesised `a, b` joins into text, exception matching is by exact class, and `eval`/`exec` are rejected. Read `docs/guide/gotchas.md` before writing `.cst` code.
 - **`build/` is git-ignored**; `make` recreates it. `examples/` and top-level `tests/*.pen` are git-ignored scratch.
 - **Bench runners overwrite recorded results:** `bench/run-m2b.sh`, `run-m2c.sh` and `run-varq.sh` rewrite the baselines in `bench/results/` that `docs/performance/` quotes. Only `bench/run.sh` is insulated, because it uses the frozen `bench/tools/pentest-m1`.
 - **Fixed bugs:** when you fix a bug listed in `docs/reference/known-issues.md`, delete its entry and note the fix in `CHANGELOG.md` under *Unreleased*.
