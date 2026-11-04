@@ -4,7 +4,7 @@
 
 ```bash
 make              # build/pentest
-make clean        # rm -rf build   (see the note on tracked artifacts below)
+make clean        # rm -rf build   (build/ is git-ignored; make recreates it)
 make test         # runs tests/run_tests.sh
 ```
 
@@ -25,12 +25,8 @@ as an ISA fingerprint: on a different machine (or after a kernel upgrade that
 changes the line) the driver transparently falls back to compiling and caching
 the runtime locally.
 
-> **Note: `build/` is tracked in git** (the `.o`/`.d` files, `build/embed`,
-> `build/pentest`, `build/runtime_embed.h`, `build/pentest_rt.o` and
-> `build/pentest_rt.cpu` are in the index even though they
-> are build products). Rebuilding therefore shows up in `git status`. Consider
-> adding `build/` to `.gitignore` and untracking it (`git rm -r --cached build`)
-> — left alone here because it is a repository decision, not a documentation one.
+`build/` holds only generated files and is git-ignored, so rebuilding never
+shows up in `git status`.
 
 ## The test suite
 

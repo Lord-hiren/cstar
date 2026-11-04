@@ -8,3 +8,8 @@ extras/
 
 # Local speed-test workspace (Pentest vs optimized C) — scratch, not shipped
 speedtest/
+
+# Build products — `make` recreates them (bench/tools/pentest-m1 stays tracked)
+build/
+# Written by the file example in docs/guide/builtins.md when run in the repo root
+/scan.log

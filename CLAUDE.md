@@ -99,6 +99,6 @@ src/main.cpp      CLI, temp dir, sha256sum cache key, runtime-object cache, clan
 - **Repeated counts and versions:** test counts, "N builtins" and the version string appear in several docs and may already be stale. The real values come from `make test` and `pentest --version`.
 - **Vocabulary:** write *text* (not string) and *map* (not dict), "Pentest" for the language and `pentest` for the CLI.
 - **The language deliberately differs from Python:** `//` is a comment, `and`/`or` return `bool`, an unparenthesised `a, b` joins into text, exception matching is by exact class, and `eval`/`exec` are rejected. Read `docs/guide/gotchas.md` before writing `.pen` code.
-- **`build/` is tracked in git** (objects, `build/pentest`, `runtime_embed.h`), so every rebuild dirties `git status`. Don't commit build products by accident. `examples/` and top-level `tests/*.pen` are git-ignored scratch.
+- **`build/` is git-ignored**; `make` recreates it. `examples/` and top-level `tests/*.pen` are git-ignored scratch.
 - **Bench runners overwrite recorded results:** `bench/run-m2b.sh`, `run-m2c.sh` and `run-varq.sh` rewrite the baselines in `bench/results/` that `docs/performance/` quotes. Only `bench/run.sh` is insulated, because it uses the frozen `bench/tools/pentest-m1`.
 - **Fixed bugs:** when you fix a bug listed in `docs/reference/known-issues.md`, delete its entry and note the fix in `CHANGELOG.md` under *Unreleased*.
