@@ -17,6 +17,34 @@ From a fresh checkout to a compiled native executable in a few steps.
 The toolchain itself is plain C++17/C11 with no third-party libraries. A
 compiled Pentest program needs only libc and libm.
 
+### Windows (WSL)
+
+The toolchain runs on Linux, so on Windows you build and run it inside WSL
+(Windows Subsystem for Linux). This was verified on Windows 11 with Ubuntu
+24.04 (clang 18.1.3).
+
+1. In PowerShell, run `wsl --install -d Ubuntu-24.04` and accept the
+   administrator prompt. **Restart Windows** when it asks, then run the same
+   command again to install Ubuntu and create a Linux user.
+2. Install the tools inside Ubuntu:
+
+   ```bash
+   wsl -d Ubuntu-24.04 -u root -- bash -c "apt-get update && apt-get install -y build-essential clang make libcurl4-openssl-dev python3"
+   ```
+
+3. From the repository folder in a Windows terminal, build and test. `wsl`
+   starts in the current folder, which it sees as `/mnt/c/...`:
+
+   ```bash
+   wsl -d Ubuntu-24.04 -- make
+   wsl -d Ubuntu-24.04 -- make test
+   wsl -d Ubuntu-24.04 -- build/pentest run hello.pen
+   ```
+
+The repository's `.gitattributes` keeps every file's line endings LF on
+Windows too. Don't convert them to CRLF: CRLF breaks the test harness and every
+expected-output comparison.
+
 ## Build the toolchain
 
 ```bash

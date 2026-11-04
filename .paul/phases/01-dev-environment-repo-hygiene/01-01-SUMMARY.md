@@ -1,0 +1,185 @@
+---
+phase: 01-dev-environment-repo-hygiene
+plan: 01
+subsystem: infra
+tags: [wsl, ubuntu, clang, make, libcurl, gitattributes, line-endings, baseline]
+
+# Dependency graph
+requires: []
+provides:
+  - WSL Ubuntu-24.04 toolchain that builds and tests the compiler from this Windows machine
+  - LF line endings in the Windows checkout, enforced by .gitattributes
+  - Recorded baseline (build, 372-check suite, editor smoke test, docs checker)
+  - Windows/WSL build instructions in CLAUDE.md and docs/guide/getting-started.md
+affects: [01-02 repo hygiene, 01-03 Linux CI, phase 2 rename, v0.4 cross-platform SDK]
+
+# Tech tracking
+tech-stack:
+  added: [WSL 3.0.3, Ubuntu 24.04.5, clang 18.1.3, GNU make 4.3, libcurl 8.5.0, python3 3.12.3, bc]
+  patterns:
+    - "Build from Windows: wsl -d Ubuntu-24.04 -- <cmd>, run from the repo root (wsl starts in the current folder)"
+    - "Line endings: .gitattributes '* text=auto eol=lf'; never convert back to CRLF"
+
+key-files:
+  created:
+    - .gitattributes
+    - .paul/phases/01-dev-environment-repo-hygiene/01-01-BASELINE.md
+  modified:
+    - CLAUDE.md
+    - docs/guide/getting-started.md
+    - CHANGELOG.md
+
+key-decisions:
+  - "Build the existing Windows checkout from WSL through /mnt/c, not from a second clone in the WSL filesystem"
+  - "LF line endings enforced repo-wide with .gitattributes"
+
+patterns-established:
+  - "Commands for this repo on Windows go through wsl -d Ubuntu-24.04 -- …; the smoke test runs on Windows node"
+  - "The baseline in 01-01-BASELINE.md is the reference for later byte-identical comparisons"
+
+# Metrics
+duration: one session, including a Windows restart
+completed: 2026-11-04T17:50:00Z
+description: "Compiler builds and passes 372/372 tests on this Windows machine through WSL Ubuntu 24.04; repo switched to LF line endings"
+type: Summary
+about: "cstar"
+---
+
+# Phase 1 Plan 01: Toolchain setup, LF line endings and baseline — Summary
+
+**The compiler now builds with no warnings and passes all 372 tests on this Windows machine through WSL
+Ubuntu 24.04 (clang 18.1.3). The checkout was switched from CRLF to LF line endings, enforced by a new
+`.gitattributes`.**
+
+## Performance
+
+| Metric | Value |
+|--------|-------|
+| Duration | One session, including a Windows restart for WSL |
+| Completed | 2026-11-04 |
+| Tasks | 4 of 4 completed (1 human-action checkpoint, 3 auto) |
+| Qualify results | 4 PASS, 0 GAP, 0 DRIFT |
+| Files modified | 5 edited or created, plus line endings only in 1,063 tracked files |
+
+## Acceptance Criteria Results
+
+| Criterion | Status | Notes |
+|-----------|--------|-------|
+| AC-1: WSL toolchain available | ✅ Pass | clang 18.1.3 (≥ 14), make 4.3, libcurl 8.5.0, sha256sum 9.4, python3 3.12.3, ld 2.42 |
+| AC-2: Line endings are LF everywhere | ✅ Pass | 0 of 1,063 tracked files have `w/crlf`; nothing staged; `git status` the same as before apart from the new `.gitattributes` |
+| AC-3: Clean build succeeds in WSL | ✅ Pass | `make clean && make` in 20.0 s with 0 warnings and 0 errors; `pentest 0.2.1` |
+| AC-4: Baseline recorded, not fixed | ✅ Pass | `01-01-BASELINE.md`: 372/0 tests, 1294/0 smoke checks, 52/0 doc samples, 3 broken links (recorded) |
+| AC-5: Windows workflow documented | ✅ Pass | CLAUDE.md "Building from Windows"; getting-started "Windows (WSL)". Every documented command was run as written |
+
+## Accomplishments
+
+- **This machine can verify changes.** `make test` runs from Windows in about 32 s, so the rename and
+  every later change can be checked against a known-green baseline (372/372).
+- **Root cause of the CRLF checkout found and fixed.** The system git config had `core.autocrlf=true`
+  and the repo had no `.gitattributes`, so every text file was checked out as CRLF. That would have broken
+  the bash harness and every byte-exact `.out` comparison. `.gitattributes` now prevents this on every
+  Windows clone, which matters for the v0.4 Windows port.
+- **Baseline recorded** with tool versions, the commit hash and timings, as the reference for Phase 2.
+
+## Task Commits
+
+No commits. The plan's boundaries said "No git commits unless the user asks", so every change is still
+uncommitted in the working tree.
+
+## Files Created/Modified
+
+| File | Change | Purpose |
+|------|--------|---------|
+| `.gitattributes` | Created | Forces LF line endings; marks build binaries as binary |
+| `.paul/phases/01-dev-environment-repo-hygiene/01-01-BASELINE.md` | Created | Baseline results and how to reproduce them |
+| `CLAUDE.md` | Modified | "Building from Windows" block: WSL commands, the line-ending rule, the stale-index tip, PATH note |
+| `docs/guide/getting-started.md` | Modified | New "Windows (WSL)" subsection |
+| `CHANGELOG.md` | Modified | Unreleased → Documentation entry |
+| 1,063 tracked text files | Line endings only | CRLF → LF in the working tree; git content unchanged (identical blob hashes) |
+| `build/*` (12 tracked files) | Regenerated by `make` | Uncommitted; 01-02 will untrack `build/` |
+
+## Decisions Made
+
+| Decision | Rationale | Impact |
+|----------|-----------|--------|
+| Build the Windows checkout from WSL through `/mnt/c` | Keeps the current editor and Claude Code workflow on Windows | Builds are a little slower than on the native WSL filesystem: build 20 s, tests 32 s |
+| LF line endings enforced with `.gitattributes` | CRLF breaks the bash harness and the byte-exact tests | Every future Windows checkout gets LF automatically |
+
+## Deviations from Plan
+
+### Summary
+
+| Type | Count | Impact |
+|------|-------|--------|
+| Auto-fixed | 3 | Essential; no scope creep |
+| Scope additions | 1 | `bc` package, needed only for timing |
+| Deferred | 5 | Logged to STATE.md, mostly for 01-02 |
+
+**Total impact:** essential fixes only. Every acceptance criterion passed as written.
+
+### Auto-fixed Issues
+
+**1. [Environment] Ubuntu installed by Claude with `--no-launch`; no Linux user created**
+- **Found during:** Task 1 (human-action checkpoint)
+- **Issue:** The first verification failed. WSL needed a Windows restart, and after the restart there was
+  still no distribution installed.
+- **Fix:** After the user restarted, Claude ran `wsl --install -d Ubuntu-24.04 --no-launch`, which needs no
+  administrator rights. No Linux user was created, so the default user is `root`.
+- **Verification:** `wsl -l -v` → `Ubuntu-24.04  VERSION 2`; `whoami` → `root`
+- **Follow-up:** To create a personal Linux user, open Ubuntu 24.04 from the Start menu (optional).
+
+**2. [Git] Stale index sizes after the CRLF → LF conversion**
+- **Found during:** Task 2
+- **Issue:** After the conversion, `git status` listed all 1,063 files as modified, even though
+  `git diff` and `git hash-object` showed identical content. Git trusts a changed file size without
+  re-hashing, and every file shrank when the CR bytes were removed.
+- **Fix:** `git add -u -- . ':!CHANGELOG.md' ':!docs/README.md'`. This refreshes the cached sizes; the
+  blobs are identical, so nothing is staged.
+- **Verification:** `git diff --cached` is empty; `git status` matches the pre-change status plus `.gitattributes`
+- **Files:** index only
+
+**3. [Docs] PowerShell 5.1 can't parse `&&` in the CLAUDE.md command**
+- **Found during:** Task 4 (qualify)
+- **Fix:** Split `wsl … make && wsl … make test` into two lines.
+- **Files:** CLAUDE.md
+
+### Deferred Items
+
+- **D-1** `SPEC.md` lines 1215–1217 link to `examples/sqli_*`. `examples/` is git-ignored and those files
+  don't exist, so the links are broken in every clone. → 01-02 (`SPEC.md` is normative; fix the link
+  target, not the rule).
+- **D-2** Stale counts: "368 checks" (actual 372 = 365 + 7), "1234/1241 smoke checks" (actual 1294). → 01-02
+- **D-3** getting-started.md and README claim "no third-party libraries / only libc and libm", but the
+  runtime links libcurl. → 01-02
+- **D-4** `build/` is tracked, and `make` modified 12 tracked files. → 01-02
+- **D-5** README and getting-started reference `examples/hello.pen` etc., but `examples/` is git-ignored.
+  → 01-02 (decide: track a small `examples/` set, or change the references)
+
+## Issues Encountered
+
+| Issue | Resolution |
+|-------|------------|
+| `wsl --install` needed a Windows restart; the first checkpoint check failed | The user restarted; Claude installed the distro afterwards |
+| `wsl` wasn't on PATH in shells started before the install | Called `C:\Program Files\WSL\wsl.exe` directly; documented in CLAUDE.md |
+| PowerShell 5.1 mangled nested quotes in inline `bash -c` scripts | Put the scripts in files in the scratchpad and ran those |
+| An `rtk` wrapper made `grep $'\r'` report LF on CRLF files during planning | Used `git ls-files --eol`, `od` and `tr -cd '\r' \| wc -c` as the source of truth |
+
+## Next Phase Readiness
+
+**Ready:**
+- `make test` (372/372), the smoke test (1294/1294) and the docs checker run from this machine
+- A baseline to compare the rename (Phase 2) against
+
+**Concerns:**
+- Uncommitted: `.gitattributes`, CLAUDE.md, docs/guide/quick-reference.md, docs/guide/getting-started.md,
+  CHANGELOG.md, docs/README.md, `.paul/` and 12 regenerated `build/` files. (The line-ending conversion
+  itself doesn't show up in git, because the content is identical.) Committing before 01-02 would keep its
+  diff small and reviewable.
+
+**Blockers:**
+- None
+
+---
+*Built with PAUL Framework v1.4 · https://chrisai.cv/skool · https://youtube.com/@chris-ai-systems*
+*Phase: 01-dev-environment-repo-hygiene, Plan: 01*
+*Completed: 2026-11-04*

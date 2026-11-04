@@ -1,0 +1,34 @@
+name = "cstar"
+version = "0.2.1"
+status = "active"
+path = "."
+tags = []
+
+[paul]
+version = "1.4"
+source = "https://chrisai.cv/skool"
+
+[milestone]
+name = "v0.3 cstar Foundation"
+version = "0.3.0"
+status = "in_progress"
+phases = 4
+
+[phase]
+number = 1
+name = "Dev environment & repo hygiene"
+status = "in_progress"
+plans_completed = 1
+
+[loop]
+position = "PLAN"
+plan = "01-02"
+plan_path = "phases/01-dev-environment-repo-hygiene/01-02-PLAN.md"
+
+[satellite]
+groom = true
+
+[stats]
+total_plans = 1
+total_phases = 36
+last_activity = "2026-11-04T17:50:00Z"

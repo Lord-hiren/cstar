@@ -10,6 +10,7 @@ Current version: **0.2.1** (`pentest --version`).
 |---|---|
 | install it and run a program | [Getting started](guide/getting-started.md) |
 | learn the language | [Language tour](guide/language-tour.md) |
+| look up any feature or builtin on one page | [Quick reference](guide/quick-reference.md) |
 | split a program across files | [Modules and imports](guide/modules.md) |
 | avoid the common traps | [Gotchas and FAQ](guide/gotchas.md) |
 | understand an error message | [Errors and diagnostics](guide/errors-and-diagnostics.md) |
@@ -30,6 +31,7 @@ Current version: **0.2.1** (`pentest --version`).
 |---|---|
 | [getting-started.md](guide/getting-started.md) | requirements, building, first program, `run`/`build`/`check`, where files go |
 | [language-tour.md](guide/language-tour.md) | the whole language in 16 sections, every example executed |
+| [quick-reference.md](guide/quick-reference.md) | every feature on one page: variables, functions, collections, classes, exceptions, imports, all 78 builtins |
 | [modules.md](guide/modules.md) | multi-file programs: `import`/`from`, resolution, selective loading, module initialization, zero runtime cost |
 | [gotchas.md](guide/gotchas.md) | the surprises: `//`, `->` calls, `in`, comma-join, `and`/`or`, builtins as values, exact exception matching … |
 | [errors-and-diagnostics.md](guide/errors-and-diagnostics.md) | compile-time vs runtime errors, common messages and fixes, exception classes, exit codes |

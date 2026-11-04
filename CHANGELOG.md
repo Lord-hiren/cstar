@@ -8,6 +8,12 @@ versions are the strings reported by `pentest --version`. For the narrative see
 ## [Unreleased]
 
 ### Documentation
+- New: [quick reference](docs/guide/quick-reference.md), the whole language and
+  all 78 builtins on one page.
+- New: building and testing from Windows through WSL
+  ([getting started](docs/guide/getting-started.md#windows-wsl)). A new
+  `.gitattributes` keeps line endings LF on every OS; CRLF checkouts broke the
+  test harness.
 - Reorganised the documentation into a navigable tree under `docs/`
   (`guide/`, `reference/`, `contracts/`, `internals/`, `performance/`,
   `development/`, `history/`) with an index at [docs/README.md](docs/README.md).

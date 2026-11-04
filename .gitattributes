@@ -1,0 +1,11 @@
+# Keep every text file LF in the working tree on every OS. The test harness
+# compares program output byte-for-byte against tests/cases/*.out and the
+# shell scripts run under bash, so CRLF checkouts (core.autocrlf=true on
+# Windows) break the build and every test.
+* text=auto eol=lf
+
+# Build products and frozen binaries are never text.
+*.o binary
+build/pentest binary
+build/embed binary
+bench/tools/pentest-m1 binary
