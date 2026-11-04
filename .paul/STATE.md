@@ -16,21 +16,21 @@ See: .paul/PROJECT.md (updated 2026-11-04)
 ## Current Position
 
 Milestone: v0.3 cstar Foundation (v0.3.0)
-Phase: 1 of 4 (Dev environment & repo hygiene) — Applying
-Plan: 01-02 applied (4/4 tasks), awaiting UNIFY
-Status: APPLY complete, ready for UNIFY
-Last activity: 2026-11-04 — 01-02 applied: build/ untracked, docs corrected, check_docs 0 broken links
+Phase: 1 of 4 (Dev environment & repo hygiene) — In progress
+Plan: 01-02 complete (2 of 3 in phase)
+Status: Ready for next PLAN (01-03)
+Last activity: 2026-11-04 — 01-02 unified: build/ untracked, docs corrected, check_docs 0 broken links
 
 Progress:
-- Milestone: [█░░░░░░░░░] 11% (1 of 9 plans)
-- Phase 1: [███░░░░░░░] 33% (1 of 3 plans)
+- Milestone: [██░░░░░░░░] 22% (2 of 9 plans)
+- Phase 1: [███████░░░] 67% (2 of 3 plans)
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ○     [APPLY complete — ready for UNIFY]
+  ✓        ✓        ✓     [Loop complete - ready for next PLAN]
 ```
 
 ## Accumulated Context
@@ -54,8 +54,9 @@ PLAN ──▶ APPLY ──▶ UNIFY
 | Auto-GPU float policy: exact-only by default (recommended) or fast? | Init | S | v0.8 planning |
 | Memory access: own process only, or other processes too? | Init | S | v0.5 planning |
 | What "freely code in app" means for the SDK (REPL? embedding?) | Init | S | v0.4 planning |
-| D-1..D-5: broken `examples/` links in SPEC, stale counts, "no third-party libs" claim, tracked `build/`, ignored `examples/` | 01-01 | S | Planned in 01-02 |
 | D-6: SPEC doesn't document `fvec`/`ivec`/`fvec_fill`/`ivec_fill`/`dot` and still says "seventy" builtins (code has 78) | 01-02 planning | M | Own plan (normative SPEC addition), at the latest with 02-03 |
+| D-7: VSCode extension `RESERVED` lacks the 5 vector builtins (out of sync with `src/semantic.cpp`) | 01-02 | S | 02-02 (editor extension) |
+| D-8: docs/history headers say "current suite is 368 checks" (records, left as is) | 01-02 | S | When the rename touches history docs |
 
 ### Blockers/Concerns
 
@@ -66,9 +67,9 @@ None. (Resolved in 01-01: WSL Ubuntu-24.04 toolchain installed; working tree con
 ## Session Continuity
 
 Last session: 2026-11-04
-Stopped at: Plan 01-02 APPLY complete (4/4 tasks; deviations logged for UNIFY)
-Next action: Run /paul:unify .paul/phases/01-dev-environment-repo-hygiene/01-02-PLAN.md
-Resume file: .paul/phases/01-dev-environment-repo-hygiene/01-02-PLAN.md
+Stopped at: Plan 01-02 loop closed (SUMMARY written; branch phase-1-dev-environment, main untouched)
+Next action: /paul:plan for 01-03 (Linux CI). Note: CI needs the branch pushed to origin — ask first
+Resume file: .paul/phases/01-dev-environment-repo-hygiene/01-02-SUMMARY.md
 
 ---
 *STATE.md — Updated after every significant action*

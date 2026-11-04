@@ -61,7 +61,7 @@ and the repo stops tracking build output.
 
 **Plans:**
 - [x] 01-01: Toolchain setup, LF line endings (`.gitattributes`) and baseline test run — 2026-11-04
-- [ ] 01-02: Repo hygiene and stale-doc fixes
+- [x] 01-02: Repo hygiene and stale-doc fixes — 2026-11-04
 - [ ] 01-03: Linux CI
 
 ### Phase 2: Rename to cstar
