@@ -1,0 +1,5 @@
+import lib.init
+import lib.init as again
+
+main:
+    print(init.value)

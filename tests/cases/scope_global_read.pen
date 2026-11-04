@@ -1,0 +1,6 @@
+greeting = "hi"
+
+shout():
+    print(greeting)
+
+shout()

@@ -1,0 +1,6 @@
+1 class <class ValueError>
+2 <ValueError instance> user ValueError
+3 hello world
+4 TypeError: class 'ValueError' takes arguments but has no __init__ TypeError
+5 TypeError: exceptions must be class or instance, got class TypeError
+end

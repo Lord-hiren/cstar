@@ -1,0 +1,10 @@
+for a in range(0, 3):
+    b = 0
+    while b < 3:
+        b += 1
+        if b == 2:
+            continue
+        if a == 1:
+            break
+        print(a, b)
+print("done")

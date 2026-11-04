@@ -1,0 +1,43 @@
+# 2C GC: heap TEXT/BYTES buffers must be registered as PT_GC_TEXT /
+# PT_GC_BYTES blocks so a collection marks them through the payload set.
+# Regression: those blocks were tagged with the *value* tag (PT_STRING /
+# PT_BYTES), the collector never saw them, and any collection that ran
+# while a concatenated string was still referenced freed it — a silent
+# use-after-free (ASan-clean only since the fix). The checks below push
+# past the 1 MiB auto-GC threshold and force collect() explicitly; the
+# churn loops then reclaim any wrongly-freed block so the corruption is
+# observable instead of latent.
+main:
+    # growing concatenation: many collections fire mid-loop
+    s = ""
+    i = 0
+    while i < 4000:
+        s = s + "xy"
+        i = i + 1
+    junk = collect()
+
+    # same-sized churn: overwrites any wrongly-freed buffer
+    k = 0
+    churn = ""
+    while k < 200:
+        churn = s + "z"
+        k = k + 1
+    print(len(s), s[0], s[7999])
+    print(len(churn), churn[8000])
+
+    # fresh heap text from a slice and from str()-style building
+    t = s[10:20]
+    junk = collect()
+    u = "q" + t
+    print(len(t), t, len(u))
+
+    # bytes path
+    b = b""
+    j = 0
+    while j < 2000:
+        b = b + b"ab"
+        j = j + 1
+    junk = collect()
+    c = b + b"cd"
+    print(len(b), b[0], b[3999])
+    print(len(c), c[4000])

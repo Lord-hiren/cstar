@@ -1,0 +1,69 @@
+True
+True
+False
+False
+False
+True
+False
+True
+False
+True
+False
+True
+True
+True
+True
+True
+True
+True
+False
+False
+True
+True
+True
+False
+True
+False
+True
+True
+7
+dflt
+<method 'get' of Point>
+boom
+ValueError
+1 'Point' object has no attribute 'nope'
+2 getattr(): attribute name must be str, not 'int'
+True
+False
+True
+False
+False
+True
+False
+True
+99
+yes
+True
+False
+3 'Point' attribute 'get' belongs to its class and cannot be deleted
+4 'Point' object has no attribute 'nothere'
+5 'int' object has no attribute 'x'
+6 cannot assign attribute 'x' on 'int'
+True
+True
+False
+True
+False
+False
+True
+True
+True
+True
+False
+True
+True
+True
+True
+False
+7 unhashable type: 'list'
+9 done

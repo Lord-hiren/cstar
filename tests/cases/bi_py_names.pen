@@ -1,0 +1,87 @@
+# bi_py_names — globals / locals / vars / dir (SPEC §5.11.5). Name tables
+# are built at the call site: globals() → the globals table, locals() and
+# vars() → the frame (globals at top level), dir() → the globals table
+# (the documented deviation: Python's dir() lists the *local* scope inside
+# a function). Unassigned names are skipped; top-level functions appear
+# as values.
+g_text = "T"
+g_num = 42
+topfn():
+    return 7
+
+print(globals()["g_text"])
+print(globals()["g_num"])
+print(globals()["topfn"])
+print("g_text" in globals())
+print(locals()["g_text"])
+print("g_num" in locals())
+print(vars()["g_text"])
+print(dir())
+print("g_text" in dir())
+print("topfn" in dir())
+# a name assigned after the first call is not in that snapshot
+snap = globals()
+print("snap" in snap)
+snap = 9
+print("snap" in globals())
+print(globals()["snap"])
+# inside a function: frame vs globals
+frame_probe(a):
+    pre = locals()
+    boxed_local = "x"
+    num_local = 5
+    post = locals()
+    g = globals()
+    v = vars()
+    d = dir()
+    print("a" in pre)
+    print("boxed_local" in pre)
+    print("num_local" in pre)
+    print("pre" in pre)
+    print("a" in post)
+    print("boxed_local" in post)
+    print("num_local" in post)
+    print("pre" in post)
+    print(post["a"])
+    print(post["boxed_local"])
+    print(post["num_local"])
+    print("g_text" in g)
+    print("g_num" in g)
+    print("topfn" in g)
+    print("frame_probe" in g)
+    print(g["g_num"])
+    print("boxed_local" in v)
+    print("num_local" in v)
+    print("a" in v)
+    print(v == post)
+    print("g_text" in d)
+    print("frame_probe" in d)
+    print("boxed_local" in d)
+
+frame_probe("param")
+# instances: vars() copies the dynamic fields, dir() sorts fields+methods
+class Box:
+    __init__(self, k):
+        self.k = k
+
+    peek(self):
+        return self.k
+
+b = Box(1)
+b.extra = 2
+print(vars(b))
+print(dir(b))
+print("peek" in dir(b))
+try:
+    vars(5)
+except TypeError as e:
+    print("1", e.message)
+try:
+    dir(5)
+except TypeError as e:
+    print("2", e.message)
+try:
+    print(globals()["nope"])
+except KeyError as e:
+    print("3", e.message)
+print("5 done")

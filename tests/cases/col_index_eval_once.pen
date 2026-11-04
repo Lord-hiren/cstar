@@ -1,0 +1,8 @@
+idx():
+    print("index evaluated")
+    return 0
+
+xs = [1, 2, 3]
+xs[idx()] = 42
+xs[idx()] += 8
+print(xs)

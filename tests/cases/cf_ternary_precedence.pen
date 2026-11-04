@@ -1,0 +1,11 @@
+x = 1 or 2 if True else 3
+print(x)
+y = 1 and 0 if False else 5
+print(y)
+print(10 if True else 20 if True else 30)
+print(10 if False else 20 if True else 30)
+print(10 if False else 20 if False else 30)
+if True:
+    print(1 if True else 2)
+z = 3 if False else 4
+print(z)

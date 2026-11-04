@@ -1,0 +1,80 @@
+# bi_py_bytes — bytes() forms (SPEC §5.11.5): bytes(), bytes(n) zero-fill,
+# bytes(iterable of 0..255), bytes(bytes) copy, bytes(text) REQUIRING an
+# encoding (UTF-8 only). Displays are b'...' like Python's repr. Error
+# wordings match CPython (3.14) except Pentest's type names (text/None).
+print(bytes())
+print(len(bytes()))
+print(bytes(3))
+print(len(bytes(3)))
+print(bytes(0))
+print(bytes([1, 2, 255]))
+print(bytes((7, 8)))
+print(bytes([1, 2, 3]))
+print(bytes(iter([9, 10])))
+print(bytes(b"keep"))
+print(b"keep" == bytes(b"keep"))
+print(id(b"keep") != id(bytes(b"keep")))
+print(bytes("ab", encoding="utf-8"))
+print(bytes("café", encoding="utf-8"))
+print(bytes("ab", encoding="utf8"))
+print(bytes("🚀", encoding="utf-8"))
+print(bytes("ab", encoding="utf-8", errors="strict"))
+print(bytes("ab", encoding="utf-8", errors="ignore"))
+print(bytes("ab", encoding="utf-8", errors="replace"))
+print(bytes("ab", encoding="utf-8", errors="bogus"))
+print(type(bytes()))
+print(bytes(b"") == b"")
+print(bytes(True))
+print(len(bytes(True)))
+print(bytes(False))
+print(bytes([True, False]))
+# errors — CPython's wordings (modulo type-name system)
+try:
+    bytes("ab")
+except TypeError as e:
+    print("1", e.message)
+try:
+    bytes("ab", encoding="ascii")
+except ValueError as e:
+    print("2", e.message)
+try:
+    bytes([256])
+except ValueError as e:
+    print("3", e.message)
+try:
+    bytes([-1])
+except ValueError as e:
+    print("4", e.message)
+try:
+    bytes(-1)
+except ValueError as e:
+    print("5", e.message)
+try:
+    bytes(["a"])
+except TypeError as e:
+    print("6", e.message)
+try:
+    bytes(5, encoding="utf-8")
+except TypeError as e:
+    print("7", e.message)
+try:
+    bytes(b"x", errors="bogus")
+except TypeError as e:
+    print("8", e.message)
+try:
+    bytes("x", encoding=5)
+except TypeError as e:
+    print("9", e.message)
+try:
+    bytes("x", encoding="utf-8", errors=5)
+except TypeError as e:
+    print("10", e.message)
+try:
+    bytes(1.5)
+except TypeError as e:
+    print("11", e.message)
+try:
+    bytes(None)
+except TypeError as e:
+    print("12", e.message)
+print("13 done")

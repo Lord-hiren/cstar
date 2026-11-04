@@ -1,0 +1,10 @@
+# Local scratch folder — not part of this project
+c-things/
+TODO.txt
+.vscode/
+examples/
+tests/*.pen
+extras/
+
+# Local speed-test workspace (Pentest vs optimized C) — scratch, not shipped
+speedtest/

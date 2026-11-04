@@ -1,0 +1,2 @@
+f(print):
+    return 1

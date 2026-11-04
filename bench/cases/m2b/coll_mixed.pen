@@ -1,0 +1,25 @@
+# coll_mixed: 202752 reps of (LCG step + list append + map write/lookup +
+# text append with a period-80 reset). Mixed int/list/map/text
+# through the dynamic runtime; the reset bounds the no-GC string
+# leak to linear (an unreset accumulator would leak ~3.3 GB).
+main:
+    a = 22695477
+    xs = []
+    m = {}
+    s = "seed0000"
+    i = 0
+    while i < 202752:
+        a = a * 1664525 + 1013904223
+        xs.append(a)
+        m[i] = a
+        if i % 80 == 0:
+            s = "seed0000"
+        s = s + "0123456789ABCDEF"
+        i += 1
+    total = 0
+    for v in xs:
+        total = total + v
+    msum = 0
+    for k in m:
+        msum = msum + m[k]
+    print(a, len(xs), len(m), total, msum, len(s))

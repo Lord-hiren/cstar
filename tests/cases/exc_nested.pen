@@ -1,0 +1,34 @@
+# M2-2C §2.5: nested unwinding across frames — handlers popped in order,
+# each frame's finally runs innermost-first.
+deep3():
+    raise ValueError("v3")
+
+deep2():
+    try:
+        deep3()
+    except TypeError:
+        print("WRONG")
+    finally:
+        print("f2")
+
+deep1():
+    try:
+        deep2()
+    finally:
+        print("f1")
+
+make_list():
+    keep = [1, 2, 3]
+    raise KeyError("lost")
+
+main:
+    try:
+        deep1()
+    except ValueError as e:
+        print("caught", e)
+    # exception thrown with live frame locals (roots restored on unwind)
+    try:
+        make_list()
+    except KeyError as e:
+        print("frame", e)
+    print("done")

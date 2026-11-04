@@ -1,0 +1,13 @@
+# cross-scope access: postfix chains compose with the qualified atom —
+# index reads, slices, method calls over a qualified object.
+box():
+    data = {"ports": [80, 443, 8080]}
+    label = "scan"
+
+main:
+    box()
+    print(variable.box label.upper())
+    print(variable.box data["ports"][1])
+    print(variable.box data["ports"][1:])
+    variable.box data["ports"].append(22)
+    print(variable.box data)

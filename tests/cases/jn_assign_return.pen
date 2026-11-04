@@ -1,0 +1,10 @@
+msg = "hello", "world"
+print(msg)
+other = 1, 2, 3
+print(other)
+pair():
+    return 1, 2
+print(pair())
+x = 42
+joined = x, "items"
+print(joined)

@@ -1,0 +1,5 @@
+1 7 kept [7, 7, 7] {origin: 7} True
+2 199 box:199 True
+3 7 kept box:7
+4 box:7 True
+end

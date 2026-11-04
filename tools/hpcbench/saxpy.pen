@@ -1,0 +1,17 @@
+# scoreboard: saxpy — y = 2.5 * x + y, repeated over 8M doubles.
+# The chain is proven fvec (literal coefficient broadcasts), so every pass
+# is ONE fused kernel: read x, read y, write y — no temporaries.
+# Output contract: line 1 = checksum (sum(y)), line 2 = kernel seconds.
+
+n = 8388608
+reps = 40
+x = fvec_fill(n, 1.5)
+y = fvec_fill(n, 0.25)
+y = 2.5 * x + y   # warm-up pass: faults the result buffer's pages
+                  # outside the timed section (C variants are warmed too)
+t0 = clock()
+for r in range(reps):
+    y = 2.5 * x + y
+t1 = clock()
+print(sum(y))
+print(t1 - t0)

@@ -1,0 +1,28 @@
+# 2B: hoisting — nested functions are created in the enclosing prologue,
+# so they are callable before their source line and even under dead branches.
+f():
+    r = early()
+    early():
+        return "early"
+    if False:
+        never():
+            return "never"
+    return r + " " + never()
+
+print(f())
+
+g():
+    while False:
+        skipped():
+            return "skipped"
+    return skipped() + " " + skipped()
+
+print(g())
+
+h():
+    for i in range(0, 3):
+        tag(n):
+            return "t" + str(n)
+    return tag(9)
+
+print(h())

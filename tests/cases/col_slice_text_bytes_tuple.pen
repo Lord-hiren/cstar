@@ -1,0 +1,8 @@
+t = "aébc"
+print(t[1:3])
+print(t[:2])
+print(t[::2])
+b = b"abcd"
+print(b[1:3], b[::-1])
+tup = (1, 2, 3, 4)
+print(tup[1:3])

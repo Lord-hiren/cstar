@@ -1,0 +1,27 @@
+# 2B: function values — pass as an argument, return, store in list/map,
+# call via index, compare via the same variable.
+twice(x):
+    return x * 2
+
+apply(fn, v):
+    return fn(v)
+
+f = twice
+fns = [f]
+print(fns[0](21))
+m = {"f": twice}
+print(m["f"](5))
+print(apply(twice, 4))
+print(f == twice)
+print(fns[0] == twice)
+g = f
+print(g == f)
+
+maker():
+    inner(x):
+        return x + 1
+    return inner
+
+h = maker()
+print(h(41))
+print(type(h))

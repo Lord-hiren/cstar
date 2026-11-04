@@ -1,0 +1,25 @@
+if []:
+    print("bad")
+else:
+    print("empty list falsy")
+if [1]:
+    print("nonempty list truthy")
+if {}:
+    print("bad")
+else:
+    print("empty map falsy")
+if set():
+    print("bad")
+else:
+    print("empty set falsy")
+if ():
+    print("bad")
+else:
+    print("empty tuple falsy")
+if b"":
+    print("bad")
+else:
+    print("empty bytes falsy")
+if (0,):
+    print("tuple with 0 is truthy")
+print([] or "fallback")

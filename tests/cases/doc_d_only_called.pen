@@ -1,0 +1,11 @@
+a():
+    return None
+
+b():
+    return None
+
+c():
+    a()
+
+main:
+    c()

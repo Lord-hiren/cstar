@@ -1,0 +1,4 @@
+import lib.broken
+
+main:
+    print("only the entry code runs")

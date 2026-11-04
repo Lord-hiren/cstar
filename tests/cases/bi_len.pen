@@ -1,0 +1,1 @@
+print(len("héllo"), len(b"ab"), len([1, 2]), len({"a": 1}), len({1, 2}), len((1, 2, 3)))

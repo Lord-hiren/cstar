@@ -1,0 +1,29 @@
+# 2B: nested function declarations are legal and callable (M1 restriction lifted).
+# Declarations are hoisted to the enclosing prologue; position controls nothing.
+outer():
+    first():
+        return "first"
+    r = first()
+    second(x):
+        return x * 2
+    r = r + " " + str(second(4))
+    if True:
+        third():
+            return "third"
+    r = r + " " + third()
+    if False:
+        never():
+            return "never"
+    r = r + " " + never()
+    return r
+
+print(outer())
+print(type(outer))
+
+main:
+    shout():
+        return "shout"
+    print(shout())
+    print(shout)
+
+shout()

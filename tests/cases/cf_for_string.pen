@@ -1,0 +1,8 @@
+for c in "AB":
+    print(c)
+for c in "abc":
+    if c == "b":
+        print("mid")
+    else:
+        print(c)
+print("done")

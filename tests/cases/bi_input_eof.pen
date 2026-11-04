@@ -1,0 +1,3 @@
+# no stdin (end of input): input() is None — distinct from "" (blank line)
+print(input())
+print(type(input()))

@@ -1,0 +1,10 @@
+# time() = epoch seconds (float), clock() = monotonic seconds (float): an
+# elapsed delta can never be negative, so clock() drives loop timeouts.
+print(type(time()))
+print(type(clock()))
+t0 = clock()
+x = 0
+while x < 1000:
+    x = x + 1
+print(clock() - t0 >= 0)
+print(time() > 1500000000)

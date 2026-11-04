@@ -1,0 +1,28 @@
+# 2C GC: unreachable heap values are reclaimed; live roots survive
+# a forced collection (contract §1.5: only memory use and collect()'s
+# result are observable).
+main:
+    # a dead list every iteration (previous value dropped on rebind)
+    i = 0
+    while i < 2000:
+        xs = [i, i + 1]
+        i = i + 1
+    print(collect() > 0)
+
+    # live values survive the collection
+    keep = ["alpha", "beta"]
+    j = 0
+    while j < 5000:
+        junk = [j, "pad"]
+        j = j + 1
+    print(collect() > 0)
+    print(len(keep), keep[0], keep[1])
+
+    # dead text from concatenation
+    k = 0
+    t = "start"
+    while k < 8000:
+        t = "hello " + "world"
+        k = k + 1
+    print(collect() > 0)
+    print(t)

@@ -1,0 +1,10 @@
+# runtime: qualified read of a binding the owner never assigned
+# (its pin starts unset, exactly like an ordinary slot).
+a():
+    x = 1
+
+b():
+    print(variable.a x)
+
+main:
+    b()

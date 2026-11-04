@@ -1,0 +1,7 @@
+class Bad:
+    x = 5
+    go(self):
+        pass
+
+main:
+    print(Bad)

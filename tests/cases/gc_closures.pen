@@ -1,0 +1,16 @@
+# 2C GC: dead closures (function values + cells) are reclaimed while a
+# live closure sharing the same code keeps working afterwards.
+counter(start):
+    bump():
+        return start
+    return bump
+
+main:
+    c1 = counter(41)
+    n = 0
+    while n < 1000:
+        dead = counter(n)
+        n = n + 1
+    print(collect() > 0)
+    print(c1())
+    print(type(c1))

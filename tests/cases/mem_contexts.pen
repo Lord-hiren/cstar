@@ -1,0 +1,16 @@
+b = 1 in range(0, 3)
+print(b)
+print(b == True)
+print(1 in range(2) == True)
+print(1 in range(0, 1) == False)
+if 2 in range(0, 3):
+    print("in")
+else:
+    print("bad")
+i = 0
+while i in range(0, 3):
+    i += 1
+print(i)
+print(1 if 2 in range(0, 3) else 0)
+print(1 if 9 in range(0, 3) else 0)
+print("ok" if "" in "abc" else "no")

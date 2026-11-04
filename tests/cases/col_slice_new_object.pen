@@ -1,0 +1,4 @@
+xs = [1, 2, 3]
+s = xs[1:]
+s.append(4)
+print(xs, s)

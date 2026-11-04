@@ -1,0 +1,15 @@
+# scoreboard: dot — inner product of 8M doubles through the builtin lane
+# reduction (tree order in PT_VW-wide accumulators + scalar tail).
+# Output contract: line 1 = checksum (dot result), line 2 = kernel seconds.
+
+n = 8388608
+reps = 50
+x = fvec_fill(n, 1.5)
+y = fvec_fill(n, 150.25)
+s = dot(x, y)# warm-up: identical value, primes caches outside timing
+t0 = clock()
+for r in range(reps):
+    s = dot(x, y)
+t1 = clock()
+print(s)
+print(t1 - t0)

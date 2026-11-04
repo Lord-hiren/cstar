@@ -1,0 +1,3 @@
+# startup: process start + runtime init + one print + teardown.
+main:
+    print(0)

@@ -1,0 +1,10 @@
+closure_ops 246
+coll_mixed 1071
+dispatch_ops 225
+list_ops 646
+map_ops 824
+set_ops 687
+text_ops 1135
+while_float 857
+while_int 222
+while_string 762

@@ -1,0 +1,7 @@
+# runtime: missing required argument through a dynamic (variable) callee.
+add(a, b):
+    return a + b
+
+g = add
+print("before")
+print(g(1))

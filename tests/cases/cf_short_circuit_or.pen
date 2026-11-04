@@ -1,0 +1,6 @@
+print(True or 1 / 0)
+print(1 or 1 / 0)
+print(3.25 or 1 / 0)
+print("x" or 1 / 0)
+print(range(0, 1) or 1 / 0)
+print("ok")

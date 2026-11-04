@@ -1,0 +1,33 @@
+# M2-2C §3.4: `is` / `is not` — heap identity, value identity, and
+# text storage sharing.
+class Point:
+    __init__(self, x):
+        self.x = x
+
+main:
+    a = Point(1)
+    b = Point(1)
+    # instances: identity only (equal fields are still distinct objects)
+    print("1", a is a, a is b, a is not b, b is not a)
+    # class values
+    print("2", Point is Point, Point is ValueError)
+    # exceptions: instances distinct, same instance identical
+    e = ValueError("x")
+    print("3", e is e, e is ValueError("x"), e is ValueError)
+    # lists/maps: identity only
+    l1 = [1, 2]
+    l2 = [1, 2]
+    print("4", l1 is l1, l1 is l2, l1 is not l2)
+    # non-heap values: same tag + equal by value
+    print("5", 1 is 1, 1 is 2, 1.5 is 1.5, 1.5 is 2.5)
+    print("6", None is None, True is True, False is False)
+    # cross-type non-heap values are never identical
+    print("7", 1 is 1.0, 1.0 is 1, None is False)
+    # text: identical iff they share storage
+    t1 = "ab" + "cd"
+    t2 = "ab" + "cd"
+    print("8", t1 is t1, t1 is t2, t1 == t2)
+    base = "shared"
+    print("9", base is base, base is (base + ""))
+    # is not is plain negation
+    print("10", 3 is not 4, 3 is not 3, a is not 1)

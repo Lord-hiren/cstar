@@ -1,0 +1,6 @@
+m = {"b": 1, "a": 2, "c": 3}
+m["b"] = 10
+m["d"] = 4
+print(m)
+for k in m:
+    print(k)

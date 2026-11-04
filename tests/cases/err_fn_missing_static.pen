@@ -1,0 +1,5 @@
+# compile: static missing-required check (at-least form for a defaulting fn).
+f(a, b=1):
+    return a + b
+
+print(f())

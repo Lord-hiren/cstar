@@ -1,0 +1,59 @@
+# Known-issue #1 regression: every clause after the first carries setup
+# statements (the guarded class-name read); they must live in a fresh
+# `else` block — evaluated only when all earlier clauses failed.
+f(n):
+    try:
+        if n == 1:
+            raise TypeError("t1")
+        xs = [1, 2]
+        return xs[n]
+    except TypeError as e:
+        print("arm1", e.message)
+    except IndexError as e:
+        print("arm2", e.message)
+
+f(1)
+f(9)
+
+# Matching the THIRD clause crosses two setup else-blocks.
+try:
+    raise ValueError("boom")
+except TypeError:
+    print("no")
+except IndexError:
+    print("no")
+except ValueError as e:
+    print("arm3", e.message)
+
+# No clause matches -> the pending exception is rethrown to the outer
+# handler (the fall-through pt_throw path).
+try:
+    try:
+        raise KeyError("k")
+    except TypeError:
+        print("no")
+    except IndexError:
+        print("no")
+except KeyError as e:
+    print("outer", e.type)
+
+# Named clause followed by a bare one.
+try:
+    raise AttributeError("a")
+except TypeError:
+    print("no")
+except:
+    print("bare")
+
+# Laziness: the second clause's cond name is never assigned at runtime,
+# so it must not be evaluated — the first clause matched. (Before the
+# fix its setup ran after the matched body and raised NameError.)
+if False:
+    weird = 0
+try:
+    raise TypeError("x")
+except TypeError:
+    print("first matched")
+except weird:
+    print("MUST NOT PRINT")
+print("done")

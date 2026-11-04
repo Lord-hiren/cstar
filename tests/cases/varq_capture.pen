@@ -1,0 +1,17 @@
+# cross-scope access §4: a pinned binding that is ALSO captured by a
+# closure keeps one shared slot — ordinary reads, closure reads and
+# variable.parent writes all observe the same storage.
+outer():
+    n = 5
+    reader():
+        return variable.parent n
+    writer():
+        variable.parent n = 99
+    capturer():
+        return n + 1                  // ordinary capture of the same binding
+    print(reader(), capturer())
+    writer()
+    print(reader(), capturer())
+
+main:
+    outer()

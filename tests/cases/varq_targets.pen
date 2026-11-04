@@ -1,0 +1,15 @@
+# cross-scope access §5: qualified stores in every target shape — plain,
+# compound, destructuring leaf, and index chains over a qualified object.
+worker():
+    xs = [1, 2, 3]
+
+main:
+    worker()
+    variable.worker xs[0] = 99
+    variable.worker xs.append(4)
+    print(variable.worker xs)
+    a, b = [0, 0]
+    variable.global a, b = [10, 20]
+    print(a, b)
+    variable.global a += variable.global b
+    print(a)

@@ -1,0 +1,31 @@
+7 5 -5 0 7
+7 -3
+1 -1 1 0
+3.0 1.0 0.0
+1.5 1.5 0.5 5.0
+100000.0 True
+nan inf -inf inf nan
+inf
+False
+nan->int: cannot convert float to int
+inf->int: cannot convert float to int
+int err: invalid literal for int(): ' 5'
+int err: invalid literal for int(): '5_'
+int err: invalid literal for int(): '1_0'
+int err: invalid literal for int(): '5.'
+int err: invalid literal for int(): ''
+int err: invalid literal for int(): 'abc'
+int err: invalid literal for int(): '+'
+int err: invalid literal for int(): '--1'
+int overflow: invalid literal for int(): '99999999999999999999999'
+int underflow: invalid literal for int(): '-99999999999999999999999'
+float err: invalid literal for float(): 'infjunk'
+16.0
+int arg: int() expects text, bytes, int, float or bool, got list
+float arg: float() expects text, bytes, int, float or bool, got map
+len err: object of type 'None' has no length()
+len err: object of type 'bool' has no length()
+len err: object of type 'float' has no length()
+len err: object of type 'int' has no length()
+len range: object of type 'range' has no length()
+done

@@ -1,0 +1,24 @@
+# 2B: *args — overflow past positional params, vararg name reads as a list,
+# defaults combined with a vararg, and a fresh empty list per call.
+f(a, b=2, *rest):
+    return [a, b, rest]
+
+print(f(1))
+print(f(1, 3, 4, 5))
+print(f(b=7, a=1))
+
+show(*items):
+    print(items)
+    print(len(items))
+
+show()
+show(1)
+show(1, 2, 3)
+
+fresh(*rest):
+    return rest
+
+r = fresh()
+r.append(1)
+print(r)
+print(fresh())

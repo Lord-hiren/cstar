@@ -1,0 +1,7 @@
+# compile: a nested function declaration colliding with a parameter is a conflict.
+f(helper):
+    helper():
+        return 1
+    return helper
+
+print(f(5))

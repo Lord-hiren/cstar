@@ -1,0 +1,25 @@
+3 6 3 9
+a 𝄞 b b a
+日 本 語 語 本
+𝄞b a 𝄞b a a𝄞 ab
+a|𝄞|b|
+cp 日 1 3
+cp 本 1 3
+cp 語 1 3
+1 2 0 -1
+0 0 2
+a*b
+A𝄞B a𝄞b ABC abc
+x a|b [a, b]
+True True True False
+True False True True
+True True False
+False True
+cross: unsupported operand types for ->: text and bytes
+cross: unsupported operand types for ->: bytes and text
+rhs int: unsupported operand types for ->: int and text
+oob: text index out of range
+oob neg: text index out of range
+nonint: text indices must be integers, not text
+bytes oob: bytes index out of range
+done

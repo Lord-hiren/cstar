@@ -1,0 +1,6 @@
+t = "héllo"
+b2 = encode(t)
+print(type(b2), len(b2))
+back = decode(b2)
+print(back, back == t)
+print(decode(b"raw"))

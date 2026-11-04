@@ -1,0 +1,9 @@
+# compile: a class name stays exclusive to functions (v0.3 §7) — classes are
+# constructed with call syntax, so a same-named function would shadow the
+# constructor.
+thing():
+    return 1
+
+class thing:
+    go(self):
+        pass

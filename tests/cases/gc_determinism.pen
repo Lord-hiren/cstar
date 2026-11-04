@@ -1,0 +1,11 @@
+# 2C GC: a collection frees only what is unreachable — two forced
+# collects with no allocation in between: the second reclaims nothing.
+main:
+    x = collect()
+    y = collect()
+    print(x >= 0, y == 0)
+    xs = [1, 2, 3]
+    z = collect()
+    print(z == 0)
+    xs = 0
+    print(collect() > 0)

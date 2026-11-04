@@ -1,0 +1,7 @@
+# runtime: wrong arity on a variadic callee bound through a variable.
+f(a, *rest):
+    return [a, rest]
+
+g = f
+print(g(1, 2, 3))
+print(g())

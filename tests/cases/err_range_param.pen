@@ -1,0 +1,2 @@
+f(range):
+    return 1

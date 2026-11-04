@@ -1,0 +1,22 @@
+# Known-issue #6 regression: thousands grouping counts from the RIGHT of
+# the integer part, and the ',' option is accepted after a width
+# (SPEC §5.11.3 grammar [[fill]align][sign][#][0][width][,][.precision][type]).
+# All expected outputs are Python's.
+print(format(1234, ","), format(12345, ","), format(1234567, ","))
+print(format(1000, ","), format(100, ","), format(12, ","), format(3, ","))
+print(format(-1234, ","), format(-12, ","))
+print(format(1234567.891, ",.2f"), format(1234.5, ","), format(1234567.8, ",.1f"))
+print(format(1234567, ">12,"), "|", format(1234567, "+,"), format(1234, "0,"))
+print(format(1000000, ","), format(1000000000, ","))
+
+# A ',' before the width is not the grammar's position and is rejected
+# (Python agrees; Pentest's message wording is its own).
+try:
+    print(format(1234567, ",12"))
+except ValueError:
+    print("comma-before-width rejected")
+
+try:
+    print(format(1234567, ">12,,"))
+except ValueError:
+    print("double comma rejected")

@@ -1,0 +1,8 @@
+t = "  Hello World  "
+print(t.strip())
+print("abc".upper(), "ABC".lower())
+print("a,b,c".split(","))
+print("-".join(["x", "y", "z"]))
+print("hello".find("l"), "hello".find("z"))
+print("hello".replace("l", "L"))
+print("hello".starts_with("he"), "hello".ends_with("lo"))

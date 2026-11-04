@@ -1,0 +1,15 @@
+# while_string: 750,000 frames = 600,000 x 16-byte appends +
+# 150,000 period-5 seed resets (reset does not append) — the exact
+# intermediate-length sequence and counts of the M1 string_ops
+# chain (peak 72 bytes; the no-GC runtime leaks every intermediate).
+# Before/after partner: M1 string_ops.
+main:
+    s = "seed0000"
+    i = 0
+    while i < 750000:
+        if i % 5 == 0:
+            s = "seed0000"
+        else:
+            s = s + "0123456789ABCDEF"
+        i += 1
+    print(len(s), s[0], s[len(s) - 1])

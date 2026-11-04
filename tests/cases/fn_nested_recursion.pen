@@ -1,0 +1,26 @@
+# 2B: nested functions recurse dynamically (pt_call): self-recursion with a
+# default accumulator, mutual recursion between siblings, nested fib.
+outer():
+    sq(n, acc=0):
+        if n == 0:
+            return acc
+        return sq(n - 1, acc + n)
+
+    even(n):
+        if n == 0:
+            return True
+        return odd(n - 1)
+
+    odd(n):
+        if n == 0:
+            return False
+        return even(n - 1)
+
+    fib(n):
+        if n < 2:
+            return n
+        return fib(n - 1) + fib(n - 2)
+
+    return[sq(5), even(10), odd(7), fib(12)]
+
+print(outer())

@@ -1,0 +1,15 @@
+# Forward reference (docs/reference/cross-scope-access.md §4): `variable.<fn>` may
+# target a function declared LATER in the file — qualified sites are
+# resolved after every function's bindings are final.
+early():
+    print(variable.later v)
+    variable.later v = 5
+
+later():
+    v = 1
+    print(v)
+
+main:
+    later()
+    early()
+    print(variable.later v)

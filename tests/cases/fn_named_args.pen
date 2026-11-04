@@ -1,0 +1,20 @@
+# 2B: named arguments — declaration order, reordering, positional+named mixing,
+# and named binding on nested (static) and dynamic (variable) callees.
+f(a, b, c=30):
+    return [a, b, c]
+
+print(f(a=1, b=2))
+print(f(b=2, a=1))
+print(f(1, c=3, b=2))
+print(f(1, 2, c=3))
+
+outer():
+    inner(x, y=2):
+        return [x, y]
+    r1 = inner(y=9, x=1)
+    fn = inner
+    r2 = fn(y=7, x=2)
+    r3 = inner(3, y=8)
+    return [r1, r2, r3]
+
+print(outer())

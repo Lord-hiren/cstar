@@ -1,0 +1,7 @@
+print(False and 1 / 0)
+print(0 and 1 / 0)
+print(0.0 and 1 / 0)
+print("" and 1 / 0)
+print(None and 1 / 0)
+print(range(5, 5) and 1 / 0)
+print("ok")

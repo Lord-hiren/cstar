@@ -1,0 +1,14 @@
+# closure_ops: 300000 closure creations + calls through function values
+# (capture cell read + dynamic dispatch per call).
+make_adder(n):
+    add(x, by = 1):
+        return x + n + by
+    return add
+main:
+    total = 0
+    i = 0
+    while i < 300000:
+        f = make_adder(i)
+        total = total + f(i) + f(i, by = 2)
+        i += 1
+    print(total)

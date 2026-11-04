@@ -1,0 +1,18 @@
+# cross-scope access §4: variable.parent reaches the nearest enclosing
+// function's binding — read and write, from any nesting depth.
+a():
+    x = 10
+    b():
+        y = variable.parent x
+        print("b sees", y)
+        variable.parent x = y + 5
+        c():
+            z = variable.parent x      // outward search: c in b in a
+            print("c sees", z)
+            variable.parent x = z + 1
+        c()
+    b()
+    print("a sees", x)
+
+main:
+    a()

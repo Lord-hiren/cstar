@@ -1,0 +1,4 @@
+import lib.cycle_a
+
+main:
+    print(cycle_a.a_value())

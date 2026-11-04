@@ -1,0 +1,14 @@
+switch 1.0:
+    case 1:
+        print("int label matched float")
+    case *:
+        print("bad1")
+switch 1:
+    case True:
+        print("bad2")
+    case 1:
+        print("int matched")
+    case *:
+        print("bad3")
+print(1 == True)
+print("done")

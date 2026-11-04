@@ -1,0 +1,5 @@
+# prompt form prints without a newline and flushes; every read takes the
+# next stdin line without its trailing newline (blank line -> "")
+print(input("name> "))
+print(input())
+print(input())

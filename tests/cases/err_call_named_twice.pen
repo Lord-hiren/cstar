@@ -1,0 +1,9 @@
+# compile: a named argument written twice is a duplicate binding
+# (SPEC §9.2 — "named argument duplicating a positional binding, or named
+# twice" -> `argument 'x' got multiple values in call to 'f'`). The
+# positional-plus-named spelling is err_fn_named_dup; this pins the
+# named-twice spelling on its own.
+f(a):
+    return a
+
+print(f(a=1, a=2))

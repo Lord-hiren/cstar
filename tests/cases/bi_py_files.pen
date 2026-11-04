@@ -1,0 +1,129 @@
+# bi_py_files — open() and the file methods (SPEC §5.11.5): full IO
+# round-trip, seek/tell, line iteration, next(), write()'s count, and the
+# Python error shapes on closed/read-only files.
+path = "/tmp/pen_files_test.txt"
+f = open(path, "w")
+print(f.write("l1\nl2\nl3\n"))
+print(f.write(""))
+f.flush()
+f.close()
+print(f.closed)
+f = open(path)
+print(f.read())
+f.close()
+f = open(path)
+print(f.read(2))
+print(f.tell())
+print(f.read(2))
+f.close()
+f = open(path)
+print(f.readline())
+print(f.readline(2))
+print(f.readline())
+print(f.readline())
+f.close()
+f = open(path)
+print(f.readlines())
+f.close()
+f = open(path)
+print(f.readline())
+print(f.seek(0))
+print(f.tell())
+print(f.seek(3))
+print(f.readline())
+print(f.seek(-3, 2))
+print(f.readline())
+f.close()
+f = open(path)
+for line in f:
+    print("for", line)
+f.close()
+f = open(path, "a")
+print(f.write("l4\n"))
+f.close()
+f = open(path)
+print(f.readlines())
+f.close()
+f = open(path, "w")
+f.writelines(["a", "b\n"])
+f.flush()
+f.close()
+f = open(path)
+print(f.read())
+f.close()
+# binary round-trip
+f = open(path, "wb")
+print(f.write(b"\x00\xff"))
+f.close()
+f = open(path, "rb")
+print(f.read())
+f.close()
+f = open(path, "w")
+f.write("x")
+f.close()
+# errors
+try:
+    open("/tmp/pen_files_missing.txt")
+except FileNotFoundError as e:
+    print("1", e.message)
+try:
+    open(path, "x")
+except ValueError as e:
+    print("2", e.message)
+try:
+    open(path, "q")
+except ValueError as e:
+    print("3", e.message)
+try:
+    open(path, encoding="ascii")
+except ValueError as e:
+    print("4", e.message)
+try:
+    open(path, "wb", encoding="utf-8")
+except ValueError as e:
+    print("5", e.message)
+try:
+    open(5)
+except TypeError as e:
+    print("6", e.message)
+f = open(path)
+f.close()
+try:
+    f.read()
+except ValueError as e:
+    print("7", e.message)
+try:
+    f.write("x")
+except ValueError as e:
+    print("8", e.message)
+try:
+    f.tell()
+except ValueError as e:
+    print("9", e.message)
+f = open(path)
+try:
+    f.write("x")
+except OSError as e:
+    print("10", e.message)
+try:
+    f.read("x")
+except TypeError as e:
+    print("11", e.message)
+try:
+    f.seek(0, 9)
+except ValueError as e:
+    print("12", e.message)
+try:
+    f.missing()
+except TypeError as e:
+    print("13", e.message)
+f.close()
+f.close()
+f = open(path, "w")
+f.write("ok")
+f.close()
+f = open(path)
+print(f.read(-1))
+print(f.readline(-1))
+f.close()
+print("14 done")

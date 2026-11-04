@@ -1,0 +1,4 @@
+import lib.does_not_exist
+
+main:
+    print(1)

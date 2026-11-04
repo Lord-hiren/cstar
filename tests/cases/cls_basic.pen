@@ -1,0 +1,51 @@
+# M2-2C §3: class declaration, __init__, methods (positional + named
+# args on bound methods), dynamic attributes, deterministic displays.
+class Point:
+    __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    move(self, dx, dy):
+        self.x = self.x + dx
+        self.y = self.y + dy
+        return self
+
+    scale(self, k):
+        self.x = self.x * k
+        self.y = self.y * k
+
+    show(self):
+        return "p=(" + str(self.x) + "," + str(self.y) + ")"
+
+class Empty:
+    noop(self):
+        pass
+
+main:
+    p = Point(3, 4)
+    print("1", p.x, p.y)
+    print("2", p)
+    print("3", Point)
+    print("4", type(p), type(Point))
+    print("5", p.show())
+    # bound method display
+    print("6", p.move)
+    # positional method call mutates + returns self
+    q = p.move(1, 1)
+    print("7", p.x, p.y, q is p)
+    # named arguments work on bound methods (§3.2)
+    p.scale(k=2)
+    print("8", p.x, p.y)
+    # dynamic attribute write/read
+    p.label = "here"
+    print("9", p.label)
+    p.label = p.label + "!"
+    print("10", p.label)
+    # constructor named arguments reach __init__ through the binder
+    r = Point(x=10, y=20)
+    print("11", r.x, r.y, r)
+    # an empty class with a no-op method
+    e = Empty()
+    print("12", e, e.noop())
+    # methods are not bare names
+    print("end")

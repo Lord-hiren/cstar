@@ -1,0 +1,21 @@
+# bi_py_slice — slice() (SPEC §5.11.5): returns the (start, stop, step)
+# tuple; slice(a) binds STOP (Python's one-argument form binds .stop).
+# Python 3.14 does not validate the step at construction (validation
+# happens at application time — Pentest never applies a slice object:
+# xs[slice_obj] is not wired, the hot index path stays branch-free).
+# slice() itself is a compile-time arity error (err_bi_py_slice_args).
+print(slice(5))
+print(slice(1, 5))
+print(slice(1, 5, 2))
+print(slice(None, None, None))
+s = slice(2, 8, 3)
+print(s)
+print(s[0])
+print(s[1])
+print(s[2])
+print(len(s))
+print(type(slice(1)))
+print(slice(1) == (None, 1, None))
+print(slice(1, 2, "x"))
+print(slice("a", "z"))
+print("3 done")

@@ -1,0 +1,6 @@
+# Uncaught parse failure: the finally block still runs, then the uncaught
+# output keeps the exact M1 byte format (known-issue #2 regression).
+try:
+    int("abc")
+finally:
+    print("finally ran")

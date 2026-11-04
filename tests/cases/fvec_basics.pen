@@ -1,0 +1,80 @@
+# First-class SIMD vector types (fvec/ivec): construction, indexing,
+# iteration, equality, display, truthiness, reductions — and survival
+# across collect(). Everything here also runs through the fused kernels
+# (the arithmetic cases live in fvec_ops/ivec_ops).
+
+v = fvec([1.5, 2.5, 3.5, 4.5])
+print(v)
+print(type(v))
+print(len(v))
+print(v[0], v[2], v[-1])
+v[1] = 9.25
+print(v)
+print(v == fvec([1.5, 9.25, 3.5, 4.5]))
+print(v == fvec([1.5, 9.25, 3.5, 4.6]))
+
+w = ivec([10, 20, 30])
+print(w)
+print(type(w))
+print(len(w))
+print(w[1], w[-3])
+w[2] = 31
+print(w)
+print(w == ivec([10, 20, 31]))
+
+print(fvec_fill(5, 0.75))
+print(ivec_fill(4, -3))
+
+# truthiness: empty falsy, non-empty truthy
+print(bool(fvec([])), bool(v), bool(ivec([])), bool(w))
+
+# iteration protocol (also what sum/min/max walk without the fast path)
+t = 0.0
+for x in v:
+    t = t + x
+print(t)
+ti = 0
+for x in w:
+    ti = ti + x
+print(ti)
+
+# reductions
+print(sum(v), min(v), max(v))
+print(sum(w), min(w), max(w))
+print(dot(v, v))
+print(dot(w, w))
+
+# construction from range and across vector types
+print(fvec(range(4)))
+print(fvec(w))
+print(ivec(range(6)))
+
+# vectors are NOT hashable
+try:
+    m = {v: 1}
+except TypeError as e:
+    print("unhashable fvec:", e.message)
+try:
+    m = {w: 1}
+except TypeError as e:
+    print("unhashable ivec:", e.message)
+
+# GC: vectors and their containers survive collection
+keep = [fvec([1.0, 2.0]), ivec([3, 4])]
+collect()
+print(keep)
+print(len(keep), keep[0][1], keep[1][0])
+
+# closures capture vectors through cells (dynamic route, same results)
+mkvec():
+    base = fvec_fill(3, 10.0)
+
+    add(v2):
+        return base + v2
+
+    return add
+
+f = mkvec()
+print(f(fvec([1.0, 2.0, 3.0])))
+collect()
+print(f(fvec([0.5, 0.5, 0.5])))

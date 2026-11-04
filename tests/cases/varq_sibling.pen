@@ -1,0 +1,16 @@
+# cross-scope access §4: variable.<fn> reads/writes a sibling function's
+# binding — same scope, any declaration order, self-access included.
+reader():
+    print("reader sees counter:", variable.writer counter)
+    variable.writer counter = variable.writer counter * 10
+
+writer():
+    counter = 7
+    variable.writer counter += 1      // self-access: writer names itself
+
+main:
+    writer()
+    reader()
+    print("top level sees:", variable.writer counter)
+    variable.writer counter = 3
+    print(variable.writer counter)

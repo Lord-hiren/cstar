@@ -1,0 +1,16 @@
+# text_ops: 200000 passes of upper+split+join+replace+find+starts_with
+# over a 64-code-point text (methods dispatch at runtime).
+main:
+    base = "Alpha,Beta,Gamma Deltax Epsilon,Filth"
+    acc = 0
+    i = 0
+    while i < 200000:
+        u = base.upper()
+        parts = u.split(" ")
+        joined = "|".join(parts)
+        rep = base.replace("a", "@")
+        f = rep.find("@")
+        if base.starts_with("Alpha"):
+            acc = acc + len(joined) + f + len(rep)
+        i += 1
+    print(acc, len(base), base.find("Gamma"))

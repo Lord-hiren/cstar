@@ -1,0 +1,48 @@
+# Cross-scope access (docs/reference/cross-scope-access.md): the three forms —
+# variable.global / variable.parent / variable.<fn> — as reads and
+# writes, from nested, top-level and main() contexts, incl. a param
+# target and a module global shared with an ordinary `global` decl.
+a = 10
+
+read_global():
+    b = variable.global a
+    print(b)
+    variable.global a = 20
+    print(a)
+
+holder():
+    x = 100
+
+    inner():
+        y = variable.parent x
+        print(y)
+        variable.parent x = 200
+        print(variable.parent x)
+
+    inner()
+    print(x)
+
+sibling():
+    c = variable.holder x
+    print(c)
+    variable.holder x = 555
+    print(variable.holder x)
+
+argtarget(p):
+    p = p + 1
+    print(p)
+
+caller():
+    argtarget(10)
+    print(variable.argtarget p)
+    variable.argtarget p = 3
+    print(variable.argtarget p)
+    argtarget(0)
+
+main:
+    read_global()
+    print(a)
+    holder()
+    sibling()
+    print(variable.holder x)
+    caller()

@@ -1,0 +1,7 @@
+split_pair(p):
+    first, second = p
+    return first + second
+
+print(split_pair((10, 20)))
+top, bot = (1, 2)
+print(top, bot)

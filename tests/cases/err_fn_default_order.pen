@@ -1,0 +1,5 @@
+# compile: a required parameter may not follow a defaulted one.
+f(a=1, b):
+    return b
+
+print(f(2))

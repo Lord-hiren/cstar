@@ -1,0 +1,59 @@
+# Elementwise ivec arithmetic: two's-complement wrap (exactly pt_wrap_*),
+# C-style truncating division/modulo (exactly pt_div/pt_mod), scalar
+# broadcasts on either side, and int reduction agreement.
+
+a = ivec([1, 2, 3, 4, 5])
+b = ivec([6, 7, 8, 9, 10])
+
+print(a + b)
+print(b - a)
+print(a * b)
+print(a * 2)
+print(2 * a)
+print(a + 100)
+print(a - 2)
+print(5 - a)
+print(-a)
+
+# wrap semantics match the scalar operators exactly
+big = ivec([9223372036854775807, 0 - 9223372036854775807 - 1])
+print(big + ivec([1, -1]))
+print(big * big)
+print(ivec([9223372036854775807]) * 2)
+print((0 - 9223372036854775807 - 1) * ivec([-1, 2]))
+
+# C-style truncation (NOT Python floor) — same as scalar int ops
+print(ivec([-7, 7]) / ivec([2, 4]))
+print(ivec([-7, 7]) % ivec([2, 4]))
+print(ivec([-7, 7]) / 2)
+print(ivec([-7, 7]) % 2)
+print(7 / ivec([2]))
+print(ivec([-7, 7]) - 7)
+
+# INT64_MIN / -1 and INT64_MIN % -1 follow pt_div/pt_mod
+print(ivec([0 - 9223372036854775807 - 1]) / ivec([-1]))
+print(ivec([0 - 9223372036854775807 - 1]) % ivec([-1]))
+
+# compound assignment
+s = ivec_fill(3, 5)
+s += s
+print(s)
+s *= 3
+print(s)
+s -= ivec([1, 2, 3])
+print(s)
+
+# scalar reduction agrees with a sequential reference loop
+r = 0
+for x in a:
+    r = r + x
+print(r == sum(a), sum(a), min(a), max(a), dot(a, b))
+
+# fused chain vs reference
+c = a * 10 + b - 1
+print(c)
+print(c == ivec([15, 26, 37, 48, 59]))
+
+# integer wrap dot product
+print(dot(big, big))
+print(dot(ivec_fill(5, 9007199254740993), ivec_fill(5, 9007199254740993)))

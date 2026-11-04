@@ -1,0 +1,6 @@
+dec(n):
+    print(n)
+    return n - 1
+n = 3
+while n > 0: n = dec(n)
+print("done")

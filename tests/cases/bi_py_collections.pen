@@ -1,0 +1,170 @@
+# bi_py_collections — list / tuple / dict / zip / enumerate / reversed /
+# filter / map / sorted / sum / max / min / all / any (SPEC §5.11.5).
+# Cross-checked against CPython; the eager-list results for zip/enumerate/
+# filter/map/reversed are the documented deviation.
+double(x):
+    return x * 2
+add2(a, b):
+    return a + b
+gt1(x):
+    return x > 1
+neg(x):
+    return 0 - x
+slen(s):
+    return 0 - len(s)
+size(x):
+    return len(x)
+second(p):
+    return p[1]
+print(list())
+print(list([1, 2]))
+print(list((1, 2)))
+print(list("abc"))
+print(list(range(3)))
+print(list({7, 8}))
+print(list({"a": 1}))
+print(list(iter([1, 2, 3])))
+print(tuple())
+print(tuple([1, 2]))
+print(tuple("ab"))
+print(tuple(range(3)))
+print(dict())
+print(dict(a=1, b=2))
+print(dict({"x": 1}))
+print(dict([("x", 1), ("y", 2)]))
+print(dict((("k", 9),)))
+print(dict(zip(["a", "b"], [1, 2])))
+d = dict(a=1)
+d["b"] = 2
+print(d)
+print(zip())
+print(zip([1, 2], ["a", "b"]))
+print(zip([1], [2], [3]))
+print(zip([1, 2, 3], "ab"))
+print(enumerate([]))
+print(enumerate(["a", "b"]))
+print(enumerate(["a"], 5))
+print(enumerate("ab", -1))
+print(reversed([]))
+print(reversed([1, 2, 3]))
+print(reversed("abc"))
+print(reversed(range(3)))
+print(reversed({"a": 1}))
+print(reversed((5,)))
+print(filter(gt1, [1, 2, 3]))
+print(filter(None, [0, 1, False, "x", ""]))
+print(filter(None, []))
+print(map(double, []))
+print(map(double, [1, 2]))
+print(map(add2, [1, 2], [10, 20]))
+print(map(add2, [1, 2], [10, 20, 30]))
+print(sorted([]))
+print(sorted([3, 1, 2]))
+print(sorted("cba"))
+print(sorted([3, 1, 2], reverse=True))
+print(sorted(["bb", "a", "ccc"], key=slen))
+print(sorted([3, 1, 2], key=neg))
+print(sorted([[2], [1], [10]], key=size))
+print(sorted([1.5, 1, 2]))
+print(sum([]))
+print(sum([1, 2, 3]))
+print(sum([1, 2], 10))
+print(sum(["a", "b"], ""))
+print(sum((1, 2, 3), 4))
+print(max(1, 2, 3))
+print(max(3.5, 2))
+print(max("abc"))
+print(max([4, 2, 7]))
+print(max([], default=0))
+print(max("a", "b"))
+print(max([10, 30, 20], key=neg))
+print(min(1, 2, 3))
+print(min([4, 2, 7]))
+print(min([], default=9))
+print(min("cba"))
+print(min([10, 30, 20], key=neg))
+print(all([]))
+print(all([1, 2]))
+print(all([1, 0]))
+print(all([True, True]))
+print(all(""))
+print(all("ab"))
+print(any([]))
+print(any([0, 0]))
+print(any([0, 1]))
+print(any("x"))
+# stability of sorted with equal keys
+print(sorted([("a", 2), ("b", 1), ("c", 2)], key=second))
+try:
+    list(5)
+except TypeError as e:
+    print("1", e.message)
+try:
+    dict([1])
+except TypeError as e:
+    print("2", e.message)
+try:
+    dict([("a", 1, 2)])
+except TypeError as e:
+    print("3", e.message)
+try:
+    zip([1], 5)
+except TypeError as e:
+    print("4", e.message)
+try:
+    reversed(5)
+except TypeError as e:
+    print("5", e.message)
+try:
+    map(5, [1])
+except TypeError as e:
+    print("6", e.message)
+try:
+    filter(5, [1])
+except TypeError as e:
+    print("7", e.message)
+try:
+    filter(gt1, 5)
+except TypeError as e:
+    print("8", e.message)
+try:
+    sorted(5)
+except TypeError as e:
+    print("9", e.message)
+try:
+    sorted([1], key=5)
+except TypeError as e:
+    print("10", e.message)
+try:
+    max([])
+except ValueError as e:
+    print("11", e.message)
+try:
+    min([])
+except ValueError as e:
+    print("12", e.message)
+try:
+    enumerate(5)
+except TypeError as e:
+    print("13", e.message)
+try:
+    enumerate([1], "x")
+except TypeError as e:
+    print("14", e.message)
+try:
+    sum([1], "x")
+except TypeError as e:
+    print("15", e.message)
+try:
+    sorted([1, "a"])
+except TypeError as e:
+    print("16", e.message)
+try:
+    reversed({1, 2})
+except TypeError as e:
+    print("18", e.message)
+try:
+    tuple(5)
+except TypeError as e:
+    print("17", e.message)
+print("19 done")

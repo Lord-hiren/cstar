@@ -1,0 +1,9 @@
+switch 9:
+    case 1:
+        print("bad1")
+    case 2:
+        print("bad2")
+switch 5:
+    case 1:
+        print("bad3")
+print("done")

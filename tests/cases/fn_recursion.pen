@@ -1,0 +1,17 @@
+# 2B: recursion — static top-level calls and recursion through a function value.
+fact(n):
+    if n <= 1:
+        return 1
+    return n * fact(n - 1)
+
+fib(n):
+    if n < 2:
+        return n
+    return fib(n - 1) + fib(n - 2)
+
+print(fact(10))
+print(fib(10))
+g = fact
+print(g(5))
+fns = [fact, fib]
+print(fns[1](10))

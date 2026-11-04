@@ -1,0 +1,6 @@
+# runtime: duplicate binding — a named arg for a param already bound positionally.
+f(a, b):
+    return [a, b]
+
+g = f
+print(g(1, a=2))

@@ -1,0 +1,4 @@
+from lib.clean import double
+
+main:
+    print(double(4))

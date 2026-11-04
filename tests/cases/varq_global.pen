@@ -1,0 +1,13 @@
+# cross-scope access §4: variable.global reads/writes module storage from
+# any function without a `global` declaration, in any declaration order.
+hits = 0
+
+bump():
+    variable.global hits = variable.global hits + 1
+    variable.global hits += 41
+
+main:
+    bump()                    // forward reference to a function below
+    print(hits, variable.global hits)
+    variable.global hits = 0
+    print(hits)

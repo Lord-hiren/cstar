@@ -1,0 +1,16 @@
+eff():
+    print("side")
+    return 2
+switch eff():
+    case 99:
+        print("nope99")
+    case 98:
+        print("nope98")
+    case 2:
+        print("match")
+switch eff():
+    case 99:
+        print("bad")
+    case *:
+        print("wild")
+print("done")

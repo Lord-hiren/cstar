@@ -1,0 +1,6 @@
+# runtime: too many positionals through a dynamic callee with no vararg.
+add(a, b):
+    return a + b
+
+g = add
+print(g(1, 2, 3))

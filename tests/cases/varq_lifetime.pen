@@ -1,0 +1,12 @@
+# cross-scope access §4: a pinned binding outlives its function's frame —
+# the slot is program-lifetime storage, like a global.
+store():
+    secret = "buried treasure"
+    note = 42
+
+main:
+    store()                          // store -> has returned already
+    print(variable.store secret)
+    print(variable.store note)
+    variable.store note += 8
+    print(variable.store note)

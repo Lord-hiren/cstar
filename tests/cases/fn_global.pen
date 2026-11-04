@@ -1,0 +1,30 @@
+# 2B: global from nested functions (M2-2A scope preserved), reading a global
+# without declaration, and a combined global + nonlocal flow.
+count = 0
+tag = "start"
+
+run():
+    local_n = 0
+    step():
+        global count, tag
+        nonlocal local_n
+        count = count + 1
+        local_n = local_n + 1
+        tag = "ran"
+        return local_n
+    step()
+    step()
+    step()
+    return local_n
+
+print(run())
+print(count)
+print(tag)
+
+read_nested():
+    show():
+        return count
+    return show()
+
+print(read_nested())
+print(count)

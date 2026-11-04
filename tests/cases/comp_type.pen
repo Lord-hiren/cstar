@@ -1,0 +1,24 @@
+x = 1
+x += 1
+print(x)
+print(x + 1)
+x = "a"
+x += "b"
+print(x)
+y = 7
+y /= 2
+print(y)
+y2 = 7.5
+y2 /= 2
+print(y2)
+z = 5
+z &= 3
+print(z)
+f = 1.5
+f += 2
+print(f)
+i = 3
+b = True
+print(i == b)
+b = b and 0
+print(b)

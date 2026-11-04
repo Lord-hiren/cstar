@@ -1,0 +1,77 @@
+# parse_edges — parity pin for int()/float() parse edges (SPEC §5.11.2,
+# §5.6, §9.3): sign and leading-zero acceptance, strict decimal int text
+# (spaces/underscores/hex prefixes invalid), TODAY's message for an
+# out-of-range int literal and for the accepted nan/inf spellings (SPEC
+# does not spell those two out separately — pinned as current byte output),
+# truncation toward zero, int()/float() type errors, and len() on
+# length-less types.
+print(int("007"), int("+5"), int("-5"), int("0"), int("+007"))
+print(int(b"007"), int(b"-3"))
+print(int(1.9), int(-1.9), int(True), int(False))
+print(float(3), float(True), float(False))
+print(float("1.5"), float("+1.5"), float(".5"), float("5."))
+print(float("1e5"), float("-2.5e-2") == -0.025)
+
+# Today's accepted nan/inf text spellings and their display (§5.6).
+print(float("nan"), float("inf"), float("-inf"), float("INF"), float("NaN"))
+print(float("inf") + 1.0)
+print(float("nan") == float("nan"))
+
+# int() of a non-finite or out-of-int64-range float (§5.11.2).
+try:
+    print(int(float("nan")))
+except ValueError as e:
+    print("nan->int:", e.message)
+try:
+    print(int(float("inf")))
+except ValueError as e:
+    print("inf->int:", e.message)
+
+# Strict decimal text for int(): every one of these is an invalid literal.
+for s in [" 5", "5_", "1_0", "5.", "", "abc", "+", "--1"]:
+    try:
+        print("int", repr(s), int(s))
+    except ValueError as e:
+        print("int err:", e.message)
+
+# Out-of-range int text: TODAY's message is an invalid-literal ValueError
+# (SPEC §5.11.2 only says "invalid to parse" — no separate range message).
+try:
+    print(int("99999999999999999999999"))
+except ValueError as e:
+    print("int overflow:", e.message)
+try:
+    print(int("-99999999999999999999999"))
+except ValueError as e:
+    print("int underflow:", e.message)
+
+try:
+    print(float("infjunk"))
+except ValueError as e:
+    print("float err:", e.message)
+try:
+    print(float("0x10"))
+except ValueError as e:
+    print("float hex err:", e.message)
+
+# Argument-type errors are TypeErrors with §9.3 wording.
+try:
+    print(int([]))
+except TypeError as e:
+    print("int arg:", e.message)
+try:
+    print(float({}))
+except TypeError as e:
+    print("float arg:", e.message)
+
+# len() on types without a length (§5.11.2 / §9.3 type names).
+for x in [None, True, 1.5, 3]:
+    try:
+        print(len(x))
+    except TypeError as e:
+        print("len err:", e.message)
+try:
+    print(len(range(3)))
+except TypeError as e:
+    print("len range:", e.message)
+print("done")

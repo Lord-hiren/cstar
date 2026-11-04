@@ -1,0 +1,5 @@
+f2
+f1
+caught ValueError: v3
+frame KeyError: lost
+done

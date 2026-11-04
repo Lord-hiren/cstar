@@ -1,0 +1,9 @@
+# while_int: 12976128 int LCG steps `a = a*1664525 + 1013904223` (wrapping int64) in a
+# real while loop. Before/after partner: M1 int_loop (same steps).
+main:
+    a = 22695477
+    i = 0
+    while i < 12976128:
+        a = a * 1664525 + 1013904223
+        i += 1
+    print(a)

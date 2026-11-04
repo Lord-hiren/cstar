@@ -1,0 +1,8 @@
+early = Point
+
+class Point:
+    __init__(self, x):
+        self.x = x
+
+main:
+    print("unreachable")

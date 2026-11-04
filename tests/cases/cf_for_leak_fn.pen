@@ -1,0 +1,7 @@
+f():
+    total = 0
+    for i in range(1, 4):
+        total += i
+    return total + i
+print(f())
+print("done")

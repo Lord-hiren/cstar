@@ -1,0 +1,46 @@
+# scoreboard: io_join — the same file-I/O workload as io.pen in Pentest's
+# fused write form: preformat every record into a list, join once, one
+# write call (the analogue of io.c raw). Checksum and file bytes are
+# identical to every other io variant.
+# Output contract: line 1 = checksum (file byte-sum + length term),
+# line 2 = kernel seconds.
+n = 600000
+reps = 4
+path = "hpcbench_io.dat"
+
+# warm-up: one uncounted preformat + join + write + read cycle
+lines = []
+for i in range(n):
+    lines.append(str(i) + " " + str((i * 75) % 1000003) + "\n")
+blob = "".join(lines)
+f = open(path, "w")
+f.write(blob)
+f.close()
+f = open(path, "rb")
+warm = f.read()
+f.close()
+
+t0 = clock()
+for r in range(reps):
+    lines = []
+    for i in range(n):
+        lines.append(str(i) + " " + str((i * 75) % 1000003) + "\n")
+    blob = "".join(lines)
+    f = open(path, "w")
+    f.write(blob)
+    f.close()
+    f = open(path, "rb")
+    data = f.read()
+    f.close()
+t1 = clock()
+
+# checksum: byte-sum of the file the timed section left behind, plus a
+# length term so truncation can't hide behind a compensating byte sum
+f = open(path, "rb")
+data = f.read()
+f.close()
+total = 0
+for i in range(len(data)):
+    total = total + data[i]
+print(total + len(data) * 1000000000)
+print(t1 - t0)

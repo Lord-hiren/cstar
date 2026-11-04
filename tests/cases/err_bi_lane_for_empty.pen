@@ -1,0 +1,5 @@
+# Empty range + read after the loop: the native flag path must raise the
+# same NameError the boxed PT_UNSET path raises.
+for i in range(0):
+    print("never")
+print(i)

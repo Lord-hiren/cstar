@@ -1,0 +1,6 @@
+# compile: nonlocal with no enclosing function binding.
+f():
+    nonlocal zz
+    zz = 1
+
+f()

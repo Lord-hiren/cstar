@@ -1,0 +1,9 @@
+total = 0
+
+main:
+    total = 5
+    print(total)
+    greet("pen")
+
+greet(name):
+    print("hello " + name)

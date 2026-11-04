@@ -1,0 +1,20 @@
+1 body
+1 fin
+2 fin
+2 caught ValueError: deep
+3 arm ValueError: combo
+3 fin
+4 body
+4 fin
+5 fin
+5 outer TypeError: tb
+6 iter 1
+6 fin 1
+6 fin 2
+6 iter 3
+6 fin 3
+7 br 1
+7 fin 1
+7 fin 2
+fin-ret
+8 7

@@ -1,0 +1,112 @@
+# bi_py_reflect — callable / isinstance / hash / id / getattr / hasattr /
+# setattr / delattr (SPEC §5.11.5). isinstance performs exact-type matching
+# (Pentest has no subclassing — documented).
+class Point:
+    __init__(self, x):
+        self.x = x
+
+    get(self):
+        return self.x
+
+f():
+    return 1
+
+print(callable(f))
+print(callable(Point))
+print(callable(1))
+print(callable("a"))
+print(callable(None))
+print(isinstance(5, int))
+print(isinstance(5, float))
+print(isinstance(5.5, float))
+print(isinstance(5.5, int))
+print(isinstance("x", str))
+print(isinstance(b"x", str))
+print(isinstance(b"x", bytes))
+print(isinstance([1], list))
+print(isinstance((1,), tuple))
+print(isinstance({1}, set))
+print(isinstance({"a": 1}, dict))
+print(isinstance(range(1), range))
+print(isinstance(True, bool))
+print(isinstance(True, int))
+print(isinstance(None, type))
+print(isinstance(f, "function"))
+print(isinstance(Point, type))
+print(isinstance(ValueError("x"), ValueError))
+print(isinstance(TypeError("x"), ValueError))
+print(isinstance(5, (str, int)))
+print(isinstance(5, (str, float)))
+print(isinstance(5, "int"))
+p = Point(7)
+print(isinstance(p, Point))
+print(getattr(p, "x"))
+print(getattr(p, "missing", "dflt"))
+print(getattr(p, "get"))
+print(getattr(ValueError("boom"), "message"))
+print(getattr(ValueError("boom"), "type"))
+try:
+    getattr(p, "nope")
+except AttributeError as e:
+    print("1", e.message)
+try:
+    getattr(p, 5)
+except TypeError as e:
+    print("2", e.message)
+print(hasattr(p, "x"))
+print(hasattr(p, "nope"))
+print(hasattr(p, "get"))
+print(hasattr(5, "x"))
+print(hasattr("abc", "find"))
+print(hasattr(ValueError("x"), "message"))
+print(hasattr(ValueError("x"), "nope"))
+e = ValueError("m")
+print(hasattr(e, "type"))
+setattr(p, "x", 99)
+print(p.x)
+setattr(p, "fresh", "yes")
+print(p.fresh)
+print(hasattr(p, "fresh"))
+delattr(p, "fresh")
+print(hasattr(p, "fresh"))
+try:
+    delattr(p, "get")
+except AttributeError as e:
+    print("3", e.message)
+try:
+    delattr(p, "nothere")
+except AttributeError as e:
+    print("4", e.message)
+try:
+    delattr(5, "x")
+except AttributeError as e:
+    print("5", e.message)
+try:
+    setattr(5, "x", 1)
+except TypeError as e:
+    print("6", e.message)
+fz = open("/tmp/pen_refl.txt", "w")
+fz.write("x")
+print(hasattr(fz, "name"))
+print(hasattr(fz, "closed"))
+print(fz.closed)
+fz.close()
+print(fz.closed)
+print(hasattr(fz, "write"))
+print(hasattr([], "append"))
+print(hash(42) == hash(42))
+print(hash("abc") == hash("abc"))
+print(hash((1, 2)) == hash((1, 2)))
+h1 = id(p)
+print(h1 == id(p))
+print(h1 == id(Point(1)))
+print(id(1) == id(1))
+print(id(1) != id(2))
+print(id(True) != id(1))
+print(id(1.0) != id(1))
+print(id("a") != id("a"))
+try:
+    hash([1])
+except TypeError as e:
+    print("7", e.message)
+print("9 done")

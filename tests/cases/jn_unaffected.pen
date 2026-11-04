@@ -1,0 +1,8 @@
+add2(a, b):
+    return a + b
+print(add2(1, 2))
+print(1, 2)
+xs = [3, 4]
+print(len(xs))
+inner = (5, 6)
+print(inner, xs)

@@ -1,0 +1,13 @@
+# cross-scope access §4: main()'s bindings are module globals, so functions
+# reach them through variable.global; top level can address any function's
+# binding through variable.<fn>.
+report():
+    print("inside report:", variable.global total)
+    variable.global total += 1
+
+total = 0
+
+main:
+    report()
+    report()
+    print(total)

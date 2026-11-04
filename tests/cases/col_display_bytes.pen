@@ -1,0 +1,4 @@
+print(b"AB")
+print(b"\x00A")
+print([b"hi", (b"x",)])
+print(b"q\"r")

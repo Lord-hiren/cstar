@@ -1,0 +1,16 @@
+# cross-scope access: compile errors — every unresolved qualified
+# reference is reported with its source location.
+a():
+    x = 1
+
+nested():
+    inner():
+        pass
+    y = variable.a z                  // a has no binding z
+    w = variable.missing x            // not a function of this scope
+
+main:
+    p = variable.parent q             // main has no enclosing function
+    r = variable.global nope          // no such global
+    nested()
+    a()

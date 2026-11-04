@@ -1,0 +1,9 @@
+class Dupe:
+    go(self):
+        return 1
+
+    go(self, n):
+        return n
+
+main:
+    print(Dupe)

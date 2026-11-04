@@ -1,0 +1,9 @@
+# compile: two nested declarations with the same name.
+f():
+    h():
+        return 1
+    h():
+        return 2
+    return h()
+
+print(f())

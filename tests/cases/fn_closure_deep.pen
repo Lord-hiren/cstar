@@ -1,0 +1,27 @@
+# 2B: deep nesting — transitive capture through the env chain (3 levels),
+# plus capture of a *vararg and **kwarg name.
+deep():
+    a = 1
+    l1():
+        b = a + 1
+        l2():
+            c = b + 1
+            l3():
+                return c + a
+            return l3()
+        return l2()
+    return l1()
+
+print(deep())
+
+capture_varargs(*rest, **kw):
+    first():
+        return rest[0]
+    keys():
+        out = []
+        for k in kw:
+            out.append(k)
+        return out
+    return[first(), keys()]
+
+print(capture_varargs(5, 6, one=1, two=2))

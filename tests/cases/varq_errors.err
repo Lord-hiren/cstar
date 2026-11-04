@@ -1,0 +1,4 @@
+no binding for 'variable.a z' found
+'missing' is not a function sharing this scope
+no binding for 'variable.parent q' found
+no binding for 'variable.global nope' found

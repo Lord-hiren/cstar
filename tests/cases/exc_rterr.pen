@@ -1,0 +1,63 @@
+# M2-2C §2.2/§4: runtime errors are catchable with their mapped classes;
+# messages stay the 2B byte strings.
+main:
+    try:
+        x = 1
+        y = 0
+        print(x / y)
+    except ZeroDivisionError as e:
+        print("1", e, type(e))
+    try:
+        print(5 % 0)
+    except ZeroDivisionError as e:
+        print("2", e)
+    try:
+        xs = [1, 2]
+        print(xs[99])
+    except IndexError as e:
+        print("3", e, type(e))
+    try:
+        t = "hi"
+        print(t[9])
+    except IndexError as e:
+        print("4", e)
+    try:
+        d = {"a": 1}
+        print(d["b"])
+    except KeyError as e:
+        print("5", e, type(e))
+    try:
+        print(later_var)
+    except NameError as e:
+        print("6", e)
+    later_var = 42
+    try:
+        d2 = {}
+        d2[[1, 2]] = 3
+    except TypeError as e:
+        print("7", e)
+    try:
+        v = 5
+        v(1)
+    except TypeError as e:
+        print("8", e)
+    try:
+        a, b = [1]
+        print(a, b)
+    except ValueError as e:
+        print("9", e, type(e))
+    try:
+        print(1 + "x")
+    except TypeError as e:
+        print("10", e)
+    try:
+        try:
+            raise ValueError("x")
+        except 5:
+            print("WRONG")
+    except TypeError as e:
+        print("11", e)
+    try:
+        raise 42
+    except TypeError as e:
+        print("12", e)

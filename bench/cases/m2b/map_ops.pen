@@ -1,0 +1,17 @@
+# map_ops: 150000 inserts, 150000 lookups, 150000 get-with-default misses,
+# one key-sum pass. Insertion order is preserved (keys()).
+main:
+    m = {}
+    i = 0
+    while i < 150000:
+        m[i] = i * 2 + 7
+        i += 1
+    total = 0
+    i = 0
+    while i < 150000:
+        total = total + m[i] + m.get(i + 150000, 0)
+        i += 1
+    ksum = 0
+    for k in m:
+        ksum = ksum + k
+    print(len(m), m[0], m[149999], total, ksum)

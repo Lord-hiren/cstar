@@ -1,0 +1,51 @@
+# Native range-loop targets: the loop variable joins the int64 lane, so
+# every builtin-in-loop shape (abs/round/pow/min/max) compiles to straight
+# C. Every output here must be identical to the boxed (dynamic) path.
+acc = 0
+for i in range(10):
+    acc += abs(i - 5) + round(i / 3)
+print(acc)
+
+# Function-local target with a descending range + the other lane builtins.
+f():
+    t = 0
+    for j in range(5, 0, -1):
+        t += max(j, 3) * pow(2, 1) - min(j, 4)
+    return t
+print(f())
+
+# Empty range: the body never runs; the used-flag keeps the name
+# unassigned, so it stays out of the name tables.
+for k in range(0):
+    print("never")
+print("k" in globals(), "k" in dir())
+
+# break / continue: the target binds before the body on every iteration.
+n = 0
+for x in range(100):
+    if x == 3:
+        continue
+    if x == 5:
+        break
+    n += x
+print(n, x)
+
+# A loop target is an ordinary name: `y = 0` plus the range binds are all
+# int-shaped writes (fixpoint keeps the slot native), and reads after the
+# loop see the last bound value.
+y = 0
+for y in range(3):
+    last = y
+print(y, last, type(y))
+
+# A captured loop variable stays boxed — cells never join the lane.
+make():
+    for c in range(3):
+        pass
+    inner():
+        return c
+    return inner()
+print(make())
+
+# After a non-empty loop the name is visible and assigned.
+print("i" in globals(), "x" in globals())

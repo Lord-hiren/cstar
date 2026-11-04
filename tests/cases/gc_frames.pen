@@ -1,0 +1,15 @@
+# 2C GC: mid-function collection sees the shadow frame — parameters and
+# locals of the active function stay alive across collect() (§1.3(2)).
+survivor(n, tag):
+    xs = [n, n * 2]
+    junk = collect()
+    ys = [tag, "kept"]
+    junk2 = collect()
+    return xs[0] + xs[1] + len(ys[0])
+
+caller():
+    inner = ["deep"]
+    r = survivor(21, "ab")
+    return str(inner[0]) + " " + str(r)
+
+print(caller())

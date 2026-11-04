@@ -1,0 +1,10 @@
+class Same:
+    go(self):
+        return 1
+
+class Same:
+    go(self, n):
+        return n
+
+main:
+    print(Same)

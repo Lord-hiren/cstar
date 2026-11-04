@@ -1,0 +1,11 @@
+m = {}
+m[1] = "int"
+m[1.0] = "float1"
+print(len(m), m[1])
+m[True] = "bool"
+print(len(m), m[True])
+m[False] = "bf"
+m[0] = "int0"
+print(len(m))
+for k in m:
+    print(k, m[k])

@@ -1,0 +1,7 @@
+arm1 t1
+arm2 list index out of range
+arm3 boom
+outer KeyError
+bare
+first matched
+done

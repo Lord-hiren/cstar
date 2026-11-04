@@ -1,0 +1,28 @@
+# 2B: dynamic (indirect) calls — dispatch through variables and maps,
+# chained calls, defaults/kwargs on dynamic callees, variadic callees.
+add(a, b):
+    return a + b
+
+sub(a, b):
+    return a - b
+
+ops = {"add": add, "sub": sub}
+print(ops["add"](7, 2))
+print(ops["sub"](7, 2))
+g = add
+print(g(3, 4))
+
+withdef(a, b=10, *rest, **kw):
+    return [a, b, rest, kw]
+
+h = withdef
+print(h(1))
+print(h(1, 2, 3, 4, k=5))
+print(h(b=8, a=2))
+
+maker():
+    inner(x):
+        return x * 3
+    return inner
+
+print(maker()(7))

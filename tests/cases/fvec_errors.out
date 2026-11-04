@@ -1,0 +1,26 @@
+1 fvec length mismatch
+2 fvec length mismatch
+3 unsupported operand types for +: fvec and ivec
+4 unsupported operand types for +: ivec and fvec
+5 unsupported operand types for +: ivec and float
+6 unsupported operand types for *: fvec and text
+7 unsupported operand types for -: fvec and bool
+8 fvec index out of range
+9 ivec index out of range
+10 fvec indices must be integers, not text
+11 fvec() elements must be numbers, got text
+12 ivec() elements must be ints, got float
+13 fvec() elements must be numbers, got text
+14 'int' object is not iterable
+15 fvec_fill: count must be a non-negative int
+16 fvec_fill() element must be numeric, got text
+17 ivec_fill() element must be an int, got float
+18 cannot store text in fvec
+19 cannot store float in ivec
+20 dot() expects two fvecs or two ivec, got fvec and ivec
+21 fvec length mismatch
+22 division by zero
+23 division by zero
+24 division by zero
+25 modulo by zero
+26 division by zero

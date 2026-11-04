@@ -1,0 +1,6 @@
+# compile: the global declaration must precede any use of the name.
+f():
+    print(g)
+    global g
+
+f()

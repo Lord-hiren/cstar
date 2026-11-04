@@ -1,0 +1,14 @@
+i = 0
+while i < 3:
+    i += 1
+    if i == 2:
+        switch i:
+            case 2:
+                print("two-in-if")
+            case *:
+                print("bad1")
+    else:
+        switch i:
+            case *:
+                print(i)
+print("done")

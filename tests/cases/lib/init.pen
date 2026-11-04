@@ -1,0 +1,4 @@
+print("init once")
+value = 42
+unused_constant = 1000
+noise = print("impure init")

@@ -1,0 +1,20 @@
+# scoreboard: chain3 DYNAMIC — the same arithmetic as chain3.pen, but the
+# coefficient is a float VARIABLE, which v1's shape lattice deliberately
+# does not prove (scalars must be int-lane or literals). The statement
+# therefore lowers to the dynamic route: one heap temporary per operator,
+# exactly what fusion removes. Identical checksum to chain3.pen/chain3.c —
+# this variant exists to price the fusion itself.
+# Output contract: line 1 = checksum (sum(z)), line 2 = kernel seconds.
+
+n = 8388608
+reps = 30
+a = 2.0
+x = fvec_fill(n, 1.5)
+z = fvec_fill(n, 0.0)
+z = (a * x + 1.0) * 3.0 + 0.5   # warm-up: faults pages outside timing
+t0 = clock()
+for r in range(reps):
+    z = (a * x + 1.0) * 3.0 + 0.5
+t1 = clock()
+print(sum(z))
+print(t1 - t0)

@@ -1,0 +1,23 @@
+# nint_loop — 1e6-iteration chunked native-int loop (the lab.pen shape at
+# suite scale): inner counted chunk with no calls (GC safe point elided on
+# the back edge), outer chunk loop. Deterministic — no clock output.
+acc = 0
+i = 0
+total = 1000000
+chunk = 10000
+while i < total:
+  end = i + chunk
+  if end > total:
+    end = total
+  while i < end:
+    acc = acc + (i * i % 7)
+    i = i + 1
+print(acc)
+print(i)
+c = 0
+s = 0
+while c < 1000:
+  c += 1
+  s -= c * 2
+print(c)
+print(s)

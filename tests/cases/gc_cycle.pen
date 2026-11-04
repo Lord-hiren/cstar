@@ -1,0 +1,31 @@
+# 2C GC: cycles (a <-> b, a self-map, closure <-> cell <-> list) are
+# collected once unreachable — plain reference patterns, no special form.
+main:
+    # list cycle
+    a = [1, 2]
+    b = [a]
+    a.append(b)
+    print(len(a), len(b))
+    a = 0
+    b = 0
+    print(collect() > 0)
+
+    # map containing itself
+    m = {}
+    m["self"] = m
+    print(len(m))
+    m = 0
+    print(collect() > 0)
+
+    # closure cycle: list -> closure -> env cell -> list
+    maker():
+        holder = []
+        hook():
+            return len(holder)
+        holder.append(hook)
+        return holder
+
+    f = maker()
+    print(len(f))
+    f = 0
+    print(collect() > 0)

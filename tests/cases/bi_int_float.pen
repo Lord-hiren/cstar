@@ -1,0 +1,5 @@
+print(int("42"), int("-7"))
+print(int(2.9), int(-2.9))
+print(int(True), int(False))
+print(int(b"15"))
+print(float("2.5"), float(3), float(True))

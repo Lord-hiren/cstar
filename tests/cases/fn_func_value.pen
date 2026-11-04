@@ -1,0 +1,22 @@
+# 2B: reading a function name as a value yields a function value (M1 restriction lifted).
+print(greet)
+print(type(greet))
+
+greet(name):
+    return "hi " + name
+
+print(greet)
+f = greet
+print(f)
+print(type(f))
+print(f("bob"))
+
+outer():
+    inner():
+        return 7
+    print(inner)
+    print(type(inner))
+    return inner
+
+g = outer()
+print(g())

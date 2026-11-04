@@ -1,0 +1,3 @@
+# Built binaries, captured outputs, and cache probe leftovers are generated.
+bin/
+results/cache-probe/

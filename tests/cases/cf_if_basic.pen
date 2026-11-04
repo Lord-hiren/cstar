@@ -1,0 +1,9 @@
+if True:
+    print("t1")
+if False:
+    print("bad")
+if False:
+    print("bad2")
+else:
+    print("e1")
+print("end")

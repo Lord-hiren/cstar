@@ -1,0 +1,17 @@
+# dispatch_ops: 300000 indirect calls through a function value held in a
+# map, mixing positional / named / *args / **kwargs binding.
+f(a, b = 5, *rest, **kw):
+    s = a + b
+    for r in rest:
+        s = s + r
+    for k in kw:
+        s = s + kw[k]
+    return s
+main:
+    m = {"f": f}
+    total = 0
+    i = 0
+    while i < 300000:
+        total = total + m["f"](i, b = 2, extra = 3)
+        i += 1
+    print(total)

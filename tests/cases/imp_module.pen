@@ -1,0 +1,8 @@
+import lib.toolkit as tk
+
+main:
+    print(tk.greet("pentest"))
+    print(tk.twice(21))
+    box = tk.Box(9)
+    print(box.get(), tk.PREFIX)
+    print(type(box))

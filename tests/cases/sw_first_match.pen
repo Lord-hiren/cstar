@@ -1,0 +1,16 @@
+x = 1
+switch x:
+    case 1:
+        print("one")
+    case 2:
+        print("two")
+    case *:
+        print("wild")
+print("done")
+switch "b":
+    case "a":
+        print("sa")
+    case "b":
+        print("sb")
+    case "c":
+        print("sc")

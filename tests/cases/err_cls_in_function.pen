@@ -1,0 +1,8 @@
+wrapper():
+    class Local:
+        go(self):
+            pass
+    return 0
+
+main:
+    print(wrapper())

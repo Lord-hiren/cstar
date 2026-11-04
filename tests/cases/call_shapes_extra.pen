@@ -1,0 +1,70 @@
+# call_shapes_extra — parity pin for the call protocol (SPEC §7.1):
+# defaults omitted/mixed with named arguments, defaults evaluated fresh per
+# call in parameter order, a named argument that matches a parameter binds
+# THAT parameter even with **kwargs present, *args/**kwargs shapes, and the
+# runtime arity messages for a dynamic (unknown-at-compile-time) callee.
+BASE = "!"
+greet(name, greeting="hi", punct=BASE):
+    return greeting + " " + name + punct
+
+print(greet("a"))
+print(greet("a", "."))
+print(greet("a", punct="?"))
+print(greet("a", "yo", punct="."))
+print(greet(greeting="hey", name="b"))
+print(greet(name="b", greeting="hey"))
+
+# A named argument whose name IS a parameter always binds that parameter,
+# even when the function also has **kwargs (§7.1) — it must not leak into
+# the kwargs map.
+bound(a, b=2, **kw):
+    return [a, b, kw]
+
+print(bound(1))
+print(bound(1, z=3))
+print(bound(a=1, b=7, extra=8))
+
+# *args with **kwargs together: positionals spill into the vararg, unknown
+# named arguments into a fresh map; unused ones stay empty.
+both(a, b=2, *rest, **kw):
+    return [a, b, rest, kw]
+
+print(both(1))
+print(both(1, 3, 4, 5, x=1, y=2))
+print(both(1, b=9, w=7))
+
+# Fresh defaults per call (never shared), including a mutable default.
+stamp(box=[], label="s"):
+    box.append(label)
+    return box
+
+print(stamp())
+print(stamp())
+print(stamp([], "t"))
+
+# Dynamic callee: arity is checked at call time with §9.2's exact wording.
+pick(flag):
+    if flag:
+        return greet
+    return bound
+
+fn = pick(True)
+print(fn("dyn", "?"))
+try:
+    print(fn("dyn", 1, 2, 3))
+except TypeError as e:
+    print("too many:", e.message)
+try:
+    print(fn())
+except TypeError as e:
+    print("too few:", e.message)
+
+# Unknown named argument on a dynamic callee that has no **kwargs:
+# the §9.2 message runs at call time here (the callee is not statically
+# known), so it must be catchable like any other TypeError.
+gn = pick(True)
+try:
+    print(gn(1, nope=2))
+except TypeError as e:
+    print("unknown name:", e.message)
+print("done")

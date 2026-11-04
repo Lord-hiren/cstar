@@ -1,0 +1,142 @@
+#!/usr/bin/env pentest
+# Pentest M1 — full feature tour (positive paths)
+
+# ---- comments: all four forms ----
+# hash comment
+// slash comment
+/*
+block comment
+*/
+"""
+triple quoted
+comment
+"""
+
+# ---- values & print ----
+print(42)
+print(-42)
+print(3.14)
+print(5.0)
+print(0.0)
+print(-0.0)
+print(True)
+print(False)
+print(None)
+print()
+print("hi\tthere")
+print("new\nline")
+print("q\"uote")
+print("back\\slash")
+
+# ---- arithmetic ----
+print(7 + 3)
+print(7 - 3)
+print(7 * 3)
+print(7 / 2)
+print(7 % 3)
+print(-7 / 2)
+print(-7 % 3)
+print(7 % -3)
+print(2.5 + 1)
+print(1 + 2.5)
+print(2 * 2.5)
+print(10 / 4.0)
+print(1.0 / 3.0)
+print(9223372036854775807 + 1)
+
+# ---- comparison & equality ----
+print(3 < 5)
+print(3 <= 3)
+print(5 > 5)
+print(5 >= 6)
+print(1 == 1.0)
+print(1 != "1")
+print("abc" < "abd")
+print("b" > "a")
+print(None == None)
+print(True == True)
+print(True == 1)
+
+# ---- string concat & multiline expressions ----
+print("a" + "b" + "c")
+print(
+    2 +
+    3
+)
+print(
+    1 +  # comment inside parentheses
+    2
+)
+
+# ---- variables: reassignment incl. type change ----
+v = 10
+v = 20
+print(v)
+v = "string now"
+print(v)
+
+# ---- functions ----
+zero():
+    return 7
+
+add(a, b):
+    return a + b
+
+three(a, b, c):
+    return a + b + c
+
+noReturn():
+    print("side effect")
+
+bare():
+    return
+
+usesAdd(x):
+    return add(x, x)
+
+forwardToLater():
+    return later()
+
+later():
+    return 99
+
+print(zero())
+print(add(40, 2))
+print(three(1, 2, 3))
+print(noReturn())
+print(bare())
+print(usesAdd(5))
+print(forwardToLater())
+print(add(multi(1, 2, 3), zero()))
+
+multi(a, b, c):
+    return a + b + c
+
+# ---- scope ----
+g = "global"
+
+readG():
+    print(g)
+
+shadowG():
+    g = "local"
+    print(g)
+
+readG()
+shadowG()
+print(g)
+
+paramShadow(g):
+    print(g)
+
+paramShadow("param")
+print(g)
+
+# ---- execution order with main() ----
+print("one")
+
+main:
+    print("two")
+    print("inside main:", g)
+
+print("three")

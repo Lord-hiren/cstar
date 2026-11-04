@@ -1,0 +1,7 @@
+startup 344
+int_loop 111785
+float_loop 117192
+call_chain 47400
+call_overhead 86899
+string_ops 35355
+mixed 58927

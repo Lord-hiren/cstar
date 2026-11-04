@@ -1,0 +1,7 @@
+int: ValueError invalid literal for int(): 'http'
+float: ValueError invalid literal for float(): 'x.y'
+float arg: TypeError
+int arg: TypeError
+finally ran
+caught in g: invalid literal for int(): 'abc'
+done

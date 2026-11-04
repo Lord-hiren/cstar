@@ -1,0 +1,39 @@
+b""
+0
+b"\x00\x00\x00"
+3
+b""
+b"\x01\x02\xff"
+b"\x07\x08"
+b"\x01\x02\x03"
+b"\x09\x0a"
+b"keep"
+True
+True
+b"ab"
+b"caf\xc3\xa9"
+b"ab"
+b"\xf0\x9f\x9a\x80"
+b"ab"
+b"ab"
+b"ab"
+b"ab"
+bytes
+True
+b"\x00"
+1
+b""
+b"\x01\x00"
+1 string argument without an encoding
+2 Pentest supports only the UTF-8 encoding
+3 bytes must be in range(0, 256)
+4 bytes must be in range(0, 256)
+5 negative count
+6 'text' object cannot be interpreted as an integer
+7 encoding without a string argument
+8 errors without a string argument
+9 bytes() argument 'encoding' must be str, not int
+10 bytes() argument 'errors' must be str, not int
+11 cannot convert 'float' object to bytes
+12 cannot convert 'None' object to bytes
+13 done

@@ -1,0 +1,28 @@
+# M2-2C §3.1/§2.2: class names are ordinary guarded globals — a user
+# class named after a builtin exception class shadows it for reads, and
+# (§3.3) remains unraisable.
+class ValueError:
+    tag(self):
+        return "user ValueError"
+
+    greet(self, who):
+        return "hello " + who
+
+main:
+    print("1", type(ValueError), ValueError)
+    v = ValueError()
+    print("2", v, v.tag())
+    # named arguments reach the user method's binder through the shadow
+    print("3", v.greet(who="world"))
+    # the shadow is not an exception class: constructing with arguments
+    # but no __init__ is a TypeError (§3.2)
+    try:
+        ValueError("boom")
+    except TypeError as e:
+        print("4", e, type(e))
+    # bare raise of the shadow is the §2.3/§3.3 TypeError
+    try:
+        raise ValueError
+    except TypeError as e:
+        print("5", e, type(e))
+    print("end")

@@ -1,0 +1,8 @@
+print(str(12))
+print(str(1.5))
+print(str(True), str(None))
+print(str([1, 2]))
+print(str((1,)))
+print(str(b"AB"))
+print(str({"k": 1}))
+print(str({1, 2}))

@@ -1,0 +1,70 @@
+# sw_text_scrutinee — parity pin for switch edges (SPEC §6.7, §5.5):
+# text/bool/None/int scrutinees against mixed-constant arms, total `==`
+# across tags (1 does not match True, "1" does not match 1), first-match
+# wins with no fall-through, and the optional no-wildcard no-match path.
+t = "bnana"
+switch t:
+    case "apple":
+        print("bad1")
+    case "bnana":
+        print("text arm matched")
+    case "banana":
+        print("bad2")
+    case *:
+        print("bad3")
+
+switch t:
+    case "nope":
+        print("bad4")
+print("no-match without wildcard runs nothing")
+
+switch True:
+    case 1:
+        print("bad5")
+    case True:
+        print("bool matched")
+    case *:
+        print("bad6")
+
+switch None:
+    case False:
+        print("bad7")
+    case None:
+        print("none matched")
+    case *:
+        print("bad8")
+
+switch 1:
+    case "1":
+        print("bad9")
+    case 1:
+        print("int matched")
+    case *:
+        print("bad10")
+
+switch "x":
+    case "":
+        print("bad11")
+    case "x":
+        print("non-empty label matched")
+    case *:
+        print("bad12")
+
+switch "":
+    case "":
+        print("empty scrutinee matched empty label")
+    case *:
+        print("bad13")
+
+# The wildcard arm runs last and may read the scrutinee's type: the switch
+# ends after the FIRST matching arm (no fall-through into it). Note that
+# `case 1:` and `case 1.0:` would be a duplicate-value compile error here
+# (total `==`, §6.7) — the float/int label case is err_dup_case + the
+# matching path is sw_case_float_match.
+v = 2.5
+switch v:
+    case 1:
+        print("bad14")
+    case *:
+        print("wildcard for", v, type(v))
+print("done")

@@ -1,0 +1,17 @@
+# Shared-storage poison (docs/reference/cross-scope-access.md §4): a global
+# written through both `global` and `variable.global` must not split
+# into the native-int lane — both paths share the one dynamic slot.
+total = 0
+
+accumulate():
+    global total
+    i = 0
+    while i < 10:
+        total = total + i
+        variable.global total = variable.global total + 100
+        i = i + 1
+    print(total)
+
+main:
+    accumulate()
+    print(variable.global total)

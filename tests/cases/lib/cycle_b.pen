@@ -1,0 +1,4 @@
+import cycle_a
+
+b_value():
+    return 2

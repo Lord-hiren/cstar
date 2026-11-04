@@ -1,0 +1,3 @@
+# compile: builtin names stay call-target-only — reading print as a value.
+p = print
+print(p)

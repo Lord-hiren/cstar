@@ -1,0 +1,6 @@
+from lib.toolkit import greet as hello, twice, Box
+
+main:
+    print(hello("from"))
+    print(twice(4))
+    print(Box(2).get())

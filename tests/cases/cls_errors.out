@@ -1,0 +1,8 @@
+1 AttributeError: 'Point' object has no attribute 'nope' AttributeError
+2 TypeError: cannot assign attribute 'x' on 'int' TypeError
+3 TypeError: cannot assign attribute 'x' on 'class' TypeError
+4 TypeError: class 'NoInit' takes arguments but has no __init__ TypeError
+5 hi
+6 TypeError: exceptions must be class or instance, got class TypeError
+7 TypeError: exceptions must be class or instance, got Point TypeError
+end

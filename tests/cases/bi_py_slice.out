@@ -1,0 +1,14 @@
+(None, 5, None)
+(1, 5, None)
+(1, 5, 2)
+(None, None, None)
+(2, 8, 3)
+2
+8
+3
+3
+tuple
+True
+(1, 2, x)
+(a, z, None)
+3 done

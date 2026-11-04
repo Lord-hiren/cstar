@@ -1,0 +1,33 @@
+# M2-2C §2: raise/catch basics — exact-class matching, as-binding,
+# display, type(), class values, rethrow.
+main:
+    # exact-class catch + as binding + display + type()
+    try:
+        raise ValueError("boom")
+    except ValueError as e:
+        print("1", e, type(e))
+    # a wrong class falls through to a bare except
+    try:
+        raise TypeError("bad type")
+    except ValueError:
+        print("WRONG")
+    except:
+        print("2")
+    # bare class raise (empty message)
+    try:
+        raise NameError
+    except NameError as e:
+        print("3", e, type(e))
+    # class as a first-class value + identity equality
+    c = ValueError
+    v1 = ValueError("a")
+    v2 = ValueError("a")
+    print("4", c, c == ValueError, v1 == v1, v1 == v2)
+    # rethrowing the caught instance keeps it (and its message)
+    try:
+        try:
+            raise ValueError("orig")
+        except ValueError as e:
+            raise e
+    except ValueError as e2:
+        print("5", e2)

@@ -1,0 +1,8 @@
+empty list falsy
+nonempty list truthy
+empty map falsy
+empty set falsy
+empty tuple falsy
+empty bytes falsy
+tuple with 0 is truthy
+True

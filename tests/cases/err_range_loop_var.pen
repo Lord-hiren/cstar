@@ -1,0 +1,2 @@
+for range in range(3):
+    print(range)

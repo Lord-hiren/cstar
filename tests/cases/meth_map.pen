@@ -1,0 +1,9 @@
+m = {"a": 1, "b": 2}
+print(m.keys())
+print(m.values())
+print(m.items())
+print(m.get("a"), m.get("zz"), m.get("zz", 7))
+print(m.pop("b"))
+print(m)
+m.clear()
+print(m)

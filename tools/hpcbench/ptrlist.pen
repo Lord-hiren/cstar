@@ -1,0 +1,55 @@
+# scoreboard: ptrlist — pointer chasing. A linked list of 1M class
+# instances, chained in Fisher-Yates-shuffled order so every step is a
+# dependent load the prefetcher cannot follow. The C baseline builds the
+# identical chain (same Lehmer LCG sequence), so both chase the same
+# nodes and sum the same values. This is the object-model round: each
+# step pays instance attribute lookup against the dynamic route.
+# Output contract: line 1 = checksum (sum of node values x reps),
+# line 2 = kernel seconds.
+class Node:
+    pass
+
+n = 1000000
+reps = 6
+
+nodes = []
+for i in range(n):
+    p = Node()
+    p.val = i
+    nodes.append(p)
+
+# Fisher-Yates shuffle driven by a Lehmer LCG — the C baseline runs the
+# identical sequence, so both build the same chain in the same order.
+a = []
+for i in range(n):
+    a.append(i)
+x = 12345
+for i in range(n - 1, 0, -1):
+    x = (x * 48271) % 2147483647
+    j = x % (i + 1)
+    t = a[i]
+    a[i] = a[j]
+    a[j] = t
+
+for k in range(n - 1):
+    nodes[a[k]].nxt = nodes[a[k + 1]]
+nodes[a[n - 1]].nxt = None
+head = nodes[a[0]]
+
+# warm-up: one uncounted pass over the chain
+warm = 0
+cur = head
+while cur != None:
+    warm = warm + cur.val
+    cur = cur.nxt
+
+s = 0
+t0 = clock()
+for r in range(reps):
+    cur = head
+    while cur != None:
+        s = s + cur.val
+        cur = cur.nxt
+t1 = clock()
+print(s)
+print(t1 - t0)

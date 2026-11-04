@@ -1,0 +1,40 @@
+# gc_roots — a collection must not reclaim reachable objects that carry
+# no traceable members: PT_FILE (an open handle) and PT_ITERATOR (boxed
+# iteration state). Both tags were missing from pt_gc_mark_value, so the
+# first collection swept every live file (closing its handle) and every
+# live iterator (freeing its source and its source list) — found by the
+# hpcbench io workload, which holds a file open across megabytes of
+# temporary text.
+class P:
+    pass
+
+path = "/tmp/pen_gc_roots_test.txt"
+f = open(path, "w")
+it = iter([10, 20, 30])
+
+# megabytes of garbage: forces many collections while f and it are live
+junk = 0
+for i in range(3000000):
+    junk = junk + len(str(i))
+
+# churn same-size heap blocks so a swept file/iterator is not merely
+# freed-but-intact: the dangling f/it then dispatches as the wrong type
+# instead of reading stale memory, making the failure deterministic
+for i in range(2000):
+    q = P()
+    q.a = i
+    q.b = i
+
+# both must still be usable after all those collections
+print(f.write("after-gc\n"))
+f.close()
+s = 0
+while True:
+    v = next(it, None)
+    if v == None:
+        break
+    s = s + v
+print(s)
+
+# and the file's content survived the collections too
+print(open(path).read())

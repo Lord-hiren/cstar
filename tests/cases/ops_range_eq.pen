@@ -1,0 +1,8 @@
+print(range(1, 2) == range(1, 2))
+print(range(1, 2) == range(1, 3))
+print(range(1, 2) != range(2, 2))
+print(range(0, 5, 1) == range(5))
+print(range(3) == "abc")
+print(range(3) == None)
+print(range(0, 9223372036854775807) == range(0, 9223372036854775807))
+print(range(0, 9223372036854775807) == range(1, 9223372036854775807))

@@ -1,0 +1,21 @@
+r = range(5, 5)
+while r:
+    print("bad1")
+while 0.0:
+    print("bad2")
+while -0.0:
+    print("bad3")
+while "":
+    print("bad4")
+while None:
+    print("bad5")
+while 0:
+    print("bad6")
+n = 0
+while 1:
+    n += 1
+    if n == 2:
+        break
+    print(n)
+print(n)
+print("done")

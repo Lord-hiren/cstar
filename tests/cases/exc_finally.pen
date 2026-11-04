@@ -1,0 +1,68 @@
+# M2-2C §2.5/§2.6: finally on every edge — normal, unwind, combined
+# except+finally, and break/continue/return crossing a try.
+retf():
+    try:
+        return 7
+    finally:
+        print("fin-ret")
+
+main:
+    # finally on normal completion
+    try:
+        print("1 body")
+    finally:
+        print("1 fin")
+    # finally on unwind, then rethrow to an outer handler
+    try:
+        try:
+            raise ValueError("deep")
+        finally:
+            print("2 fin")
+    except ValueError as e:
+        print("2 caught", e)
+    # combined except+finally: exception path (arm, then finally once)
+    try:
+        raise ValueError("combo")
+    except ValueError as e:
+        print("3 arm", e)
+    finally:
+        print("3 fin")
+    # combined: normal path
+    try:
+        print("4 body")
+    except ValueError:
+        print("WRONG")
+    finally:
+        print("4 fin")
+    # combined: no class match -> finally runs -> outer catches
+    try:
+        try:
+            raise TypeError("tb")
+        except ValueError:
+            print("WRONG")
+        finally:
+            print("5 fin")
+    except TypeError as e:
+        print("5 outer", e)
+    # continue through finally
+    i = 0
+    while i < 3:
+        try:
+            i = i + 1
+            if i == 2:
+                continue
+            print("6 iter", i)
+        finally:
+            print("6 fin", i)
+    # break through finally
+    j = 0
+    while j < 5:
+        try:
+            j = j + 1
+            if j == 2:
+                break
+            print("7 br", j)
+        finally:
+            print("7 fin", j)
+    # return through finally (value preserved)
+    print("8", retf())

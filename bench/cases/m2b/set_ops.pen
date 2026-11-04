@@ -1,0 +1,21 @@
+# set_ops: 120000 adds (half duplicates via i>>1), 120000 membership tests,
+# drain via pop() (insertion order).
+main:
+    s = set()
+    i = 0
+    while i < 120000:
+        s.add(i)
+        s.add(i >> 1)
+        i += 1
+    hits = 0
+    i = 0
+    while i < 120000:
+        if i in s:
+            hits += 1
+        i += 1
+    popped = 0
+    drain = 0
+    while len(s) > 0:
+        popped = popped + s.pop()
+        drain += 1
+    print(hits, drain, popped)

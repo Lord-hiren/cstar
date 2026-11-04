@@ -1,0 +1,87 @@
+# bench/http_speed.pen — speed/latency benchmark for the Pentest HTTP builtins.
+#
+# Run via bench/run_http_speed.sh (it starts examples/sqli_lab.py on
+# 127.0.0.1:8080, builds this file with `build/pentest build`, and runs the
+# binary N>=30 times pinned with `taskset -c 0`, reporting min/mean —
+# docs/performance/optimization.md §9). Or manually:
+#   python3 examples/sqli_lab.py &
+#   build/pentest build bench/http_speed.pen -o bench/bin/http_speed.bin
+#   taskset -c 0 bench/bin/http_speed.bin
+#
+# Measured (all timings from clock(), CLOCK_MONOTONIC, printed as key=value):
+#   (a) http_get() calls 1..6 individually — call #1 in a fresh process pays
+#       libcurl handle init + name resolution + TCP connect (+ TLS handshake
+#       for https:// URLs); calls #2+ skip that and reuse the persistent
+#       keep-alive handle (connection reuse when the peer speaks keep-alive).
+#   (b) steady-state: 200 http_get calls and 100 http_post calls in a loop,
+#       per-call ms.
+#   (c) 1000 url_encode() calls on a fixed payload — per-call language
+#       overhead (one direct C call, O(n) with a single result allocation).
+#
+# Output is deterministic in shape: the same key set on every run, so the
+# runner can byte-check the key set across runs (byte-compat gate, §9).
+
+lab_get = "http://127.0.0.1:8080/item?id=5"
+lab_post = "http://127.0.0.1:8080/search"
+payload = "5' UNION SELECT 1,database(),3-- - & x=1"
+
+# split "STATUS\nBODY" -> status as int
+status_of(resp):
+    nl = resp.find("\n")
+    return int(resp[0:nl])
+
+# seconds -> milliseconds
+ms(t0, t1):
+    return (t1 - t0) * 1000
+
+main:
+    print("lab=" + lab_get)
+
+    # ---- (a) first call vs calls 2..6 (one process = one cold start) ------
+    t0 = clock()
+    r = http_get(lab_get)
+    t1 = clock()
+    g1 = ms(t0, t1)
+    print("first_get_status=" + str(status_of(r)))
+    print("get1_ms=" + format(g1, ".6f"))
+    g5 = 0
+    for i in range(2, 7):
+        ta = clock()
+        r = http_get(lab_get)
+        tb = clock()
+        g = ms(ta, tb)
+        if i == 5:
+            g5 = g
+        print("get" + str(i) + "_ms=" + format(g, ".6f"))
+    print("first_vs_fifth_savings_ms=" + format(g1 - g5, ".6f"))
+    print("first_vs_fifth_ratio=" + format(g1 / g5, ".3f"))
+
+    # ---- (b) steady-state keep-alive-warm loops ---------------------------
+    t0 = clock()
+    for i in range(200):
+        r = http_get(lab_get)
+    t1 = clock()
+    print("get200_status=" + str(status_of(r)))
+    print("get200_total_ms=" + format(ms(t0, t1), ".6f"))
+    print("get_steady_per_call_ms=" + format(ms(t0, t1) / 200, ".6f"))
+
+    t0 = clock()
+    for i in range(100):
+        r = http_post(lab_post, "q=widget", None)
+    t1 = clock()
+    print("post100_status=" + str(status_of(r)))
+    print("post100_total_ms=" + format(ms(t0, t1), ".6f"))
+    print("post_per_call_ms=" + format(ms(t0, t1) / 100, ".6f"))
+
+    # ---- (c) 1000 url_encode() calls: per-call language overhead ----------
+    t0 = clock()
+    acc = 0
+    for i in range(1000):
+        acc += len(url_encode(payload))
+    t1 = clock()
+    total_s = t1 - t0
+    print("urlenc_calls=1000")
+    print("urlenc_payload_len=" + str(len(payload)))
+    print("urlenc_total_ms=" + format(total_s * 1000, ".6f"))
+    print("urlenc_per_call_ns=" + format(total_s * 1000000, ".1f"))
+    print("urlenc_checksum=" + str(acc))

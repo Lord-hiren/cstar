@@ -1,0 +1,10 @@
+1 super() is not supported: classes have no inheritance (SPEC §5.11.6)
+2 property() is not supported: there are no descriptors or decorators
+3 classmethod() is not supported: there are no decorators
+4 staticmethod() is not supported: there are no decorators
+5 issubclass() is not supported: classes have no inheritance
+6 breakpoint() is not supported: there is no interactive debugger
+7 help() is not supported: there is no interactive help (SPEC.md is the reference)
+8 memoryview() is not supported: bytes are immutable and have no buffer views
+9 object() is not supported: define your own class — every class is already a root
+10 done

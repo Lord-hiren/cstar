@@ -1,0 +1,18 @@
+c1():
+    print("c1")
+    return False
+c2():
+    print("c2")
+    return True
+c3():
+    print("c3")
+    return True
+if c1():
+    print("a")
+elif c2():
+    print("b")
+elif c3():
+    print("c")
+else:
+    print("d")
+print("end")

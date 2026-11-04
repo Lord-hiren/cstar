@@ -1,0 +1,105 @@
+# bi_py_text — ord / chr / bin / oct / hex / ascii / repr / format
+# (SPEC §5.11.5). Byte-for-byte CPython parity except where noted.
+print(ord("A"))
+print(ord("a"))
+print(ord("0"))
+print(ord("é"))
+print(ord("🚀"))
+try:
+    ord("")
+except TypeError as e:
+    print("0", e)
+try:
+    ord("ab")
+except TypeError as e:
+    print("1", e.message)
+try:
+    ord(65)
+except TypeError as e:
+    print("2", e.message)
+print(chr(97))
+print(chr(0))
+print(chr(233))
+print(chr(128512))
+try:
+    chr(-1)
+except ValueError as e:
+    print("3", e.message)
+try:
+    chr(1114112)
+except ValueError as e:
+    print("4", e.message)
+try:
+    chr(55296)
+except ValueError as e:
+    print("5", e.message)
+print(bin(0))
+print(bin(5))
+print(bin(-5))
+print(bin(255))
+print(oct(0))
+print(oct(8))
+print(oct(-8))
+print(hex(0))
+print(hex(255))
+print(hex(-255))
+try:
+    bin(1.5)
+except TypeError as e:
+    print("6", e.message)
+try:
+    oct("x")
+except TypeError as e:
+    print("7", e.message)
+try:
+    hex(None)
+except TypeError as e:
+    print("8", e.message)
+# repr/ascii: quoting, escapes, nested structures
+print(repr("a"))
+print(repr(""))
+print(repr("it's"))
+print(repr("say \"hi\""))
+print(repr("a\nb\tc"))
+print(repr("héllo"))
+print(repr("line1\nline2"))
+print(repr("back\\slash"))
+print(repr("nul\0end"))
+print(repr(42))
+print(repr(4.5))
+print(repr(True))
+print(repr(None))
+print(repr([1, "a", None]))
+print(repr(("x", 2)))
+print(repr({"k": "v"}))
+print(repr({1, 2}))
+print(ascii("héllo"))
+print(ascii("a\nb"))
+print(ascii("🚀"))
+print(ascii([1, "é"]))
+# format mini-language (SPEC §5.11.5)
+print(format(3.14159, ".2f"))
+print(format(3.14159, ".0f"))
+print(format(314159, ","))
+print(format(314159, ",.2f"))
+print(format(255, "08x"))
+print(format(255, "#x"))
+print(format(255, "b"))
+print(format(255, "o"))
+print(format(255, "X"))
+print(format(42, ">7"))
+print(format(42, "<7"))
+print(format(42, "^7"))
+print(format(42, "0=+7"))
+print(format(-42, "0=+7"))
+print(format(42, "*>7"))
+print(format(3.5, "+.1f"))
+print(format("abcdef", ".3"))
+print(format("abc", ">6"))
+print(format("abc", "<6"))
+print(format("abc", "^6"))
+print(format(42, "c"))
+print(format(65, "c"))
+print(format(2.5, "e"))
+print(format(True, ""))
+print(format(None, ">8"))

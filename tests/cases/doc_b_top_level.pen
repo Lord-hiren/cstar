@@ -1,0 +1,7 @@
+print("first line")
+
+main:
+    print("second line")
+
+// outside main
+print("third line")

@@ -1,0 +1,86 @@
+# try_lane_loop — parity pin for {try-lane}: a try block INSIDE a function
+# wrapping a lane-shaped counting loop (int locals, int arithmetic, range
+# iteration) must produce byte-identical totals to the same loop with no
+# try at all (SPEC §6.10, §7 tag-lane contract). The except path pins
+# per-value accounting: the loop's accumulated state survives the raise,
+# the caught values are counted exactly, and finally runs exactly once.
+
+lane_plain(n):
+    # no try anywhere: the canonical lane shape.
+    total = 0
+    hits = 0
+    acc = 0
+    i = 0
+    while i < n:
+        acc = acc + i * 3 - 1
+        if i % 10 == 0:
+            hits = hits + 1
+        i = i + 1
+    for j in range(n):
+        total = total + j
+    return [acc, hits, total]
+
+lane_try(n):
+    # identical arithmetic, but the whole body sits under try/except.
+    total = 0
+    hits = 0
+    acc = 0
+    i = 0
+    try:
+        while i < n:
+            acc = acc + i * 3 - 1
+            if i % 10 == 0:
+                hits = hits + 1
+            i = i + 1
+        for j in range(n):
+            total = total + j
+    except ValueError as e:
+        print("unexpected", e.message)
+    return [acc, hits, total]
+
+print(lane_plain(1000))
+print(lane_try(1000))
+print(lane_plain(0))
+print(lane_try(0))
+
+# The raise fires MID-LOOP: accumulated state is preserved up to the raise,
+# the except-value accounting is exact, and the finally block runs once.
+lane_raised(n):
+    total = 0
+    seen = 0
+    last = ""
+    try:
+        for k in range(n):
+            total = total + k
+            if k % 997 == 125:
+                seen = seen + 1
+                raise ValueError("v" + str(k))
+    except ValueError as e:
+        last = e.message
+    finally:
+        print("finally executed")
+    return [total, seen, last]
+
+print(lane_raised(5000))
+print(lane_raised(100))
+
+# Nested: an inner loop inside try inside a function that both raises and
+# recovers — the outer counters keep going after the except clause.
+lane_recover(n):
+    ok = 0
+    bad = 0
+    idx = 0
+    while idx < n:
+        try:
+            if idx % 10 == 7:
+                raise RuntimeError("r" + str(idx))
+            ok = ok + idx
+        except RuntimeError as e:
+            bad = bad + 1
+            if bad == 1:
+                print("first caught", e.type, e.message)
+        idx = idx + 1
+    return [ok, bad]
+
+print(lane_recover(250))
+print("done")

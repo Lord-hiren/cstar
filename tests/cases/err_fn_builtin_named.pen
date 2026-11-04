@@ -1,0 +1,2 @@
+# compile: builtins do not accept named arguments.
+print(x=1)

@@ -1,0 +1,50 @@
+# Shared storage (docs/reference/cross-scope-access.md §4): a pinned binding has
+# exactly ONE storage — the owner's own reads/writes and every
+# qualified access hit the same static slot. Covers shadowed parent
+# reach-through, compound assignment, tuple-destructuring leaves and
+# recursion (activations share the pin).
+outer():
+    x = 1
+    inner():
+        nonlocal x
+        x = 5
+        print(variable.parent x)
+        x = 6
+        print(variable.parent x)
+    inner()
+    print(x)
+
+destr():
+    p = 0
+    q = 0
+    fill():
+        (variable.parent p, variable.parent q) = (7, 8)
+        variable.parent p += 100
+    fill()
+    print(p)
+    print(q)
+
+rec():
+    depth = 0
+    down():
+        variable.parent depth = variable.parent depth + 1
+        print(variable.parent depth)
+        if variable.parent depth < 3:
+            down()
+        variable.parent depth = variable.parent depth - 1
+    down()
+    print(depth)
+
+selfn():
+    tally():
+        hits = 0
+        variable.tally hits = variable.tally hits + 1
+        print(variable.tally hits)
+    tally()
+    tally()
+
+main:
+    outer()
+    destr()
+    rec()
+    selfn()

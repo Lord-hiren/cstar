@@ -1,0 +1,46 @@
+# cross_scope.pen — Stage 2D benchmark pair (docs/reference/cross-scope-access.md §6).
+#
+# Cross-scope access (`variable.global` / `variable.parent` / `variable.<fn>`)
+# inside hot loops, one loop per qualifier:
+#   * counter()/tick()  — 40,000 `variable.parent` reads,
+#   * feeder()          — 40,000 `variable.global` compound writes,
+#   * drive()           — 40,000 `variable.feeder` read+write pairs.
+# The C twin (cross_scope.cpp) uses plain C statics with the same storage
+# classes and the same arithmetic, so the pair measures exactly what the
+# qualified access lowers to — a direct load or store of a program-lifetime
+# static, no lookup, no allocation, no per-call registry.
+g_total = 0
+
+counter():
+    base = 5
+    tick():
+        total = 0
+        j = 0
+        while j < 40000:
+            total += variable.parent base
+            j += 1
+        return total
+    return tick()
+
+feeder(seed):
+    s = seed
+    i = 0
+    while i < 40000:
+        s = (s * 214013 + 2531011) % 1073741823
+        variable.global g_total += s % 16
+        i += 1
+    return s
+
+drive(n):
+    k = 0
+    while k < n:
+        variable.feeder s = (variable.feeder s * 48271) % 2147483647
+        variable.global g_total += variable.feeder s % 4
+        k += 1
+
+main:
+    t = counter()
+    x = feeder(7)
+    drive(40000)
+    print(g_total)
+    print(x + variable.feeder s + t)

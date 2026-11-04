@@ -1,0 +1,6 @@
+# Same as the global case, with a function-local loop target.
+g():
+    for j in range(0):
+        pass
+    return j
+print(g())

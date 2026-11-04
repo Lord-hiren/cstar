@@ -1,0 +1,4 @@
+print("Hello", "World")
+print("a" + "b")
+print("tab\there")
+print("line1\nline2")

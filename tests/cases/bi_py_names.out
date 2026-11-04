@@ -1,0 +1,43 @@
+T
+42
+<function topfn>
+True
+T
+True
+T
+[KeyError, TypeError, frame_probe, g_num, g_text, topfn]
+True
+True
+False
+True
+9
+True
+False
+True
+False
+True
+True
+True
+True
+param
+x
+5
+True
+True
+True
+True
+42
+True
+True
+True
+False
+True
+True
+False
+{k: 1, extra: 2}
+[__init__, extra, k, peek]
+True
+1 'int' object has no attributes
+2 'int' object has no attributes
+3 map key not found
+5 done

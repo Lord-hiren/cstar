@@ -1,0 +1,21 @@
+# Test library: only the declarations a program names are compiled.
+PREFIX = "toolkit"
+_private = 7
+
+greet(name):
+    return PREFIX + ": " + name
+
+twice(x):
+    return x * 2
+
+class Box:
+    __init__(self, value):
+        self.value = value
+
+    get(self):
+        return self.value
+
+# Deliberately invalid, and deliberately never referenced: run/build mode must
+# not analyse or emit it (pentest check does, which is the strict mode).
+unused_bad():
+    return no_such_name + 1

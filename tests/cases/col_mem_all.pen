@@ -1,0 +1,7 @@
+print(2 in[1, 2, 3], 9 in[1, 2])
+print("a" in ("b", "a"), "x" in (1, 2))
+print(1 in {1, 2}, 3 in {1, 2})
+print("k" in {"k": 1}, "z" in {"k": 1})
+print(b"a" in b"abc", b"z" in b"abc")
+print(5 in range(1, 6), 6 in range(1, 6))
+print("ell" in "hello")

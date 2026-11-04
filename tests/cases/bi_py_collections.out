@@ -1,0 +1,95 @@
+[]
+[1, 2]
+[1, 2]
+[a, b, c]
+[0, 1, 2]
+[7, 8]
+[a]
+[1, 2, 3]
+()
+(1, 2)
+(a, b)
+(0, 1, 2)
+{}
+{a: 1, b: 2}
+{x: 1}
+{x: 1, y: 2}
+{k: 9}
+{a: 1, b: 2}
+{a: 1, b: 2}
+[]
+[(1, a), (2, b)]
+[(1, 2, 3)]
+[(1, a), (2, b)]
+[]
+[(0, a), (1, b)]
+[(5, a)]
+[(-1, a), (0, b)]
+[]
+[3, 2, 1]
+[c, b, a]
+[2, 1, 0]
+[a]
+[5]
+[2, 3]
+[1, x]
+[]
+[]
+[2, 4]
+[11, 22]
+[11, 22]
+[]
+[1, 2, 3]
+[a, b, c]
+[3, 2, 1]
+[ccc, bb, a]
+[3, 2, 1]
+[[2], [1], [10]]
+[1, 1.5, 2]
+0
+6
+13
+ab
+10
+3
+3.5
+c
+7
+0
+b
+10
+1
+2
+9
+a
+30
+True
+True
+False
+True
+True
+True
+False
+False
+True
+True
+[(b, 1), (a, 2), (c, 2)]
+1 'int' object is not iterable
+2 dictionary update sequence element #0 is not a pair
+3 dictionary update sequence element #0 has length 3; 2 is required
+4 'int' object is not iterable
+5 'int' object is not reversible
+6 map() arg 1 must be callable
+7 filter() arg 1 must be callable or None
+8 'int' object is not iterable
+9 'int' object is not iterable
+10 sorted(): 'key' must be callable or None
+11 max() arg is an empty sequence
+12 min() arg is an empty sequence
+13 'int' object is not iterable
+14 enumerate() start must be an int, not 'text'
+15 unsupported operand types for +: text and int
+16 unsupported operand types for <: int and text
+18 'set' object is not reversible
+17 'int' object is not iterable
+19 done

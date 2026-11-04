@@ -1,0 +1,26 @@
+switch -1:
+    case -1:
+        print("neg")
+    case *:
+        print("bad1")
+switch 1.5:
+    case 1.5:
+        print("f")
+    case *:
+        print("bad2")
+switch True:
+    case True:
+        print("t")
+    case *:
+        print("bad3")
+switch False:
+    case False:
+        print("fa")
+    case *:
+        print("bad4")
+switch None:
+    case None:
+        print("n")
+    case *:
+        print("bad5")
+print("done")

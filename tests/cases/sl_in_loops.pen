@@ -1,0 +1,9 @@
+for i in range(0, 3):
+    if i == 1: print("mid")
+    else: print(i)
+j = 0
+while j < 2:
+    j += 1
+    if j == 1: continue
+    print("j", j)
+print("done")

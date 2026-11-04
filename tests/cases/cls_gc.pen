@@ -1,0 +1,30 @@
+# M2-2C §1/§3: instances, their fields and bound methods are GC-managed —
+# a live instance (and everything reachable from it) survives collect().
+class Box:
+    __init__(self, v):
+        self.v = v
+        self.buf = [v, v, v]
+        self.map = {"origin": v}
+
+    greet(self):
+        return "box:" + str(self.v)
+
+main:
+    keep = Box(7)
+    keep.tag = "kept"
+    n0 = collect()
+    print("1", keep.v, keep.tag, keep.buf, keep.map, n0 >= 0)
+    # only the newest box stays reachable across a forced collection
+    i = 0
+    cur = None
+    while i < 200:
+        cur = Box(i)
+        i = i + 1
+    n1 = collect()
+    print("2", cur.v, cur.greet(), n1 >= 0)
+    print("3", keep.v, keep.tag, keep.greet())
+    # a bound method keeps its receiver alive
+    mv = keep.greet
+    n2 = collect()
+    print("4", mv(), n2 >= 0)
+    print("end")

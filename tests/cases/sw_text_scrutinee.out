@@ -1,0 +1,9 @@
+text arm matched
+no-match without wildcard runs nothing
+bool matched
+none matched
+int matched
+non-empty label matched
+empty scrutinee matched empty label
+wildcard for 2.5 float
+done

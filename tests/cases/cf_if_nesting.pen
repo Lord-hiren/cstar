@@ -1,0 +1,22 @@
+a = 5
+b = 0
+if a > 0:
+    if b > 0:
+        print("bad1")
+    else:
+        if a == 5:
+            print("deep")
+        else:
+            print("bad2")
+else:
+    print("bad3")
+if a > 10:
+    print("bad4")
+elif a > 1:
+    if a > 4:
+        print("deep2")
+    else:
+        print("bad5")
+else:
+    print("bad6")
+print("done")

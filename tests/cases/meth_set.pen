@@ -1,0 +1,11 @@
+s = {1, 2}
+s.add(3)
+s.add(1)
+print(s)
+print(s.discard(9))
+s.remove(1)
+print(s)
+print(s.pop())
+print(s)
+s.clear()
+print(s)

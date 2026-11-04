@@ -1,0 +1,55 @@
+# bi_py_iter — iter()/next() (SPEC §5.11.5): boxed iterators over every
+# iterable kind, next() with default, exhaustion → StopIteration, and the
+# documented shared-cursor rule (iterating an iterator continues it).
+it = iter([1, 2, 3])
+print(next(it))
+print(next(it))
+print(next(it))
+try:
+    next(it)
+except StopIteration as e:
+    print("1 stop")
+print(next(it, "done"))
+print(next(iter([9])))
+t = iter("abc")
+print(next(t))
+u = iter(t)
+print(next(u))
+print(next(t))
+b = iter(bytes([5, 6]))
+print(next(b))
+r = iter(range(10, 13))
+print(next(r))
+print(next(r))
+s = iter({1})
+print(next(s))
+m = iter({"k": 1})
+print(next(m))
+nested = iter(iter([1, 2]))
+print(next(nested))
+print(next(nested))
+f = iter(iter([7]))
+print(f == f)
+try:
+    next(5)
+except TypeError as e:
+    print("2", e.message)
+try:
+    iter(5)
+except TypeError as e:
+    print("3", e.message)
+# a file iterates line by line
+fh = open("/tmp/pen_iter_test.txt", "w")
+fh.write("l1\nl2\n")
+fh.close()
+fh = open("/tmp/pen_iter_test.txt")
+print(next(fh))
+print(next(fh))
+print(next(fh, "eof"))
+fh.close()
+# for over a boxed iterator shares the cursor
+it2 = iter([1, 2, 3])
+print(next(it2))
+for x in it2:
+    print("for", x)
+print("done")

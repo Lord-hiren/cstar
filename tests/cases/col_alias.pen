@@ -1,0 +1,12 @@
+a = [1, 2]
+b = a
+b.append(3)
+print(a, b)
+m1 = {"k": 1}
+m2 = m1
+m2["j"] = 2
+print(m1, m2)
+s1 = {1}
+s2 = s1
+s2.add(2)
+print(s1, s2)

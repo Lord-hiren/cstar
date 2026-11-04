@@ -1,0 +1,9 @@
+n = 0
+for x in []:
+    n = n + 1
+print("empty ran", n)
+for x in [1, 2, 3]:
+    if x == 2:
+        continue
+    print(x)
+print("leaked:", x)

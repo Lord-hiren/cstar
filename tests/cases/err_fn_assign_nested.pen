@@ -1,0 +1,8 @@
+# compile: assigning to a nested function's name is a conflict, never a rebinding.
+f():
+    helper():
+        return 1
+    helper = 2
+    return helper
+
+print(f())

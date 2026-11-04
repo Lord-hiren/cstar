@@ -1,0 +1,5 @@
+switch 1:
+    case *:
+        print(1)
+    case 2:
+        print(2)

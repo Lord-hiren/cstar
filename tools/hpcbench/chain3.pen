@@ -1,0 +1,17 @@
+# scoreboard: chain3 FUSED — z = (2.0 * x + 1.0) * 3.0 + 0.5 over 8M
+# doubles, repeated. All coefficients are literals, so the whole statement
+# fuses into a single kernel loop (one read pass of x, one write pass of z)
+# — the Halide/XLA intermediate-elimination shape.
+# Output contract: line 1 = checksum (sum(z)), line 2 = kernel seconds.
+
+n = 8388608
+reps = 30
+x = fvec_fill(n, 1.5)
+z = fvec_fill(n, 0.0)
+z = (2.0 * x + 1.0) * 3.0 + 0.5   # warm-up: faults pages outside timing
+t0 = clock()
+for r in range(reps):
+    z = (2.0 * x + 1.0) * 3.0 + 0.5
+t1 = clock()
+print(sum(z))
+print(t1 - t0)

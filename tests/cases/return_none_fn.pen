@@ -1,0 +1,4 @@
+nothing():
+    return None
+
+print(nothing())

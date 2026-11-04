@@ -1,0 +1,13 @@
+xs = [3, 1, 2]
+xs.append(4)
+xs.insert(1, 9)
+print(xs)
+print(xs.index(9))
+print(xs.pop())
+print(xs.pop(0))
+xs.remove(9)
+print(xs)
+xs.reverse()
+print(xs)
+xs.clear()
+print(xs)

@@ -1,0 +1,8 @@
+x = 5
+if x > 0: print("pos")
+if x > 10: print("bad1")
+elif x > 3: print("ge3")
+else: print("bad2")
+if False: print("bad3")
+else: print("el")
+print("done")

@@ -1,0 +1,81 @@
+# Elementwise fvec arithmetic — every assignment below folds into ONE
+# fused SIMD kernel (no intermediate vectors), and the results must match
+# list-based scalar references bit for bit (same IEEE ops per element).
+
+a = fvec([1.0, 2.0, 3.0, 4.0, 5.0])
+b = fvec([10.0, 20.0, 30.0, 40.0, 50.0])
+
+print(a + b)
+print(b - a)
+print(a * b)
+print(a * 2.0)
+print(2.0 * a)
+print(3.0 + a)
+print(a - 0.5)
+print(1.0 - a)
+print(-a)
+print(-(-a) == a)
+
+# fused chain vs scalar reference
+c = a * 2.0 + b
+print(c)
+print(c == fvec([12.0, 24.0, 36.0, 48.0, 60.0]))
+
+d = a * b + a - b
+print(d)
+print(d == fvec([1.0, 22.0, 63.0, 124.0, 205.0]))
+
+# int-lane scalar operand broadcasts (3 * 4 folds to the native lane)
+m = 3 * 4
+n = a * m
+print(n)
+
+# compound assignment on a proven slot
+s = fvec_fill(4, 6.0)
+s += fvec_fill(4, 1.5)
+print(s)
+s -= 0.5
+print(s)
+s *= 2.0
+print(s)
+print(s == fvec([14.0, 14.0, 14.0, 14.0]))
+
+# scalar-left compound through a broadcast: x = 2.0; x += a is NOT
+# vector-typed for the slot (float), so use the expression form:
+print(2.0 * a + 1.0)
+
+# long fused chain
+big = a * 2.0 + b * 0.5 - a
+print(big)
+print(big == fvec([6.0, 12.0, 18.0, 24.0, 30.0]))
+
+# fused read of a vector grown under GC pressure (fused op + constructor)
+x = fvec_fill(100, 1.0)
+for i in range(50):
+    x = x + fvec_fill(100, 2.0)
+print(x[0], x[99], len(x))
+collect()
+print(x[0], x[99])
+
+# length mismatch inside a FUSED kernel raises the same ValueError
+try:
+    bad = a + fvec([1.0])
+except ValueError as e:
+    print("fused mismatch:", e.message)
+
+# an unset (conditionally written) proven slot still guards before the
+# kernel runs — NameError, exactly like the dynamic path
+cond_guard():
+    p = fvec_fill(2, 1.0)
+    if False:
+        q = p * 2.0
+    return q + p
+
+try:
+    cond_guard()
+except NameError as e:
+    print("guard:", e.message)
+
+# fvec division stays on the dynamic route (v1 kernels do not fuse '/'),
+# with the same zero-divisor check as scalar floats
+print(fvec([1.0, 2.0]) / fvec([4.0, 8.0]))

@@ -1,0 +1,11 @@
+# cross-scope access: default expressions may use qualified references —
+# they evaluate at call time, in the callee's entry.
+base = 100
+
+scaled(n, by = variable.global base):
+    return n * by
+
+main:
+    print(scaled(2))
+    variable.global base = 7
+    print(scaled(3), scaled(3, by = 2))

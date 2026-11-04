@@ -1,0 +1,38 @@
+# file_line_edges — parity pin for the file line protocol (SPEC §5.11.5.12):
+# readline() includes the trailing newline exactly as read (CRLF is NOT
+# normalized), multibyte lines stay byte-exact, an interior empty line is a
+# line, the final line may carry no newline, EOF reads yield "" forever,
+# for-line iteration and next(file) follow the same shapes.
+path = "/tmp/pen_line_edges.txt"
+f = open(path, "w")
+print(f.write("a\r\nhéllo\n\n𝄞x"))
+f.flush()
+f.close()
+
+f = open(path)
+print(repr(f.readline()))
+print(repr(f.readline()))
+print(repr(f.readline()))
+print(repr(f.readline()))
+print(repr(f.readline()))
+f.close()
+
+f = open(path)
+print(len(f.readlines()))
+f.close()
+
+f = open(path)
+for line in f:
+    print("for", repr(line))
+f.close()
+
+f = open(path)
+print(repr(next(f)))
+print(repr(f.read()))
+print(repr(f.read()))
+f.close()
+
+f = open(path, "r")
+print(f.read())
+f.close()
+print("done")

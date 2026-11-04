@@ -1,0 +1,25 @@
+range(0, 5, 1)
+range(3, 5, 1)
+range(5, 0, -2)
+range(5, 5, 1)
+range(0, 5, 2)
+range(5, 0, 2)
+range(0, -5, -1)
+True
+False
+True
+desc 5
+desc 3
+desc 1
+empty range iterations 0
+True
+False
+False
+False
+empty range loop var: global variable 'k' used before assignment
+near max 9223372036854775806
+overshoot max 9223372036854775805
+near min -9223372036854775806
+near min -9223372036854775807
+True
+done

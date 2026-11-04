@@ -1,0 +1,11 @@
+# cross-scope access §4 (documented consequence): a pinned binding is one
+# slot for the whole program, so recursive invocations share it — the
+# deepest frame's write is what qualified readers observe.
+countdown(n):
+    if n > 0:
+        countdown(n - 1)
+    print("depth", n, "-> slot holds", variable.countdown n)
+
+main:
+    countdown(3)
+    print("after return:", variable.countdown n)

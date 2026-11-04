@@ -1,0 +1,64 @@
+# txt_edges — parity pin for text/bytes indexing, find/len and membership
+# edges (SPEC §5.7, §5.9, §5.10, §6.3): code-point indexing across astral
+# (4-byte) characters, negative indices, clamped slices that never split a
+# UTF-8 sequence, empty-needle find/find-at-0, membership over
+# ascii/multibyte/bytes, and the exact caught error messages. `u` is 3
+# code points / 6 bytes; `v` is 3 code points / 4 bytes.
+u = "a𝄞b"
+v = "日本語"
+print(len(u), len(encode(u)), len(v), len(encode(v)))
+print(u[0], u[1], u[2], u[-1], u[-3])
+print(v[0], v[1], v[2], v[-1], v[-2])
+print(u[1:3], u[0:1], u[1:], u[:1], u[-9:-1], u[::2])
+acc = ""
+for c in u:
+    acc = acc + c + "|"
+print(acc)
+for c in v:
+    print("cp", c, len(c), len(encode(c)))
+
+# find returns a CODE-POINT index (SPEC §5.10), -1 when absent, and 0 for
+# the empty needle (today's text, same as Python).
+print(u.find("𝄞"), u.find("b"), u.find("a"), u.find("zz"))
+print("hello".find(""), "hello".find("hello"), "héllo".find("llo"))
+print(u.replace("𝄞", "*"))
+print(u.upper(), u.lower(), "AbC".upper(), "AbC".lower())
+print("  x  ".strip(), "|".join(["a", "b"]), "a,b".split(","))
+
+# Membership: ascii needle in multibyte text, multibyte needle, bytes
+# empty needle, bytes-in-bytes, and the cross-tag type errors.
+print("ell" in "hello", "" in "héllo", "日本" in v, "語日" in v)
+print("𝄞" in u, "ab" in u, "a𝄞" in u, "𝄞b" in u)
+print(b"" in b"abc", b"bc" in b"abc", b"xx" in b"abc")
+print(encode(u) in b"\xf0\x9d\x84\x9e", b"\xf0\x9d\x84\x9e" in encode(u))
+try:
+    print("ab" in b"ab")
+except TypeError as e:
+    print("cross:", e.message)
+try:
+    print(b"ab" in "ab")
+except TypeError as e:
+    print("cross:", e.message)
+try:
+    print(5 in "abc")
+except TypeError as e:
+    print("rhs int:", e.message)
+
+# Exact caught errors for index bounds/types (SPEC §9.3).
+try:
+    print(u[9])
+except IndexError as e:
+    print("oob:", e.message)
+try:
+    print(u[-9])
+except IndexError as e:
+    print("oob neg:", e.message)
+try:
+    print(u["1"])
+except TypeError as e:
+    print("nonint:", e.message)
+try:
+    print(encode(v)[9])
+except IndexError as e:
+    print("bytes oob:", e.message)
+print("done")

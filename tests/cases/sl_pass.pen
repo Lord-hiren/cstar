@@ -1,0 +1,21 @@
+pass
+if True:
+    pass
+else:
+    pass
+while False:
+    pass
+for i in range(0, 2):
+    pass
+switch 1:
+    case 1:
+        pass
+    case *:
+        pass
+if True: pass
+while False: pass
+f():
+    pass
+    return 7
+print(f())
+print("done")

@@ -1,0 +1,6 @@
+print(set())
+print(set([1, 1, 2]))
+print(set((3, 3)))
+print(set("ab"))
+print(set(b"ab"))
+print(set({"x": 1}))

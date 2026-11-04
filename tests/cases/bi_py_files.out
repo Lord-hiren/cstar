@@ -1,0 +1,64 @@
+9
+0
+True
+l1
+l2
+l3
+
+l1
+2
+
+l
+l1
+
+l2
+
+
+l3
+
+[l1
+, l2
+, l3
+]
+l1
+
+0
+0
+3
+l2
+
+6
+l3
+
+for l1
+
+for l2
+
+for l3
+
+3
+[l1
+, l2
+, l3
+, l4
+]
+ab
+
+2
+b"\x00\xff"
+1 [Errno 2] No such file or directory: '/tmp/pen_files_missing.txt'
+2 open(): unsupported mode 'x'
+3 open(): unsupported mode 'q'
+4 Pentest supports only the UTF-8 encoding
+5 binary mode doesn't take an encoding argument
+6 open(): argument 1 must be str or bytes, not 'int'
+7 I/O operation on closed file
+8 I/O operation on closed file
+9 I/O operation on closed file
+10 file not open for writing
+11 file.read(): size must be an int
+12 file.seek(): whence must be 0, 1 or 2
+13 'file' object has no method 'missing'
+ok
+
+14 done

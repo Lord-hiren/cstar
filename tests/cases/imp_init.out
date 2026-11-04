@@ -1,0 +1,3 @@
+init once
+impure init
+42

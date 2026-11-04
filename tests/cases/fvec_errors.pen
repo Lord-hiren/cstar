@@ -1,0 +1,125 @@
+# fvec/ivec error surfaces: every message must match the runtime's scalar
+# wording conventions (pt_bad_binary format, ValueError length checks,
+# IndexError per type name, per-element division errors at the statement
+# line) — and fused kernels must raise IDENTICALLY to the dynamic path.
+
+# length mismatch: dynamic position (print args) and fused position
+try:
+    print(fvec([1.0, 2.0]) + fvec([1.0]))
+except ValueError as e:
+    print("1", e.message)
+try:
+    x = fvec_fill(4, 1.0)
+    y = x + fvec_fill(3, 1.0)# fused kernel expect_len
+except ValueError as e:
+    print("2", e.message)
+
+# mixed vector types and bad scalar operands
+try:
+    print(fvec([1.0]) + ivec([1]))
+except TypeError as e:
+    print("3", e.message)
+try:
+    print(ivec([1]) + fvec([1.0]))
+except TypeError as e:
+    print("4", e.message)
+try:
+    print(ivec([1]) + 1.5)
+except TypeError as e:
+    print("5", e.message)
+try:
+    print(fvec([1.0]) * "x")
+except TypeError as e:
+    print("6", e.message)
+try:
+    print(fvec([1.0]) - True)
+except TypeError as e:
+    print("7", e.message)
+
+# indexing
+try:
+    print(fvec([1.0, 2.0])[5])
+except IndexError as e:
+    print("8", e.message)
+try:
+    print(ivec([1])[-2])
+except IndexError as e:
+    print("9", e.message)
+try:
+    print(fvec([1.0])["k"])
+except TypeError as e:
+    print("10", e.message)
+
+# construction and fill
+try:
+    fvec([1.0, "s"])
+except TypeError as e:
+    print("11", e.message)
+try:
+    ivec([1, 2.0])
+except TypeError as e:
+    print("12", e.message)
+try:
+    fvec("ab")
+except TypeError as e:
+    print("13", e.message)
+try:
+    fvec(5)
+except TypeError as e:
+    print("14", e.message)
+try:
+    fvec_fill(-1, 1.0)
+except ValueError as e:
+    print("15", e.message)
+try:
+    fvec_fill(2, "x")
+except TypeError as e:
+    print("16", e.message)
+try:
+    ivec_fill(2, 1.5)
+except TypeError as e:
+    print("17", e.message)
+
+# item stores
+try:
+    v = fvec([1.0])
+    v[0] = "x"
+except TypeError as e:
+    print("18", e.message)
+try:
+    v = ivec([1])
+    v[0] = 1.5
+except TypeError as e:
+    print("19", e.message)
+
+# dot
+try:
+    dot(fvec([1.0]), ivec([1]))
+except TypeError as e:
+    print("20", e.message)
+try:
+    dot(fvec([1.0, 2.0]), fvec([1.0]))
+except ValueError as e:
+    print("21", e.message)
+
+# division by zero — float vectors (dynamic route) and int vectors
+try:
+    print(fvec([1.0, 2.0]) / fvec([1.0, 0.0]))
+except ZeroDivisionError as e:
+    print("22", e.message)
+try:
+    print(1.0 / fvec([0.0]))
+except ZeroDivisionError as e:
+    print("23", e.message)
+try:
+    print(ivec([1, 2]) / ivec([1, 0]))
+except ZeroDivisionError as e:
+    print("24", e.message)
+try:
+    print(ivec([1, 2]) % ivec([0, 1]))
+except ZeroDivisionError as e:
+    print("25", e.message)
+try:
+    print(ivec([1]) / 0)
+except ZeroDivisionError as e:
+    print("26", e.message)

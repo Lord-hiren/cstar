@@ -1,0 +1,49 @@
+# 2B: closures capture enclosing locals by reference; captured params are boxed;
+# sibling closures share one cell; closures escape their frame.
+outer():
+    x = 1
+    show():
+        return x
+    r1 = show()
+    x = 2
+    r2 = show()
+    return [r1, r2]
+
+print(outer())
+
+withparam(p):
+    bump():
+        return p * 10
+    p = p + 1
+    return bump()
+
+print(withparam(4))
+
+counter():
+    n = 0
+    inc():
+        nonlocal n
+        n = n + 1
+        return n
+    return inc
+
+c = counter()
+print(c())
+print(c())
+print(c())
+d = counter()
+print(d())
+
+siblings():
+    n = 0
+    bump():
+        nonlocal n
+        n = n + 1
+        return n
+    get():
+        return n
+    bump()
+    bump()
+    return[get(), n]
+
+print(siblings())

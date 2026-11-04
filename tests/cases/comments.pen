@@ -1,0 +1,11 @@
+# hash comment
+// slash comment
+/*
+block comment
+*/
+"""
+triple quoted
+comment
+"""
+print("done")# trailing
+// trailing slash

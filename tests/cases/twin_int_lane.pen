@@ -1,0 +1,72 @@
+# Native int-lane twins: int-arg static calls run in the int64 twin lane;
+# every other route (floats, named args, defaults, first-class values,
+# bools) keeps the dynamic entry point. Both must agree — and errors must
+# stay catchable with identical messages — line for line.
+
+add3(a, b, c):
+  return a + b + c
+
+sumto(n):
+  s = 0
+  for i in range(n):
+    s += i
+  return s
+
+ev(n):
+  if n == 0:
+    return 1
+  return od(n - 1)
+
+od(n):
+  if n == 0:
+    return 0
+  return ev(n - 1)
+
+noisy(n):
+  print("tick", n)
+  return n * 2
+
+writep(n):
+  n = n + 100
+  return n
+
+idiv(a, b):
+  return a / b
+
+emptyflag(n):
+  for i in range(n):
+    pass
+  return i
+
+dflt(a, b = 10):
+  return a + b
+
+idn(x):
+  return x
+
+alias = add3
+print(add3(1, 2, 3))
+print(alias(1, 2, 3))
+print(sumto(10))
+print(ev(10), od(10), ev(9))
+print(add3(7, sumto(4), 1))
+print(add3(abs(-3), max(2, 5), min(4, 1)))
+print(noisy(21))
+print(writep(1))
+print(add3(1.5, 2, 3))
+print(add3(c = 3, a = 1, b = 2))
+print(dflt(1), dflt(1, 2))
+print(idiv(-7, 2))
+print(idn(5), idn(True))
+try:
+  print(idiv(5, 0))
+except ZeroDivisionError:
+  print("caught div0")
+try:
+  print(emptyflag(0))
+except NameError:
+  print("caught nameerror")
+try:
+  print(add3(True, 1, 1))
+except TypeError:
+  print("caught typeerror")

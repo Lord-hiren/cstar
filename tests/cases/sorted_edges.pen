@@ -1,0 +1,76 @@
+# sorted_edges — parity pin for sorted() (SPEC §5.11.3, §5.11.5.9, §5.5):
+# stability of equal keys (insertion order kept), presorted/reverse/shuffled
+# inputs converging on one output, key= called EXACTLY once per element in
+# input order (a run-detection or comparator fast path must not change
+# this), reverse= being truth-tested (any truthy reverses), and the exact
+# unorderable TypeError text when elements compare without a key.
+count = 0
+
+key0(p):
+    return p[0]
+
+keyneg(v):
+    global count
+    count = count + 1
+    return -v
+
+klen(s):
+    return len(s)
+
+# Stability: equal keys keep input order (SPEC: stable merge sort).
+data = [(1, "a"), (0, "b"), (1, "c"), (0, "d"), (1, "e"), (0, "f")]
+print(sorted(data, key=key0))
+print(sorted(data, key=key0, reverse=True))
+
+# Alternating equal-key runs: a non-stable or run-reordering sort differs.
+runs = ["a1", "z1", "a2", "z2", "a3", "z3", "a4", "z4"]
+print(sorted(runs, key=klen))
+
+# Same input orderings: sorted / reversed / "random" all normalize.
+base = [5, 3, 9, 1, 4, 3]
+print(sorted(base))
+print(sorted(reversed(base)))
+print(sorted([5, 1, 3, 9, 4, 3]))
+print(sorted(sorted(base)))
+print(sorted([]))
+print(sorted("cba"))
+print(sorted([1.5, 1, 2]))
+print(sorted([1, 1.0, 0.5]))
+print(sorted([3, 1, 2]))
+print(sorted([3, 1, 2], reverse=True))
+
+# reverse= is truth-tested, not bool-tested (§5.11.3).
+print(sorted([3, 1, 2], reverse=1))
+print(sorted([3, 1, 2], reverse=0))
+print(sorted([3, 1, 2], reverse="x"))
+print(sorted([3, 1, 2], reverse=""))
+
+# key= is called exactly once per element, in input order.
+xs = [2, 5, 1]
+print(sorted(xs, key=keyneg))
+print("key calls:", count)
+ys = [4, 2, 8]
+print(sorted(ys, key=keyneg, reverse=True))
+print("key calls:", count)
+
+# Incomparable elements without a key -> the §5.5 TypeError (caught, text
+# pinned); with a key= that returns a scalar, sorting works unchanged.
+try:
+    print(sorted([1, "a"]))
+except TypeError as e:
+    print("mixed:", e.message)
+try:
+    print(sorted([[1], [2]]))
+except TypeError as e:
+    print("lists:", e.message)
+try:
+    print(sorted([True, 2]))
+except TypeError as e:
+    print("bool:", e.message)
+kstr(v):
+    # builtins are call-target-only (§5.11.5.6), so key= takes a named
+    # user function like this one.
+    return str(v)
+
+print(sorted([True, 2], key=kstr))
+print("done")

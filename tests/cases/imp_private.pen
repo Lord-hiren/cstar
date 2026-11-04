@@ -1,0 +1,4 @@
+from lib.toolkit import _private
+
+main:
+    print(_private)

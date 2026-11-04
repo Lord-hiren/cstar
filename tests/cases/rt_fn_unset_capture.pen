@@ -1,0 +1,10 @@
+# runtime: a captured cell is hoisted unset — reading it before the owner
+# assigns it trips the used-before-assignment guard.
+f():
+    show():
+        return v
+    r = show()
+    v = 5
+    return r
+
+print(f())

@@ -1,0 +1,10 @@
+class Point:
+    __init__(self, x):
+        self.x = x
+
+    move(self, dx):
+        self.x = self.x + dx
+
+main:
+    p = Point(1)
+    move(p, 1)

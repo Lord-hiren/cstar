@@ -1,0 +1,5 @@
+# compile: unknown named argument in a static call.
+f(a):
+    return a
+
+print(f(b=1))

@@ -1,0 +1,6 @@
+b = b"A\x00B"
+print(len(b), b)
+print(b[1])
+print(b"hello")
+inner = "a\0b"
+print(len(inner))

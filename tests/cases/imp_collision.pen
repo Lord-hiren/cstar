@@ -1,0 +1,7 @@
+greet():
+    return "entry"
+
+from lib.toolkit import greet
+
+main:
+    print(greet())

@@ -1,0 +1,40 @@
+# Pinned + captured (docs/reference/cross-scope-access.md §4): a binding reached
+# through `variable.` AND captured by a closure becomes an immortal
+# pinned cell — closures from every invocation share it, and it
+# survives collections. The loop churns the GC hard before the read.
+bump():
+    n = 0
+
+    add():
+        nonlocal n
+        n = n + 1
+
+    add()
+    add()
+    variable.bump n = 41
+    add()
+    print(n)
+
+gc_sweep():
+    k = "pinned-string"
+
+    maker():
+        get():
+            return k
+        return get
+
+    f = maker()
+    i = 0
+    while i < 40000:
+        s = str(i) + "-filler"
+        i = i + 1
+    print(f())
+
+main:
+    bump()
+    print(variable.bump n)
+    gc_sweep()
+    print(variable.gc_sweep k)
+    variable.gc_sweep k = "rebound"
+    gc_sweep()
+    print(variable.gc_sweep k)

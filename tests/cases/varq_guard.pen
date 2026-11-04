@@ -1,0 +1,10 @@
+# cross-scope access §4: the used-before-assignment guard applies to
+# pinned slots exactly like any other storage.
+never_ran():
+    q = 1
+
+reader():
+    print(variable.never_ran q)       // the slot is still unset
+
+main:
+    reader()

@@ -1,0 +1,27 @@
+if True:
+    print("t_True")
+if False:
+    print("bad1")
+if 0:
+    print("bad2")
+if 1:
+    print("t_int1")
+if 0 - 1:
+    print("t_int-1")
+if 0.0:
+    print("bad3")
+if -0.0:
+    print("bad4")
+if 3.25:
+    print("t_float")
+if "":
+    print("bad5")
+if "x":
+    print("t_str")
+if None:
+    print("bad6")
+if range(5, 5):
+    print("bad7")
+if range(0, 1):
+    print("t_range")
+print("done")

@@ -1,0 +1,49 @@
+# v0.3 namespace split: a global variable may share a name with a global
+# function — a bare read names the variable, `name ->` calls the function.
+a = 10
+a():
+    return 20
+
+print(a)
+print(a())
+
+# declaration order does not matter (discovery registers functions in phase 1)
+b():
+    return "fn b"
+b = "var b"
+print(b)
+print(b())
+
+# a top-level `for` target may share a function's name; the loop variable
+# leaks (2A §7) but the function stays reachable through `->`
+c():
+    return "fn c"
+for c in range(2):
+    print(c)
+print(c)
+print(c())
+
+# a bare read of a function-only name still yields the function value (2B §6.6)
+d():
+    return "fn d"
+g = d
+print(g)
+print(g())
+
+# reads inside functions prefer the global variable; calls the function
+e = "var e"
+e():
+    return "fn e"
+both():
+    print(e)
+    print(e())
+both()
+
+# `global` targets the variable namespace; calls still reach the function
+set_e():
+    global e
+    e = "set e"
+    print(e)
+    print(e())
+set_e()
+print(e)

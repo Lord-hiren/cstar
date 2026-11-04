@@ -1,0 +1,38 @@
+# Known-issue #2/#3 regression: int()/float() text-parse failures are
+# catchable ValueErrors (SPEC §6.10, §9.3) and float()'s argument-type
+# error is a TypeError, exactly like int()'s.
+
+try:
+    int("http")
+except ValueError as e:
+    print("int:", e.type, e.message)
+
+try:
+    float("x.y")
+except ValueError as e:
+    print("float:", e.type, e.message)
+
+try:
+    x = float([])
+except TypeError as e:
+    print("float arg:", e.type)
+
+try:
+    y = int(None)
+except TypeError as e:
+    print("int arg:", e.type)
+
+# finally runs on the unwind edge even when the error came from a parse
+# failure (it used to be skipped: the old path printed and exited).
+g():
+    try:
+        return int("abc")
+    finally:
+        print("finally ran")
+
+try:
+    g()
+except ValueError as e:
+    print("caught in g:", e.message)
+
+print("done")

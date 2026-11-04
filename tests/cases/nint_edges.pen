@@ -1,0 +1,47 @@
+# nint_edges — native-int lane parity edges: two's-complement wrapping,
+# int `/` truncation toward zero, `%` C sign rules, compound assignment
+# on native slots, and the MIN/-1 division and modulo special cases.
+# (The lexer reads `-9223372036854775808` as unary minus over an
+# out-of-range positive literal, so INT64_MIN is written `-...7 - 1`.)
+x = 9223372036854775807
+x = x + 1
+print(x)
+y = -9223372036854775807 - 1
+y = y - 1
+print(y)
+m = 9223372036854775807
+m = m * 2
+print(m)
+n = -9223372036854775807 - 1
+n = n * -1
+print(n)
+z = 7
+print(z / 2)
+print(-7 / 2)
+print(7 / -2)
+print(-7 / -2)
+print(7 % 3)
+print(-7 % 3)
+print(7 % -3)
+print(-7 % -3)
+mm = -9223372036854775807 - 1
+print(mm / -1)
+print(mm % -1)
+a = 10
+a += 5
+print(a)
+a -= 3
+print(a)
+a *= 2
+print(a)
+a /= 5
+print(a)
+a %= 3
+print(a)
+w = 5
+w -= 8
+print(w)
+print(1 < 2, 2 <= 2, 3 > 2, 3 >= 4, 1 == 1, 1 != 2)
+t = 3
+u = t * t % 7
+print(u)

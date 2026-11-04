@@ -1,0 +1,11 @@
+# M2-2C §3.2: an uncaught AttributeError keeps the 2B byte format and
+# exits 1.
+class Point:
+    __init__(self, x):
+        self.x = x
+
+main:
+    p = Point(1)
+    print("before")
+    print(p.missing)
+    print("never")

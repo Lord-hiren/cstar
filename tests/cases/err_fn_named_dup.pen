@@ -1,0 +1,5 @@
+# compile: named arg duplicates an already-positionally-bound param.
+f(a):
+    return a
+
+print(f(1, a=2))

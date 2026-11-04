@@ -1,0 +1,19 @@
+i = 0
+while True:
+    i += 1
+    switch i:
+        case 1:
+            print("first")
+        case 2:
+            print("second")
+            break
+        case *:
+            print("wild")
+print("after", i)
+for n in range(0, 5):
+    switch n:
+        case 2:
+            break
+        case *:
+            print(n)
+print("after", n)

@@ -1,0 +1,10 @@
+# compile: the nonlocal declaration must precede any binding or use of the name.
+outer():
+    n = 1
+    inner():
+        n = n + 1
+        nonlocal n
+        return n
+    return inner()
+
+print(outer())

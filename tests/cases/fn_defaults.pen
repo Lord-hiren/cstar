@@ -1,0 +1,43 @@
+# 2B: defaults are evaluated fresh per call; they may reference globals,
+# earlier params (including earlier defaulted params) and hoisted nested functions.
+BASE = 10
+
+chain(a=1, b=a+1, c=b*2, d=BASE + c):
+    return [a, b, c, d]
+
+print(chain())
+print(chain(10, 20))
+print(chain(10, 20, 30))
+
+stamp(box=[]):
+    box.append(1)
+    return box
+
+a = stamp()
+a.append(99)
+b = stamp()
+print(a)
+print(b)
+
+seq = 0
+next_v():
+    global seq
+    seq = seq + 1
+    return seq
+
+tag(v=next_v()):
+    return v
+
+print(tag())
+print(tag())
+print(tag(100))
+print(seq)
+
+outer():
+    helper():
+        return 3
+    f(a, d=helper()):
+        return [a, d]
+    return f(1)
+
+print(outer())

@@ -1,0 +1,9 @@
+xs = [10, 20, 30]
+print(xs[0], xs[2], xs[-1], xs[-3])
+m = {"a": 1, "b": 2}
+print(m["b"], m["a"])
+print("hello"[1], "héllo"[1])
+b = b"ABC"
+print(b[0], b[-1])
+t = (1, 2, 3)
+print(t[1], t[-2])

@@ -1,0 +1,9 @@
+# while_float: 12976128 double steps `x = x*1.0000001 + 0.5` in a real
+# while loop. Before/after partner: M1 float_loop (same steps).
+main:
+    x = 1.0
+    i = 0
+    while i < 12976128:
+        x = x * 1.0000001 + 0.5
+        i += 1
+    print(x)

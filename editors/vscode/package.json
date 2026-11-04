@@ -1,0 +1,128 @@
+{
+  "name": "pentest-lang",
+  "displayName": "Pentest Language",
+  "description": "Syntax highlighting, snippets, autocomplete, and live error diagnostics for the Pentest programming language (.pen / .pent)",
+  "version": "0.2.1",
+  "publisher": "pentest-lang",
+  "license": "MIT",
+  "keywords": [
+    "pentest",
+    "control flow",
+    "syntax highlighting",
+    "autocomplete",
+    "snippets",
+    "diagnostics"
+  ],
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "scripts": {
+    "test": "node test/smoke.js",
+    "smoke": "node test/smoke.js"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "activationEvents": [
+    "onLanguage:pentest"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "pentest",
+        "aliases": [
+          "Pentest",
+          "pentest"
+        ],
+        "extensions": [
+          ".pen",
+          ".pent"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "pentest",
+        "scopeName": "source.pentest",
+        "path": "./syntaxes/pentest.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "pentest",
+        "path": "./snippets/pentest.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "pentest.run",
+        "title": "Run File",
+        "category": "Pentest",
+        "icon": "$(play)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "pentest.run",
+          "when": "resourceLangId == pentest",
+          "group": "navigation@1"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "pentest.run",
+          "when": "resourceLangId == pentest",
+          "group": "pentest@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "pentest.run",
+          "when": "editorLangId == pentest || resourceLangId == pentest"
+        }
+      ]
+    },
+    "configurationDefaults": {
+      "[pentest]": {
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true,
+        "editor.tabCompletion": "on",
+        "editor.autoIndent": "full",
+        "editor.quickSuggestions": {
+          "other": "on",
+          "comments": "off",
+          "strings": "off"
+        },
+        "editor.suggest.showWords": true
+      }
+    },
+    "configuration": {
+      "title": "Pentest",
+      "properties": {
+        "pentest.executable": {
+          "type": "string",
+          "default": "pentest",
+          "scope": "machine",
+          "description": "Path to the pentest CLI used for live diagnostics. The default 'pentest' searches PATH, ~/.local/bin, and common install locations automatically."
+        },
+        "pentest.diagnostics": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Show syntax and semantic errors while typing. Runs 'pentest check' only — code is never compiled or executed."
+        },
+        "pentest.diagnosticsDelay": {
+          "type": "number",
+          "default": 400,
+          "minimum": 0,
+          "scope": "resource",
+          "description": "Milliseconds to wait after typing before re-checking the document."
+        }
+      }
+    }
+  }
+}

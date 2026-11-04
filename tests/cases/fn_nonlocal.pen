@@ -1,0 +1,35 @@
+# 2B: nonlocal — rebind an enclosing local (grandchild through a middle frame),
+# rebind a parameter of the enclosing function, repeated-call counters.
+top():
+    n = 1
+    mid():
+        bottom():
+            nonlocal n
+            n = n + 10
+            return n
+        return bottom()
+    return[mid(), n]
+
+print(top())
+
+param_nonlocal(v):
+    bump():
+        nonlocal v
+        v = v * 3
+        return v
+    r = bump()
+    return [r, v]
+
+print(param_nonlocal(7))
+
+shared():
+    n = 0
+    add(k):
+        nonlocal n
+        n = n + k
+        return n
+    add(5)
+    add(6)
+    return n
+
+print(shared())

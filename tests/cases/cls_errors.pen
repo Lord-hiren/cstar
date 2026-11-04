@@ -1,0 +1,46 @@
+# M2-2C §3.2/§3.3: caught class-side errors — missing attributes,
+# non-instance assignment, missing __init__, unraisable user classes.
+class Point:
+    __init__(self, x):
+        self.x = x
+
+class NoInit:
+    hello(self):
+        return "hi"
+
+main:
+    p = Point(1)
+    # missing attribute read -> AttributeError (class-named wording)
+    try:
+        print(p.nope)
+    except AttributeError as e:
+        print("1", e, type(e))
+    # attribute assignment on a non-instance -> TypeError
+    try:
+        v = 5
+        v.x = 1
+    except TypeError as e:
+        print("2", e, type(e))
+    # ...nor on a class value
+    try:
+        Point.x = 1
+    except TypeError as e:
+        print("3", e, type(e))
+    # calling a class with arguments but no __init__ -> TypeError
+    try:
+        NoInit(1)
+    except TypeError as e:
+        print("4", e, type(e))
+    # ...and without arguments it constructs fine
+    n = NoInit()
+    print("5", n.hello())
+    # §3.3: user classes/instances are not raisable (2C)
+    try:
+        raise Point
+    except TypeError as e:
+        print("6", e, type(e))
+    try:
+        raise p
+    except TypeError as e:
+        print("7", e, type(e))
+    print("end")

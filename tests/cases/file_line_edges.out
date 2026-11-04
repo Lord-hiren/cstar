@@ -1,0 +1,19 @@
+16
+'a\r\n'
+'héllo\n'
+'\n'
+'𝄞x'
+''
+4
+for 'a\r\n'
+for 'héllo\n'
+for '\n'
+for '𝄞x'
+'a\r\n'
+'héllo\n\n𝄞x'
+''
+a
+héllo
+
+𝄞x
+done

@@ -1,0 +1,7 @@
+startup 12372 12224
+int_loop 12136 12220
+float_loop 12324 12220
+call_chain 12272 12116
+call_overhead 12340 12340
+string_ops 45004 12216
+mixed 31580 12268

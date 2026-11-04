@@ -1,0 +1,5 @@
+main:
+    print("one")
+
+main:
+    print("two")

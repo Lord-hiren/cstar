@@ -1,0 +1,8 @@
+f, *r1 = [1, 2, 3]
+print(f, r1)
+*l, t = [1, 2, 3]
+print(l, t)
+a, *m, b = [1, 2, 3, 4, 5]
+print(a, m, b)
+*p = [7, 8]
+print(p)

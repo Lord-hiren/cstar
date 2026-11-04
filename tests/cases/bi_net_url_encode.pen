@@ -1,0 +1,9 @@
+# url_encode(): percent-encoding for query strings / form bodies.
+# Unreserved A-Za-z0-9-_.~ stay literal; every other UTF-8 byte -> %XX.
+main:
+    print(url_encode("admin'-- & x=1"))
+    print(url_encode("a b/c?d#e+f"))
+    print(url_encode("héllo"))
+    print(url_encode("safe-_.~ABC123"))
+    print(url_encode(""))
+    print(url_encode("=%&\"<>;:@"))

@@ -1,0 +1,12 @@
+# list_ops: 200000 appends, 200000 indexed reads, one full sum pass.
+# M1 has no lists; this is new expressible work.
+main:
+    xs = []
+    i = 0
+    while i < 200000:
+        xs.append(i * 3 + 1)
+        i += 1
+    total = 0
+    for v in xs:
+        total = total + v
+    print(len(xs), xs[0], xs[199999], xs[len(xs) - 1], total)

@@ -1,0 +1,22 @@
+# 2B: **kwargs — extras captured in source order alongside named params,
+# the kwargs map reads like any map, and each call gets a fresh empty map.
+f(a, b=2, **kw):
+    print(a, b)
+    print(kw)
+    print(len(kw))
+    if "z" in kw:
+        print("z is", kw["z"])
+    for k in kw:
+        print(k, kw[k])
+
+f(1)
+f(1, 5, z=3, y=4, x=9)
+f(a=1, b=2, extra="e")
+
+fresh(**kw):
+    return kw
+
+m = fresh()
+m["k"] = 1
+print(m)
+print(fresh())

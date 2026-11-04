@@ -1,0 +1,42 @@
+# scoreboard: io — file I/O. Each rep writes 600k formatted records to
+# a file, closes, reopens it binary and reads it whole. The C baselines
+# write the identical bytes (record = "i v\n", v = (i*75) % 1000003).
+# This is the idiomatic per-record-write form; io_join.pen is Pentest's
+# preformat+join+single-write form, io.c has stdio (fprintf per record)
+# and raw (one preformatted fwrite) forms.
+# Output contract: line 1 = checksum (file byte-sum + length term),
+# line 2 = kernel seconds.
+n = 600000
+reps = 4
+path = "hpcbench_io.dat"
+
+# warm-up: one uncounted write + read cycle — faults pages, primes libc
+f = open(path, "w")
+for i in range(n):
+    f.write(str(i) + " " + str((i * 75) % 1000003) + "\n")
+f.close()
+f = open(path, "rb")
+warm = f.read()
+f.close()
+
+t0 = clock()
+for r in range(reps):
+    f = open(path, "w")
+    for i in range(n):
+        f.write(str(i) + " " + str((i * 75) % 1000003) + "\n")
+    f.close()
+    f = open(path, "rb")
+    data = f.read()
+    f.close()
+t1 = clock()
+
+# checksum: byte-sum of the file the timed section left behind, plus a
+# length term so truncation can't hide behind a compensating byte sum
+f = open(path, "rb")
+data = f.read()
+f.close()
+total = 0
+for i in range(len(data)):
+    total = total + data[i]
+print(total + len(data) * 1000000000)
+print(t1 - t0)

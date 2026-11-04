@@ -1,0 +1,12 @@
+1 ZeroDivisionError: division by zero ZeroDivisionError
+2 ZeroDivisionError: modulo by zero
+3 IndexError: list index out of range IndexError
+4 IndexError: text index out of range
+5 KeyError: map key not found KeyError
+6 NameError: global variable 'later_var' used before assignment
+7 TypeError: unhashable type: 'list'
+8 TypeError: object of type 'int' is not callable
+9 ValueError: not enough values to unpack (expected 2, got 1) ValueError
+10 TypeError: unsupported operand types for +: int and text
+11 TypeError: except expects a class, got int
+12 TypeError: exceptions must be class or instance, got int

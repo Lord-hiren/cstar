@@ -1,0 +1,5 @@
+# M2-2C §2.2: uncaught exceptions print the 2B byte format and exit 1.
+main:
+    print("before")
+    raise ValueError("boom")
+    print("never")
