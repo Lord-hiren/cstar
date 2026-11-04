@@ -35,11 +35,11 @@ unlocks the next:
 
 **v0.3 cstar Foundation** (v0.3.0)
 Status: In progress
-Phases: 0 of 4 complete
+Phases: 1 of 4 complete
 
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
-| 1 | Dev environment & repo hygiene | 3 | In progress | - |
+| 1 | Dev environment & repo hygiene | 3/3 | ✅ Complete | 2026-11-04 |
 | 2 | Rename to cstar | 3 | Not started | - |
 | 3 | Fix known issues | 2 | Not started | - |
 | 4 | Release v0.3.0 | 1 | Not started | - |
@@ -62,7 +62,7 @@ and the repo stops tracking build output.
 **Plans:**
 - [x] 01-01: Toolchain setup, LF line endings (`.gitattributes`) and baseline test run — 2026-11-04
 - [x] 01-02: Repo hygiene and stale-doc fixes — 2026-11-04
-- [ ] 01-03: Linux CI
+- [x] 01-03: Linux CI — 2026-11-04 (workflow ready; not yet pushed, so not yet run on GitHub)
 
 ### Phase 2: Rename to cstar
 

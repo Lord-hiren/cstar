@@ -15,10 +15,10 @@ status = "in_progress"
 phases = 4
 
 [phase]
-number = 1
-name = "Dev environment & repo hygiene"
-status = "in_progress"
-plans_completed = 2
+number = 2
+name = "Rename to cstar"
+status = "not_started"
+plans_completed = 0
 
 [loop]
 position = "IDLE"
@@ -27,6 +27,7 @@ position = "IDLE"
 groom = true
 
 [stats]
-total_plans = 2
+total_plans = 3
 total_phases = 36
-last_activity = "2026-11-04T18:45:00Z"
+phases_completed = 1
+last_activity = "2026-11-04T19:25:00Z"

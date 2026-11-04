@@ -23,7 +23,7 @@ and Linux, with servers, packages and low-level memory access built in.
 |-----------|-------|
 | Type | Application (programming language + toolchain) |
 | Version | 0.2.1 (`pentest --version`), plus unreleased work in the tree |
-| Status | Working compiler on Linux; renaming and cross-platform work next |
+| Status | Working compiler on Linux (and on Windows through WSL); Phase 1 done, rename to cstar next |
 | Last Updated | 2026-11-04 |
 
 ## Requirements
@@ -44,6 +44,8 @@ and Linux, with servers, packages and low-level memory access built in.
 - [x] Script-style code with no boilerplate (`main:` optional) — 0.2.1
 - [x] Imports (`import`/`from`), HTTP client builtins, SIMD vectors (`fvec`/`ivec`) — in tree, unreleased
 - [x] VSCode extension (highlighting, completion, hover, diagnostics, Run) — 0.2.1
+- [x] Build and test from Windows through WSL; LF-only, byte-exact repository; docs that match the code — Phase 1
+- [x] CI workflow for the four gates (warning-free build, tests, smoke test, docs checker) — Phase 1 (not yet run on GitHub)
 
 ### Active (In Progress)
 
@@ -98,12 +100,16 @@ None yet.
 | Server uses a single-threaded event loop (Node style) | Matches the single-threaded GC | 2026-11-04 | Proposed |
 | Packages come from git first, a hosted registry later | No server cost or registry attack surface at the start | 2026-11-04 | Proposed |
 | AI: cstar's own API on top of an existing C engine (e.g. ggml) | Writing kernels for every GPU vendor would take years; confirm in research | 2026-11-04 | Proposed |
+| Build the Windows checkout from WSL (`wsl -d Ubuntu-24.04 -- …`) | Keeps the Windows editor workflow; the toolchain is Linux-only until v0.4 | 2026-11-04 | Active |
+| LF line endings everywhere; test expectations stored byte-exact (`-text`) | CRLF broke the harness; autocrlf had silently corrupted a test file | 2026-11-04 | Active |
+| `examples/` stays private; docs use inline programs | Your choice: examples are local scratch | 2026-11-04 | Active |
+| One branch per phase, a commit per task; push only with your approval | The repo is public; main changes only on request | 2026-11-04 | Active |
 
 ## Success Metrics
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| Test suite | 100% green on Linux and Windows | 372/372 on Linux (WSL Ubuntu 24.04, 2026-11-04); Windows-native not yet | On track |
+| Test suite | 100% green on Linux and Windows | 372/372 in a fresh clone (WSL Ubuntu 24.04, 2026-11-04); CI ready, not yet run on GitHub; Windows-native not yet | On track |
 | Loop/printing speed vs C (`-O3 -march=native`) | ≥ 1.0× | 0.96×–1.84× (hpcbench, 2026-10-18) | On track |
 | Object-heavy speed vs C (`ptrlist`) | ≥ 0.8× (proposed) | 0.35× | At risk |
 | Install → first program | One installer, no separate compiler | Needs clang + make on Linux | Not started |
@@ -129,4 +135,4 @@ None yet.
 
 ---
 *PROJECT.md — Updated when requirements or context change*
-*Last updated: 2026-11-04*
+*Last updated: 2026-11-04 after Phase 1*
