@@ -88,7 +88,7 @@ VSCode extension and docs.
 **Plans:**
 - [x] 02-01: `cstar` CLI — binary + alias, `.cst`, `index.cst`, output naming, `CSTAR_PATH`, cache; harness, CI, SPEC CLI sections — 2026-11-05
 - [x] 02-02: Language name in error messages (code + SPEC + tests), test files `.pen` → `.cst` — 2026-11-05
-- [ ] 02-03: VSCode extension: `cstar` language id, `.cst`, `cstar.*` settings, grammar scopes, D-7 vector builtins
+- [x] 02-03: VSCode extension: `cstar` language id, `.cst`, `cstar.*` settings, grammar scopes, D-7 vector builtins — 2026-11-05
 - [ ] 02-04: Internal names (namespace, `pt_` prefixes, runtime files)
 - [ ] 02-05: Docs and SPEC wording
 
