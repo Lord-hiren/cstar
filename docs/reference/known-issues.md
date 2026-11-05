@@ -24,6 +24,7 @@ pointers to the regression tests. What remains open:
 | [7](#7-format-zero-padding-plus-grouping-does-not-regroup) | builtins | `format(42, "08,")` → `00000042`, Python `0,000,042` | low — narrow spec corner |
 | [8](#8-a-cache-less-run-leaves-its-binary-in-the-temp-dir) | driver | a run that cannot cache leaves `$TMPDIR/pentest-XXXXXX/program` | low — cosmetic litter |
 | [9](#9-text-concatenation-in-a-loop-is-quadratic) | runtime | `s += "x"` in a loop is O(n²) (no refcount-based in-place resize) | medium — common pattern, easy workaround |
+| [10](#10-float-vector-modulo-returns-wrong-values) | runtime | `fvec([5.0]) % fvec([2.0])` → `[2.5]` (wrong values) instead of a `TypeError` | medium — silent wrong results |
 
 ---
 
@@ -120,6 +121,32 @@ while i < 100000:
     i += 1
 s = "".join(parts)
 ```
+
+---
+
+## 10. Float-vector modulo returns wrong values
+
+**Repro**
+
+```python
+print(fvec([5.0, -5.0]) % fvec([2.0, 2.0]), 1.0 % fvec([4.0]), fvec([1.0]) % 0.0)
+```
+
+The program prints `[2.5, -2.5] [4.0] [inf]`: no error, and none of the
+values is a remainder.
+
+**Expected** (SPEC §5.11.9): `%` is not defined for `float`, so on an `fvec`
+it raises the same `TypeError` as the scalar form —
+`unsupported operand types for %: fvec and fvec` (`fvec and float`,
+`float and fvec`). `%` on an `ivec` is correct.
+
+**Cause.** The `fvec` kernels in [runtime/cstar_rt.c](../../runtime/cstar_rt.c)
+switch on `+`, `-`, `*` and send every other operator to their `default`
+branch, and `%` reaches them: `cs_fv_kernel` (vector with vector or with a
+right-hand scalar) divides, `cs_fv_kernel_sl` (left-hand scalar) multiplies.
+
+**Workaround.** None needed in correct programs: cstar has no float modulo.
+For integer-valued data use an `ivec`, whose `%` is exact.
 
 ---
 

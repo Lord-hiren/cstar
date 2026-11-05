@@ -205,7 +205,10 @@ forms():
   always-failing stubs (`breakpoint`, `classmethod`, `help`,
   `issubclass`, `memoryview`, `object`, `property`, `staticmethod`,
   `super`) and the compile-time-rejected trio `eval`, `exec`,
-  `compile`. None of the seventy can be assigned, used as a parameter,
+  `compile` — plus the three network builtins `http_get`, `http_post`,
+  `url_encode` (§5.11.8) and the five vector builtins `fvec`, `ivec`,
+  `fvec_fill`, `ivec_fill`, `dot` (§5.11.9). None of the seventy-eight can
+  be assigned, used as a parameter,
   declared as a function, or used as a loop variable; each may only
   appear as a call target (`print(...)`, `abs(...)`). Violations are
   semantic errors (§9.2); a bare read of any of them is reported as
@@ -560,25 +563,26 @@ rules of §8.
 
 ### 5.1 Runtime tags
 
-Values carry one of sixteen dynamic tags: `unset`, `None`, `int` (64-bit
+Values carry one of eighteen dynamic tags: `unset`, `None`, `int` (64-bit
 signed), `float` (IEEE-754 double), `bool`, `text`, `bytes`, `range`
 (§6.9), the Stage 2B heap types `list`, `map`, `set`, `tuple`,
-`function` (§5.8, §8), and the Stage 2C heap types `class`, `instance`
-and `method` (§5.12).
+`function` (§5.8, §8), the Stage 2C heap types `class`, `instance`
+and `method` (§5.12), and the vector types `fvec` and `ivec` (§5.11.9).
 Reassignment always works and may change the tag of a variable.
 
 **Approved 2B change:** the type that Stage 2A called `string` is displayed
 and reported as **`text`**; `bytes` is new. `text`/`bytes` are immutable
 (pointer+length; `text` stores UTF-8, may contain NUL); `list`, `map`,
-`set`, `tuple`, `function`, `range`, `class`, `instance` and `method` are
-**heap objects** referenced by pointer (§7.3: reclaimed by the mark &
+`set`, `tuple`, `function`, `range`, `class`, `instance`, `method`, `fvec`
+and `ivec` are **heap objects** referenced by pointer (§7.3: reclaimed by the mark &
 sweep collector once unreachable).
 
 Arithmetic is performed on **evaluated values**; there are **no implicit
 conversions between categories** — notably no int→text and no bool→int.
 These type names are exactly the ones used in error messages: `int`,
 `float`, `bool`, `text`, `bytes`, `range`, `list`, `map`, `set`, `tuple`,
-`function`, `class`, `method`, `None`, `unset` (an `instance` reports its
+`function`, `class`, `method`, `fvec`, `ivec`, `None`, `unset` (an
+`instance` reports its
 **class name** as its type — §5.12). The `type()` builtin (§5.11) uses the
 same spellings except that `None` is reported as `none`; `type()` of an
 exception or instance is its class name (`"ValueError"`, `"Point"`), of a
@@ -873,10 +877,11 @@ present); a non-`text` argument where `text` is required →
 
 #### 5.11.1 Scope, call-only rule and arity checks
 
-There are **seventy** builtins (§3.5): the fifteen original Pentest
+There are **seventy-eight** builtins (§3.5): the fifteen original
 builtins (§5.11.2), forty-three Python-parity builtins (§5.11.3), nine
-always-failing stubs (§5.11.6) and the compile-time-rejected
-`eval`/`exec`/`compile` trio (§5.11.6). Every one is **call-target-only**:
+always-failing stubs (§5.11.6), the compile-time-rejected
+`eval`/`exec`/`compile` trio (§5.11.6), three network builtins (§5.11.8)
+and five vector builtins (§5.11.9). Every one is **call-target-only**:
 it cannot be read as a value, assigned, used as a parameter or loop
 variable, or redeclared — so `callable(print)`, `type(abs)` or
 `f = sorted` are impossible by construction (§3.5, §8). Callbacks
@@ -898,7 +903,8 @@ variable, or redeclared — so `callable(print)`, `type(abs)` or
   positional source (`'dict' expects at most 1 positional argument, got
   <n>` — the count **excludes** the named arguments);
 - the original fifteen take **no** named arguments at all
-  (`builtin '<n>' does not take named arguments`).
+  (`builtin '<n>' does not take named arguments`), and neither do the
+  network (§5.11.8) and vector (§5.11.9) builtins.
 
 Unfilled optional slots arrive at the runtime as `cs_missing()` and are
 defaulted there, exactly like Python's `None`-sentinel conventions.
@@ -1215,6 +1221,128 @@ see the worked walkthroughs in [docs/guide/sqli.md](docs/guide/sqli.md),
 which run against a deliberately vulnerable local lab on
 `http://127.0.0.1:8080` (the lab and the full scripts are not included in the
 repository).
+
+#### 5.11.9 SIMD vector builtins: `fvec`, `ivec`, `fvec_fill`, `ivec_fill`, `dot` (unreleased)
+
+Two fixed-length vector types carry guaranteed SIMD lanes: **`fvec`**
+(`float` lanes, IEEE-754 double) and **`ivec`** (`int` lanes, 64-bit
+signed). They are heap objects (§5.1) whose type names — in `type()` and in
+error messages — are `fvec` and `ivec`. Five builtins create and combine
+them. Like the original fifteen (§5.11.2) they are call-target-only, take
+**no** named arguments (`builtin '<n>' does not take named arguments`) and
+have their arity checked at compile time.
+
+**Construction**
+
+- `fvec(iterable)` — **1 argument** → `fvec`. Walks any iterable (§6.6) and
+  converts each element: an `int` or `float` to its `float` value, a `bool`
+  to `0.0`/`1.0`. Any other element → `TypeError: fvec() elements must be
+  numbers, got <t>`; a non-iterable argument raises the usual
+  `'<t>' object is not iterable`.
+- `ivec(iterable)` — **1 argument** → `ivec`. Elements must be `int` or
+  `bool` (`False`/`True` → `0`/`1`); anything else, `float` included →
+  `TypeError: ivec() elements must be ints, got <t>`.
+- `fvec_fill(n, v)` — **2 arguments** → an `fvec` of `n` copies of `v`.
+  `n` must be a non-negative `int` (a `bool` is not accepted), otherwise
+  `ValueError: fvec_fill: count must be a non-negative int`. `v` must be an
+  `int` or a `float` — unlike `fvec()`, a `bool` is rejected — otherwise
+  `TypeError: fvec_fill() element must be numeric, got <t>`.
+- `ivec_fill(n, v)` — **2 arguments** → an `ivec` of `n` copies of `v`, with
+  the same count rule (`ValueError: ivec_fill: count must be a non-negative
+  int`); `v` must be an `int` or a `bool`, otherwise
+  `TypeError: ivec_fill() element must be an int, got <t>`.
+- `dot(a, b)` — **2 arguments** → the inner product as a scalar: a `float`
+  for two `fvec`, an `int` for two `ivec` (lane products and their sum wrap
+  as in §5.3). Any other pair →
+  `TypeError: dot() expects two fvecs or two ivec, got <t1> and <t2>`;
+  unequal lengths → `ValueError: fvec length mismatch` (`ivec length
+  mismatch`). Both checks happen before any lane is read. The `dot` of two
+  empty vectors is `0.0` (`fvec`) or `0` (`ivec`). For `fvec` the products
+  may be fused multiply-adds summed in lane order, so the last bits can
+  differ from a sequential loop.
+
+**Compile-time arity errors** (wording is exact, §9.2):
+`'fvec' expects 1 argument(s), got <n>`,
+`'ivec' expects 1 argument(s), got <n>`,
+`'fvec_fill' expects 2 argument(s), got <n>`,
+`'ivec_fill' expects 2 argument(s), got <n>`,
+`'dot' expects 2 argument(s), got <n>`.
+
+**Operators.** Arithmetic is elementwise, with the scalar operator's
+semantics in every lane:
+
+- `+`, `-`, `*` (and `+=`, `-=`, `*=`) take two vectors of the same type
+  and equal length, or a vector and a scalar on either side; the scalar is
+  broadcast to every lane. An `fvec` accepts `int` and `float` scalars; an
+  `ivec` accepts `int` and `bool` scalars. `ivec` lanes wrap in two's
+  complement exactly like `int` (§5.3). Unary `-` negates every lane.
+- `/` — `fvec` lanes divide like `float`, and a zero divisor in any lane
+  raises `ZeroDivisionError: division by zero`; `ivec` lanes divide like
+  `int` (§5.4): truncation toward zero, `division by zero`, and
+  `INT64_MIN / -1` → `INT64_MIN`.
+- `%` — defined for `ivec` only, exactly like `int` `%` (§5.4): the
+  remainder takes the dividend's sign, a zero divisor raises
+  `ZeroDivisionError: modulo by zero`, and `INT64_MIN % -1` → `0`. On an
+  `fvec`, as on a scalar `float`, `%` is a `TypeError`
+  (`unsupported operand types for %: fvec and fvec`). The current compiler
+  returns wrong values instead — [known issue
+  #10](docs/reference/known-issues.md#10-float-vector-modulo-returns-wrong-values).
+- Unequal lengths → `ValueError: fvec length mismatch` (`ivec length
+  mismatch`), raised before any lane is computed. Every other operand
+  mix — `fvec` with `ivec`, a `bool` with an `fvec`, a `float` with an
+  `ivec`, any non-number — is a `TypeError` in the binary-operator wording
+  of §9.3, e.g. `unsupported operand types for +: fvec and ivec`. `**` and
+  the orderings `<` `<=` `>` `>=` are `TypeError`s as well.
+- `==` and `!=` compare whole vectors and return one `bool` (§5.5): two
+  vectors are equal when they have the same type, the same length and
+  equal lanes. A vector never equals a list or a vector of the other type;
+  that comparison is `False`, not an error.
+
+**Lanes and protocols**
+
+- `v[i]` reads a lane — a `float` from an `fvec`, an `int` from an `ivec`;
+  a negative index counts from the end. Out of range →
+  `IndexError: fvec index out of range` (`ivec …`); a non-`int` index,
+  `bool` included → `TypeError: fvec indices must be integers, not <t>`.
+- `v[i] = x` stores a lane, with the same index rules. An `fvec` accepts an
+  `int` or `float` (stored as `float`), an `ivec` an `int` or `bool`;
+  anything else → `TypeError: cannot store <t> in fvec` (`… in ivec`).
+- Slicing is not supported: `TypeError: 'fvec' object does not support
+  slicing` (likewise `ivec`, §5.9).
+- Vectors are iterable in lane order (§6.6), so `for` and every builtin that
+  consumes an iterable (`list`, `sorted`, …) accept them. `len()` is the
+  lane count; an empty vector is falsy (§6.1). `str()` and `print` display
+  a vector like a list (§5.6): `[1.5, 2.0]`, `[1, 2]`.
+- `sum`, `min` and `max` reduce over the lanes. `sum` of an `fvec`
+  accumulates in lane order, so its last bits can differ from a sequential
+  loop; `ivec` sums wrap and do not depend on the order. `min`/`max` of an
+  empty vector raise `ValueError: min() arg is an empty sequence`
+  (`max() …`).
+- Vectors are **unhashable** (`TypeError: unhashable type: 'fvec'`), so
+  they cannot be map keys or set elements. Membership `x in v` is not
+  supported (§6.3), and numeric builtins such as `abs` reject vectors
+  (`bad operand type for abs(): 'fvec'`).
+
+```python
+v = fvec([1.5, 2.5, 3.5])
+w = ivec_fill(3, 2)
+print(v * 2 + 1.0, len(v), type(v))
+print(ivec([7, -7]) / 2, ivec([7, -7]) % 2, w * w)
+print(dot(v, v), dot(w, ivec([1, 2, 3])), sum(v), max(w))
+print(v == fvec([1.5, 2.5, 3.5]), bool(fvec([])))
+try:
+    x = v + fvec([1.0])
+except ValueError as e:
+    print(e.message)
+```
+
+```text
+[4.0, 6.0, 8.0] 3 fvec
+[3, -3] [1, -1] [4, 4, 4]
+20.75 12 7.5 2
+True False
+fvec length mismatch
+```
 
 ### 5.12 Classes, instances and attributes (2C)
 
@@ -1770,9 +1898,10 @@ Mutation of a collection during its own iteration remains undefined (2B).
   machinery (§3.5): `cannot assign to reserved name '<b>'`,
   `cannot use reserved name '<b>' as parameter`,
   `cannot declare function with reserved name '<b>'`, and a bare read is
-  `undefined variable '<b>'` — for all seventy names of §5.11 (the
-  legacy fifteen, the forty-three parity builtins, the nine stubs and
-  the `eval`/`exec`/`compile` trio).
+  `undefined variable '<b>'` — for all seventy-eight names of §5.11 (the
+  legacy fifteen, the forty-three parity builtins, the nine stubs, the
+  `eval`/`exec`/`compile` trio, the three network and the five vector
+  builtins).
 - **Cross-scope variable access (`0.2.1`, §4.1 `qual_ref`).** Outside
   ordinary name resolution, a `variable.<qualifier> <name>` atom names a
   binding in another scope directly:
@@ -2087,7 +2216,7 @@ name never appears in it.
 
 Type names used in messages: `int`, `float`, `bool`, `text`, `bytes`,
 `range`, `list`, `map`, `set`, `tuple`, `function`, `class`, `method`,
-`None`, `unset` (the 2B rename `string` → `text` is an approved change;
+`fvec`, `ivec`, `None`, `unset` (the 2B rename `string` → `text` is an approved change;
 `type()` spells `None` as `none`, §5.11). An **instance** reports its
 class name in `<t>` — `'Point' object has no attribute …`,
 `cannot assign attribute 'x' on 'int'` uses the target's type.
@@ -2157,7 +2286,7 @@ cstar --version | -v                    # prints: cstar 0.2.1
 - **Arguments:** extra args after the file path are passed to the program as
   `argv[1..]`. The generated program hands them to the runtime via
   `cs_init(argc, argv, <source path as invoked>, cs_g_roots, N)` (§11.3);
-  no builtin reads them (none of the seventy builtins takes `argv`).
+  no builtin reads them (none of the seventy-eight builtins takes `argv`).
 - Linux x86_64 only.
 
 ## 11. Implementation and architecture
