@@ -2075,6 +2075,61 @@ check('hover provider registered for cstar', !!captured.hoverProvider);
 check('README documents Hover', /Pointer-over/.test(readme));
 
 // ===========================================================================
+section('SIMD vector builtins: fvec / ivec / fvec_fill / ivec_fill / dot (D-7)');
+
+// Reserved in src/semantic.cpp is_reserved alongside the HTTP builtins;
+// the editor must know them too (grammar, completion, hover, RESERVED).
+const VEC_BUILTINS = ['fvec', 'ivec', 'fvec_fill', 'ivec_fill', 'dot'];
+{
+  for (const name of VEC_BUILTINS) {
+    const t = tokenize(`${name}(x)`);
+    const tok = t.find((k) => k.t === name);
+    check(`grammar: ${name}(...) scoped as builtin`, !!tok
+      && hasScope(tok, 'support.function.cstar'));
+    check(`grammar: bare ${name} not builtin`, !ruleMatches('builtin', name));
+    check(`grammar: ${name}x() not builtin`, !ruleMatches('builtin', name + 'x()'));
+  }
+  const mt = tokenize('v.dot(w)').find((k) => k.t === 'dot');
+  check('grammar: v.dot(w) stays a method call, not the builtin',
+    !!mt && !hasScope(mt, 'support.function.cstar'));
+}
+{
+  const items = completions('x = 1', 5);
+  for (const name of VEC_BUILTINS) {
+    const it = findItem(items, name);
+    check(`completion: ${name} offered as builtin Function`, !!it
+      && it.kind === fakeVscode.CompletionItemKind.Function);
+    check(`completion: ${name} marked call-only/reserved`, !!it
+      && /builtin function/.test(it.detail) && /reserved/.test(it.detail));
+    check(`completion: ${name} documented`, !!it && docText(it).length > 0);
+    check(`completion: ${name} snippet inserts ${name}(...)`, !!it
+      && snippetText(it).indexOf(name + '(') === 0);
+  }
+  const src = VEC_BUILTINS.map((w, i) => `${w} = ${i}`).join('\n') + '\n';
+  const items2 = completions(src, src.length);
+  for (const w of VEC_BUILTINS) {
+    check(`completion: reserved ${w} not offered as variable`,
+      !items2.find((i) => labelOf(i) === w && i.kind === fakeVscode.CompletionItemKind.Variable));
+  }
+}
+check('extension source reserves all five vector builtins',
+  VEC_BUILTINS.every((n) => extSrc.indexOf("'" + n + "'") !== -1));
+check('extension source documents every vector builtin',
+  VEC_BUILTINS.every((n) => new RegExp("'" + n + "':\\s*\\{").test(extSrc)));
+{
+  const s1 = 'v = fvec(xs\n)';
+  const t1 = hoverText(hover(s1, s1.indexOf('fvec') + 1));
+  check('hover fvec: plain signature + float64 lanes',
+    t1.indexOf('fvec(iterable)') !== -1 && /float64/.test(t1) && t1.indexOf('${') === -1);
+  const s2 = 'p = dot(a, b\n)';
+  const t2 = hoverText(hover(s2, s2.indexOf('dot') + 1));
+  check('hover dot: inner product contract', /inner product/.test(t2));
+  const s3 = 'z = ivec_fill(4, 0\n)';
+  const t3 = hoverText(hover(s3, s3.indexOf('ivec_fill') + 2));
+  check('hover ivec_fill: two-argument signature', t3.indexOf('ivec_fill(n, v)') !== -1);
+}
+
+// ===========================================================================
 section('cstar rename: settings, CLI and module fallbacks (legacy until v0.4)');
 {
   const props = (pkg.contributes.configuration || {}).properties || {};

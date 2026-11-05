@@ -154,7 +154,7 @@
     },
     "builtin": {
       "name": "support.function.cstar",
-      "match": "\\b(print|range|len|str|int|float|bool|type|encode|decode|set|collect|input|time|clock|http_post|http_get|url_encode|abs|all|any|ascii|bin|bytes|callable|chr|compile|delattr|dict|dir|divmod|enumerate|eval|exec|filter|format|getattr|globals|hasattr|hash|hex|id|isinstance|iter|list|locals|map|max|min|next|oct|open|ord|pow|repr|reversed|round|setattr|slice|sorted|sum|tuple|vars|zip|breakpoint|classmethod|help|issubclass|memoryview|object|property|staticmethod|super)(?=\\s*\\()"
+      "match": "\\b(print|range|len|str|int|float|bool|type|encode|decode|set|collect|input|time|clock|http_post|http_get|url_encode|fvec_fill|ivec_fill|fvec|ivec|dot|abs|all|any|ascii|bin|bytes|callable|chr|compile|delattr|dict|dir|divmod|enumerate|eval|exec|filter|format|getattr|globals|hasattr|hash|hex|id|isinstance|iter|list|locals|map|max|min|next|oct|open|ord|pow|repr|reversed|round|setattr|slice|sorted|sum|tuple|vars|zip|breakpoint|classmethod|help|issubclass|memoryview|object|property|staticmethod|super)(?=\\s*\\()"
     },
     "function-call": {
       "name": "variable.function.cstar",

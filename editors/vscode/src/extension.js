@@ -67,6 +67,8 @@ const RESERVED = new Set([
   'collect',
   // Post-2C basics (TODO.txt) — new reserved builtins (call-only)
   'input', 'time', 'clock', 'http_post', 'http_get', 'url_encode',
+  // SIMD vector builtins (call-only, no named arguments; src/semantic.cpp)
+  'fvec', 'ivec', 'fvec_fill', 'ivec_fill', 'dot',
   // 0.2.1 — Python-parity builtins (SPEC §5.11.3): 43 implemented entries
   'abs', 'all', 'any', 'ascii', 'bin', 'bytes', 'callable', 'chr',
   'delattr', 'dict', 'dir', 'divmod', 'enumerate', 'filter', 'format',
@@ -231,6 +233,31 @@ const BUILTIN_DOCS = {
   'url_encode': {
     sig: 'url_encode(${1:text})',
     doc: '`url_encode(t)` — percent-encode **text** for a query string / form body: the unreserved characters `A-Z a-z 0-9 - _ . ~` stay literal, every other UTF-8 byte becomes `%XX` (uppercase hex). Wrong type → `TypeError: url_encode() expects text, got <t>`. Call-only and reserved.',
+  },
+
+  // SIMD vectors — fixed-length float64 (`fvec`) / int64 (`ivec`) lanes.
+  // Elementwise `+ - * / %` with the scalar operators' semantics; equal
+  // lengths required (`ValueError: fvec length mismatch`); fvec and ivec
+  // never mix (`TypeError`). Call-only, no named arguments.
+  'fvec': {
+    sig: 'fvec(${1:iterable})',
+    doc: '`fvec(iterable)` — a SIMD **fvec** of float64 lanes from any iterable of numbers (`bool` counts as `0.0`/`1.0`). A non-number element → `TypeError: fvec() elements must be numbers, got <t>`. Elementwise `+ - * / %`, indexing, `v[i] = x`, iteration, `len`, `sum`/`min`/`max`; unhashable; slicing is a `TypeError`. Call-only and reserved.',
+  },
+  'ivec': {
+    sig: 'ivec(${1:iterable})',
+    doc: '`ivec(iterable)` — a SIMD **ivec** of int64 lanes; elements must be `int`/`bool` (`ivec([1.0])` → `TypeError: ivec() elements must be ints, got float`). Integer arithmetic wraps like scalar ints. Call-only and reserved.',
+  },
+  'fvec_fill': {
+    sig: 'fvec_fill(${1:n}, ${2:v})',
+    doc: '`fvec_fill(n, v)` — an **fvec** of `n` copies of the numeric scalar `v` (`n` must be a non-negative `int`). Call-only and reserved.',
+  },
+  'ivec_fill': {
+    sig: 'ivec_fill(${1:n}, ${2:v})',
+    doc: '`ivec_fill(n, v)` — an **ivec** of `n` copies of the `int`/`bool` scalar `v`. Call-only and reserved.',
+  },
+  'dot': {
+    sig: 'dot(${1:a}, ${2:b})',
+    doc: '`dot(a, b)` — inner product as a scalar: `float` for two `fvec`, `int` (wrapping) for two `ivec`. A length or type mismatch raises before any lane is read. Float results may differ in the last bits from a plain loop (vector-lane order / fused multiply-add). Call-only and reserved.',
   },
 
   // -------------------------------------------------------------------------
