@@ -1,4 +1,4 @@
-// parser.h — Pentest M2 Stage 2B recursive-descent parser
+// parser.h — cstar M2 Stage 2B recursive-descent parser
 // (docs/contracts/m2b-semantics.md §3/§6/§7; M2-2A §2, M1 §3 grammar elsewhere).
 #pragma once
 

@@ -1189,7 +1189,7 @@ at compile time:
   empty body). A POST with a `text` body and no caller-supplied
   `Content-Type` sends `Content-Type: application/json`; a caller-supplied
   `Content-Type` suppresses that default. `Accept: application/json` and
-  `User-Agent: jev-pipeline/1.0 (pentest)` are always appended. Runtime type
+  `User-Agent: jev-pipeline/1.0 (cstar)` are always appended. Runtime type
   errors: `http_post() expects text url, got <t>`,
   `http_post() expects text or None body, got <t>`,
   `http_post() expects text or None headers, got <t>`.

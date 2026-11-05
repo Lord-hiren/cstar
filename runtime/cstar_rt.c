@@ -1,4 +1,4 @@
-/* cstar_rt.c — runtime support library for Pentest-generated C11 code.
+/* cstar_rt.c — runtime support library for cstar-generated C11 code.
  *
  * Implements docs/contracts/m1-semantics.md §4 (values/operators/print formatting),
  * §8 (runtime error format) and §10 (runtime API contract), plus the
@@ -4539,7 +4539,7 @@ cs_value cs_builtin_type(cs_value v, int line) {
 }
 
 /* Strict decimal int parse ([+-]?[0-9]+, no whitespace); overflow of the
- * int64 range also counts as invalid (Pentest ints are int64). */
+ * int64 range also counts as invalid (cstar ints are int64). */
 static bool cs_parse_int_text(const char* p, size_t len, int64_t* out) {
   size_t i = 0;
   bool neg = false;
@@ -5951,7 +5951,7 @@ static cs_value cs_repr_value(cs_value v, bool ascii_only, int line) {
 /* ---- open files (SPEC §5.11.5) ---------------------------------------- *
  * Registry of open handles: every CS_FILE links in on open() and leaves
  * on close(); the GC sweep closes whatever a program forgot (Python
- * closes on collection — Pentest closes at collection or exit). The only
+ * closes on collection — cstar closes at collection or exit). The only
  * unconditional footprint is one pointer; the atexit hook installs on the
  * FIRST open, so a program that never opens a file pays nothing. */
 
@@ -8042,7 +8042,7 @@ cs_value cs_builtin_divmod(cs_value a, cs_value b, int line) {
 cs_value cs_builtin_pow(cs_value base, cs_value exp, cs_value mod, int line) {
   cs_no_missing2(base, exp, line);
   if (mod.tag == CS_MISSING) return cs_pow(base, exp, line); /* base ** exp */
-  /* 3-argument modular form: int-only (Pentest's modulo is int-only) */
+  /* 3-argument modular form: int-only (cstar's modulo is int-only) */
   if (base.tag != CS_INT || exp.tag != CS_INT || mod.tag != CS_INT)
     cs_runtime_error_as("TypeError", line,
                         "pow() 3-argument form expects int operands");
@@ -8255,7 +8255,7 @@ cs_value cs_builtin_bytes(cs_value source, cs_value encoding, cs_value errors,
                             "bytes() argument 'errors' must be str, not %s",
                             cs_type_name(errors));
       /* The handler name itself is never consulted (Python looks it up
-       * lazily too — only when an encode actually fails, and Pentest
+       * lazily too — only when an encode actually fails, and cstar
        * strings are validated UTF-8, so that cannot happen here). */
     }
     return cs_builtin_encode(source, line); /* UTF-8 is the identity encode */
@@ -8336,7 +8336,7 @@ cs_value cs_builtin_slice(cs_value start, cs_value stop, cs_value step,
   cs_value t[3];
   (void)line; /* Python 3.14: slice() stores whatever it is given — step
                 * validation happens when the slice is APPLIED, which
-                * Pentest never does (xs[slice_obj] is not wired). */
+                * cstar never does (xs[slice_obj] is not wired). */
   t[0] = (start.tag == CS_MISSING) ? cs_none() : start;
   t[1] = (stop.tag == CS_MISSING) ? cs_none() : stop;
   t[2] = (step.tag == CS_MISSING) ? cs_none() : step;
@@ -8454,7 +8454,7 @@ static struct curl_slist* cs_http_build_headers(cs_value headers,
   if (post_with_body && !have_ct)
     hdrs = curl_slist_append(hdrs, "Content-Type: application/json");
   hdrs = curl_slist_append(hdrs, "Accept: application/json");
-  hdrs = curl_slist_append(hdrs, "User-Agent: jev-pipeline/1.0 (pentest)");
+  hdrs = curl_slist_append(hdrs, "User-Agent: jev-pipeline/1.0 (cstar)");
   return hdrs;
 }
 

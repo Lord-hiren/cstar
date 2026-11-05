@@ -1,4 +1,4 @@
-// lexer.cpp — Pentest M2 Stage 2B lexer (docs/contracts/m2b-semantics.md §1;
+// lexer.cpp — cstar M2 Stage 2B lexer (docs/contracts/m2b-semantics.md §1;
 // M2-2A lexical rules: docs/contracts/m2a-semantics.md §1; M1: docs/contracts/m1-semantics.md §2).
 #include "lexer.h"
 

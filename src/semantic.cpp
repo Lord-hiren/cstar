@@ -1,4 +1,4 @@
-// semantic.cpp — Pentest M2 Stage 2B semantic pass
+// semantic.cpp — cstar M2 Stage 2B semantic pass
 // (docs/contracts/m2b-semantics.md; M1 rules: docs/contracts/m1-semantics.md §6–§7; M2-2A
 // rules: docs/contracts/m2a-semantics.md §7–§8).
 //
@@ -1502,7 +1502,7 @@ class Checker {
     for (const std::string& an : e.arg_names)
       if (!an.empty()) { named = true; break; }
     if (py_builtin_unavailable(n)) {
-      // SPEC §5.11.6: Pentest compiles ahead of time and the runtime never
+      // SPEC §5.11.6: cstar compiles ahead of time and the runtime never
       // compiles source — no embedded parser, no interpreter, no megabyte
       // of compiler in every binary. A dedicated error beats an unknown
       // name so the intent is documented where it happens. This is the

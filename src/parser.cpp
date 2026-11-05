@@ -1,4 +1,4 @@
-// parser.cpp — Pentest M2 Stage 2B recursive-descent parser
+// parser.cpp — cstar M2 Stage 2B recursive-descent parser
 // (docs/contracts/m2b-semantics.md §3/§6/§7; M2-2A §2 and M1 §3 elsewhere;
 // M2-2C §2.1 adds try/except/finally and raise, §3.1/§3.4 add class
 // declarations, attribute reads/assignment and `is`/`is not`).

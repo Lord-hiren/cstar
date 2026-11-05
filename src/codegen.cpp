@@ -1,4 +1,4 @@
-// src/codegen.cpp — Pentest M2 backend: AST → C11 code generator.
+// src/codegen.cpp — cstar M2 backend: AST → C11 code generator.
 //
 // Implements generate_c() (src/codegen.h). Extends the M1 emitter
 // (docs/contracts/m1-semantics.md §10) with everything Stage 2A adds
@@ -53,7 +53,7 @@
 // Call.is_builtin_range are populated, `break`/`continue` are loop-checked
 // and case labels are constants.
 //
-// Generated runtime calls all receive the Pentest source line of their AST
+// Generated runtime calls all receive the cstar source line of their AST
 // node (cs_eq is the M1 total operator and takes no line; cs_guard takes the
 // Var/compound-target line).
 
@@ -579,7 +579,7 @@ std::vector<std::string> bound_slots_text(const FuncDecl& f, const Expr& call,
 // True when evaluating `e` can perform an effect (a guard that can exit, a
 // call, an operator that can raise a runtime error). Used for the inline
 // safety rule: a C call node may have at most one effectful child, because
-// C leaves argument evaluation order unspecified and Pentest requires
+// C leaves argument evaluation order unspecified and cstar requires
 // left-to-right order (M2-2A §4 short-circuiting, M1 §10 line passing).
 bool has_effect(const Expr& e) {
   switch (e.kind) {
@@ -883,7 +883,7 @@ class Emitter {
   long temps_ = 0;      // monotonic for the whole file: names unique per C function
   long ivars_ = 0;      // monotonic for-range induction variable indices
   int indent_ = 0;      // current statement indentation (spaces)
-  int loop_depth_ = 0;  // enclosing Pentest loops (break/continue legality)
+  int loop_depth_ = 0;  // enclosing cstar loops (break/continue legality)
 
   // M2-2C §2.5/§2.6: try-statement bookkeeping for exit edges. Each active
   // try owns a C scope with setjmp landing pads; `break`/`continue`/`return`
@@ -1363,7 +1363,7 @@ class Emitter {
   std::map<const FuncDecl*, std::set<std::string>> noflag_l_;  // locals / fn
 
   // ---- C2 (task-5): try-elision x lane joint monotone fixpoint -------------
-  // A `try` statement whose TRY BODY is proven unable to raise a Pentest
+  // A `try` statement whose TRY BODY is proven unable to raise a cstar
   // exception needs no handler at all: emit_try skips setjmp/cs_try_enter/
   // cs_try_leave (and the whole except-arm pad — dead by construction) when
   // elided_trys_ holds the statement, while try-stack bookkeeping keeps the
@@ -4373,7 +4373,7 @@ void Emitter::analyze_text_cats() {
 //
 // SOUNDNESS ARGUMENT. The dynamic path for `o.m(a…)` evaluates `o`, looks
 // `m` up on the receiver's class, binds (receiver, args) positionally to the
-// method's parameters, and runs the body in a fresh frame. Because Pentest
+// method's parameters, and runs the body in a fresh frame. Because cstar
 // has NO inheritance (`class C(Base):` is a parse error), a receiver that
 // always carries class C dispatches to exactly C's method `m`, and a fresh
 // frame's params/locals are exactly the per-site slots with the receiver
@@ -6099,7 +6099,7 @@ void Emitter::ge_walk_stmts(const std::vector<Stmt>& body,
 //   elided_trys_    tries emitted WITHOUT registration (emit_try's elided
 //                   path: body + normal-path finally copy, no setjmp, no
 //                   except arms — dead by construction);
-//   no_raise_fns_   function bodies proven unable to raise a Pentest
+//   no_raise_fns_   function bodies proven unable to raise a cstar
 //                   exception on any path (rule (c) input: a call to a
 //                   callee outside this set may raise).
 // Rule (a): a try whose BODY can raise re-registers (elided_trys_ erase).
@@ -8438,7 +8438,7 @@ void Emitter::emit_try(const Stmt& s, bool in_function) {
          std::to_string(s.loc.line) + ")");
   if (elided_trys_.count(&s)) {
     // C2: the joint fixpoint (run(): init_try_elision + retract_try_failures)
-    // proved this try's body unable to raise a Pentest exception — under the
+    // proved this try's body unable to raise a cstar exception — under the
     // exact shipped state, stmt_never_raise mirroring the emitter's families
     // — so NO exception can ever land here: emit the body and, when present,
     // the finally copy on the normal path; register nothing, and drop the
@@ -8718,7 +8718,7 @@ void Emitter::emit_switch_from(size_t idx, const Stmt& s, const std::string& scr
 }
 
 // ---- C1: native `switch` lowering for proven-int scrutinees ---------------
-// A `break` in Pentest ALWAYS targets the innermost enclosing LOOP (a switch
+// A `break` in cstar ALWAYS targets the innermost enclosing LOOP (a switch
 // does not count as one, §6.8) — but inside a C `switch` it would break the
 // switch instead. Walk an arm body with `depth` = loops opened *inside* the
 // arm; a Break at depth 0 targets the loop OUTSIDE this switch, so that

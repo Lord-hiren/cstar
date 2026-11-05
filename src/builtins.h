@@ -2,7 +2,7 @@
 //
 // Single source of truth for the NEW Python builtins: semantic uses it to
 // validate arity and named arguments, codegen uses it to bind arguments
-// into the runtime call's fixed slot layout. The 15 original Pentest
+// into the runtime call's fixed slot layout. The 15 original cstar
 // builtins (print/range/len/...) keep their hand-written checks in
 // semantic.cpp — this table never touches them.
 //
@@ -92,7 +92,7 @@ inline const BuiltinSpec* py_builtin_spec(const std::string& n) {
 }
 
 // Recognized names that exist in the language but always fail at runtime —
-// Python concepts with no Pentest equivalent (SPEC §5.11.6). Each raises
+// Python concepts with no cstar equivalent (SPEC §5.11.6). Each raises
 // RuntimeError with its own reason; nothing else about them is checked.
 inline bool py_builtin_stub(const std::string& n) {
   return n == "breakpoint" || n == "classmethod" || n == "help" ||

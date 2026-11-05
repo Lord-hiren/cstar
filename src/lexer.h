@@ -1,4 +1,4 @@
-// lexer.h — Pentest M2 Stage 2B lexer (docs/contracts/m2b-semantics.md §1;
+// lexer.h — cstar M2 Stage 2B lexer (docs/contracts/m2b-semantics.md §1;
 // M2-2A lexical rules: docs/contracts/m2a-semantics.md §1; M1: docs/contracts/m1-semantics.md §2).
 #pragma once
 

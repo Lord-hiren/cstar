@@ -224,11 +224,11 @@ const BUILTIN_DOCS = {
   },
   'http_post': {
     sig: 'http_post(${1:url}, ${2:body})',
-    doc: '`http_post(url, body)` / `http_post(url, body, headers)` — POST `body` (a JSON **text**) to `url`; the optional 3rd argument `headers` is a **text** of one `Name: value` header per line (blank lines skipped; `None` = defaults). Returns the response as **text** of the form `STATUS\\nBODY` (STATUS = numeric HTTP status, BODY = raw response body). A connection/TLS failure before any bytes returns status `0` with BODY = the error message. Default headers: `Content-Type: application/json` (suppressed when a caller header sets Content-Type), `Accept: application/json`, `User-Agent: jev-pipeline/1.0 (pentest)`. Call-only and reserved; backed by libcurl (handle reuse, keep-alive, HTTP/2–3). Reference client library: `extras/AI.pen` (`from AI import jev`).',
+    doc: '`http_post(url, body)` / `http_post(url, body, headers)` — POST `body` (a JSON **text**) to `url`; the optional 3rd argument `headers` is a **text** of one `Name: value` header per line (blank lines skipped; `None` = defaults). Returns the response as **text** of the form `STATUS\\nBODY` (STATUS = numeric HTTP status, BODY = raw response body). A connection/TLS failure before any bytes returns status `0` with BODY = the error message. Default headers: `Content-Type: application/json` (suppressed when a caller header sets Content-Type), `Accept: application/json`, `User-Agent: jev-pipeline/1.0 (cstar)`. Call-only and reserved; backed by libcurl (handle reuse, keep-alive, HTTP/2–3). Reference client library: `extras/AI.pen` (`from AI import jev`).',
   },
   'http_get': {
     sig: 'http_get(${1:url})',
-    doc: '`http_get(url)` / `http_get(url, headers)` — GET `url`; the optional 2nd argument `headers` is a **text** of one `Name: value` header per line (blank lines skipped; `None` = defaults). Returns the response as **text** of the form `STATUS\\nBODY` (STATUS = numeric HTTP status, BODY = raw response body). A connection/TLS failure before any bytes returns status `0` with BODY = the error message. Default headers: `Accept: application/json`, `User-Agent: jev-pipeline/1.0 (pentest)`. Call-only and reserved; backed by libcurl (handle reuse, keep-alive, HTTP/2–3).',
+    doc: '`http_get(url)` / `http_get(url, headers)` — GET `url`; the optional 2nd argument `headers` is a **text** of one `Name: value` header per line (blank lines skipped; `None` = defaults). Returns the response as **text** of the form `STATUS\\nBODY` (STATUS = numeric HTTP status, BODY = raw response body). A connection/TLS failure before any bytes returns status `0` with BODY = the error message. Default headers: `Accept: application/json`, `User-Agent: jev-pipeline/1.0 (cstar)`. Call-only and reserved; backed by libcurl (handle reuse, keep-alive, HTTP/2–3).',
   },
   'url_encode': {
     sig: 'url_encode(${1:text})',
@@ -464,7 +464,7 @@ const BUILTIN_DOCS = {
 
 // ---------------------------------------------------------------------------
 // Stage 2B — method names after `.` (M2-2B §15; the runtime dispatch in
-// runtime/pentest_rt.c is the source of truth). Only names the contract
+// runtime/cstar_rt.c is the source of truth). Only names the contract
 // lists are here; user-class methods arrive in 2C.
 // ---------------------------------------------------------------------------
 

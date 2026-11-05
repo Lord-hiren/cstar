@@ -1,4 +1,4 @@
-// ast.h — Pentest M2 (Stage 2B) abstract syntax tree.
+// ast.h — cstar M2 (Stage 2B) abstract syntax tree.
 // Shared contract: frontend and backend both code against it.
 // Stage 2B extends 2A with: collections (list/map/set/tuple literals), Text/
 // Bytes literals, indexing + slicing, method calls, comma-join, destructuring

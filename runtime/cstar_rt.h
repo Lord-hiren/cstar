@@ -1,6 +1,6 @@
-/* cstar_rt.h — runtime support library for Pentest-generated C11 code.
+/* cstar_rt.h — runtime support library for cstar-generated C11 code.
  *
- * This file is part of the Pentest M1 backend (see docs/contracts/m1-semantics.md §10),
+ * This file is part of the cstar M1 backend (see docs/contracts/m1-semantics.md §10),
  * extended in place for M2 Stage 2A (see docs/contracts/m2a-semantics.md §10) and
  * M2 Stage 2B (see docs/contracts/m2b-semantics.md §13). It is self-contained:
  * generated code only needs
@@ -351,7 +351,7 @@ bool cs_identical(cs_value a, cs_value b, int line);
  * the global/local 'used before assignment' runtime error and exit(1)). */
 
 /* ---- operators (§4) -------------------------------------------------- */
-/* Every op that can fail takes the Pentest source line of its AST node.
+/* Every op that can fail takes the cstar source line of its AST node.
  * Semantics are normative; error messages are normative (§8).
  * int arithmetic wraps (two's complement, defined via uint64_t);
  * int `/` truncates toward zero; `%` is ints only (C sign rules);
@@ -388,12 +388,12 @@ cs_value cs_text_cat2(cs_value a, cs_value b, int line, int may_grow);
 
 /* ---- M2-2A additions (docs/contracts/m2a-semantics.md §3-§6, §10) ------------- */
 /* Same discipline as the M1 operators above: every failing call reports the
- * Pentest source line of its AST node via cs_runtime_error and exits(1);
+ * cstar source line of its AST node via cs_runtime_error and exits(1);
  * int bit arithmetic wraps (uint64_t casts); type errors precede value
  * checks (M1 §8 ordering). */
 
 /* range(start, stop, step) — validates the arguments (all must be int:
- * bool is NOT int in Pentest; offending argument reported left-to-right,
+ * bool is NOT int in cstar; offending argument reported left-to-right,
  * M2-2A §9) and rejects step == 0, then returns the lazy range value.
  * Read start/stop/step directly off the returned value's union payload
  * (fields `start`, `stop`, `step` — see the cs_value declaration above).
@@ -497,7 +497,7 @@ const char* cs_type_name(cs_value v);
 
 /* ---- M2 Stage 2B additions (docs/contracts/m2b-semantics.md §2, §4-§9, §12,
  * §13, §15). Same discipline as above: every failing call reports the
- * Pentest source line of its AST node via cs_runtime_error and exits(1).
+ * cstar source line of its AST node via cs_runtime_error and exits(1).
  * All M1/2A behavior and wording is preserved; the only changes to
  * pre-existing ops are the approved 2B ones (CS_STRING is Text: type name
  * "text", code-point indexing/iteration) and the 2B truthiness/equality/
@@ -1167,7 +1167,7 @@ static inline int64_t cs_nmod(int64_t a, int64_t b, int line) {
 /* Python-parity builtin fast paths (SPEC §5.11.5) — the native-lane
  * forms of abs()/min()/max()/pow() over proven-int operands. Wrapping
  * matches the boxed runtime paths bit-for-bit; a lane `abs(INT64_MIN)`
- * wraps to INT64_MIN (two's-complement, like every other Pentest int
+ * wraps to INT64_MIN (two's-complement, like every other cstar int
  * op), and a negative pow exponent raises cs_pow's ValueError. */
 static inline int64_t cs_nabs(int64_t x) { return x < 0 ? cs_nwrap_neg(x) : x; }
 static inline int64_t cs_nmin(int64_t a, int64_t b) { return a < b ? a : b; }

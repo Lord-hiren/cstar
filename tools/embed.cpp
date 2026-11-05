@@ -1,4 +1,4 @@
-// embed.cpp — build-time code generator for the Pentest toolchain.
+// embed.cpp — build-time code generator for the cstar toolchain.
 //
 // Reads files byte-exactly and emits a C++ header containing them as static
 // byte arrays, using the registry layout consumed by src/main.cpp:

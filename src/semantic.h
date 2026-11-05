@@ -1,4 +1,4 @@
-// semantic.h — Pentest M1 semantic pass (docs/contracts/m1-semantics.md §6–§7).
+// semantic.h — cstar M1 semantic pass (docs/contracts/m1-semantics.md §6–§7).
 // Declaration also lives in frontend.h (shared contract).
 #pragma once
 
