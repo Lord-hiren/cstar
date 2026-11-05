@@ -35,12 +35,12 @@ unlocks the next:
 
 **v0.3 cstar Foundation** (v0.3.0)
 Status: In progress
-Phases: 1 of 4 complete
+Phases: 2 of 4 complete
 
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
 | 1 | Dev environment & repo hygiene | 3/3 | ✅ Complete | 2026-11-04 |
-| 2 | Rename to cstar | 4/5 | In progress | - |
+| 2 | Rename to cstar | 5/5 | ✅ Complete | 2026-11-05 |
 | 3 | Fix known issues | 2 | Not started | - |
 | 4 | Release v0.3.0 | 1 | Not started | - |
 
@@ -90,11 +90,11 @@ VSCode extension and docs.
 - [x] 02-02: Language name in error messages (code + SPEC + tests), test files `.pen` → `.cst` — 2026-11-05
 - [x] 02-03: VSCode extension: `cstar` language id, `.cst`, `cstar.*` settings, grammar scopes, D-7 vector builtins — 2026-11-05
 - [x] 02-04: Internal names (namespace, `pt_` prefixes, runtime files) — 2026-11-05
-- [ ] 02-05: Docs and SPEC wording
+- [x] 02-05: Docs and SPEC wording; SPEC §5.11.9 vector builtins and the 78 count (D-6) — 2026-11-05
 
 ### Phase 3: Fix known issues
 
-**Goal:** The three open known issues are closed, each with a regression test.
+**Goal:** The four open known issues are closed, each with a regression test.
 **Depends on:** Phase 2
 **Research:** Unlikely (#9 may need a design spike)
 
@@ -102,10 +102,11 @@ VSCode extension and docs.
 - #9: text concatenation in a loop is O(n²). It matters for servers, which build a lot of text.
 - #8: a run that can't use the cache leaves its binary in the temp folder
 - #7: `format` zero-padding combined with grouping doesn't regroup
+- #10: `%` on an `fvec` returns wrong values instead of a `TypeError` (found in 02-05; SPEC §5.11.9 has the rule)
 
 **Plans:**
 - [ ] 03-01: In-place text growth (#9)
-- [ ] 03-02: `format` regrouping (#7) and cache-less cleanup (#8)
+- [ ] 03-02: `format` regrouping (#7), cache-less cleanup (#8) and `fvec %` (#10)
 
 ### Phase 4: Release v0.3.0
 
@@ -219,4 +220,4 @@ VSCode extension and docs.
 
 ---
 *Roadmap created: 2026-11-04*
-*Last updated: 2026-11-04*
+*Last updated: 2026-11-05 (Phase 2 complete)*

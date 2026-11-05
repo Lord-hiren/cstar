@@ -11,14 +11,14 @@ source = "https://chrisai.cv/skool"
 [milestone]
 name = "v0.3 cstar Foundation"
 version = "0.3.0"
-status = "complete"
+status = "in_progress"
 phases = 4
 
 [phase]
-number = 2
-name = "Rename to cstar"
-status = "complete"
-plans_completed = 5
+number = 3
+name = "Fix known issues"
+status = "not_started"
+plans_completed = 0
 
 [loop]
 position = "IDLE"
@@ -29,5 +29,5 @@ groom = true
 [stats]
 total_plans = 8
 total_phases = 36
-phases_completed = 1
-last_activity = "2026-11-05T17:52:00Z"
+phases_completed = 2
+last_activity = "2026-11-05T17:53:05Z"

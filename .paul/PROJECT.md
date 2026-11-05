@@ -23,8 +23,8 @@ and Linux, with servers, packages and low-level memory access built in.
 |-----------|-------|
 | Type | Application (programming language + toolchain) |
 | Version | 0.2.1 (`cstar --version`), plus unreleased work in the tree |
-| Status | Working compiler on Linux (and on Windows through WSL); Phase 1 done, rename to cstar next |
-| Last Updated | 2026-11-04 |
+| Status | Working compiler on Linux (and on Windows through WSL); Phases 1–2 done — the project is cstar everywhere; known-issue fixes (Phase 3) next |
+| Last Updated | 2026-11-05 |
 
 ## Requirements
 
@@ -46,14 +46,15 @@ and Linux, with servers, packages and low-level memory access built in.
 - [x] VSCode extension (highlighting, completion, hover, diagnostics, Run) — 0.2.1
 - [x] Build and test from Windows through WSL; LF-only, byte-exact repository; docs that match the code — Phase 1
 - [x] CI workflow for the four gates (warning-free build, tests, smoke test, docs checker) — Phase 1 (not yet run on GitHub)
+- [x] Renamed to cstar everywhere: the `cstar` CLI (`index.cst` default entry, extension-less `build` output, `$CSTAR_PATH`, `~/.cache/cstar`), `.cst` sources, cstar in error messages, the VSCode extension (`cstar-lang.cstar-lang`), internal names (`cstar_rt`, `cs_`), SPEC and all docs; the legacy `pentest` / `.pen` / `.pent` / `$PENTEST_PATH` / `pentest.*` names keep working until v0.4 — Phase 2
+- [x] SPEC specifies all 78 builtins, including the SIMD vectors (§5.11.9) — Phase 2
 
 ### Active (In Progress)
 
-None yet.
+- [ ] v0.3 cstar Foundation — Phases 1–2 done; Phase 3 (known issues #7, #8, #9, #10) and Phase 4 (release v0.3.0) remain
 
 ### Planned (Next)
 
-- [ ] v0.3 cstar Foundation — rename, repo hygiene, known-issue fixes
 - [ ] v0.4 Cross-platform SDK
 - [ ] v0.5 Native Interop
 - [ ] v0.6 Built-in Server & JSON
@@ -104,12 +105,18 @@ None yet.
 | LF line endings everywhere; test expectations stored byte-exact (`-text`) | CRLF broke the harness; autocrlf had silently corrupted a test file | 2026-11-04 | Active |
 | `examples/` stays private; docs use inline programs | Your choice: examples are local scratch | 2026-11-04 | Active |
 | One branch per phase, a commit per task; push only with your approval | The repo is public; main changes only on request | 2026-11-04 | Active |
+| Source extension `.cst`; `index.cst` is the default entry; `build` writes the source name without an extension | Short, distinct names; no more `.pentest` files | 2026-11-05 | Active |
+| Legacy names (`pentest` command, `.pen`/`.pent`, `$PENTEST_PATH`, editor `pentest.*` settings) keep working until v0.4 | The rename never breaks existing scripts or editor setups | 2026-11-05 | Active |
+| Internal names renamed too (`cstar_rt`, `cs_`/`CS_`, `namespace cstar`, `__csm`); historical docs keep the old names with a note | One name for contributors; proven a pure rename by A/B | 2026-11-05 | Active |
+| Editor extension `cstar-lang.cstar-lang`, one language id for `.cst`/`.pen`/`.pent` | Existing editor setups keep working | 2026-11-05 | Active |
+| When writing the SPEC exposes a bug, SPEC states the intended rule and the bug becomes a known issue (e.g. #10, `fvec %`) | Normative docs lead the code | 2026-11-05 | Active |
+| Human-verify checkpoints are automated by Claude where possible (e.g. a real VS Code test instance) | Your preference: evidence over manual steps | 2026-11-05 | Active |
 
 ## Success Metrics
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| Test suite | 100% green on Linux and Windows | 372/372 in a fresh clone (WSL Ubuntu 24.04, 2026-11-04); CI ready, not yet run on GitHub; Windows-native not yet | On track |
+| Test suite | 100% green on Linux and Windows | 376/376, editor 1363/1363, docs 320 links + 53 samples, in a fresh clone (WSL Ubuntu 24.04, 2026-11-05); CI ready, not yet run on GitHub; Windows-native not yet | On track |
 | Loop/printing speed vs C (`-O3 -march=native`) | ≥ 1.0× | 0.96×–1.84× (hpcbench, 2026-10-18) | On track |
 | Object-heavy speed vs C (`ptrlist`) | ≥ 0.8× (proposed) | 0.35× | At risk |
 | Install → first program | One installer, no separate compiler | Needs clang + make on Linux | Not started |
@@ -135,4 +142,4 @@ None yet.
 
 ---
 *PROJECT.md — Updated when requirements or context change*
-*Last updated: 2026-11-04 after Phase 1*
+*Last updated: 2026-11-05 after Phase 2*
