@@ -16,21 +16,21 @@ See: .paul/PROJECT.md (updated 2026-11-04 after Phase 1)
 ## Current Position
 
 Milestone: v0.3 cstar Foundation (v0.3.0)
-Phase: 2 of 4 (Rename to cstar) — Planning
-Plan: 02-04 created, awaiting approval
-Status: PLAN created, ready for APPLY
-Last activity: 2026-11-05 — Created .paul/phases/02-rename-to-cstar/02-04-PLAN.md
+Phase: 2 of 4 (Rename to cstar) — In Progress
+Plan: 02-04 complete
+Status: Ready for next PLAN (02-05, last of Phase 2)
+Last activity: 2026-11-05 — Unified 02-04 (internal names → cstar, proven by A/B; D-8 closed)
 
 Progress:
-- Milestone: [█████░░░░░] 55% (6 of 11 plans; 1 of 4 phases)
-- Phase 2: [██████░░░░] 60% (3 of 5 plans)
+- Milestone: [██████░░░░] 64% (7 of 11 plans; 1 of 4 phases)
+- Phase 2: [████████░░] 80% (4 of 5 plans)
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ○        ○     [Plan 02-04 created, awaiting approval]
+  ✓        ✓        ✓     [Loop complete - ready for next PLAN]
 ```
 
 ## Accumulated Context
@@ -49,6 +49,7 @@ PLAN ──▶ APPLY ──▶ UNIFY
 | 2026-11-05: rename internals too (C++ namespace, `pt_` prefixes, `pentest_rt.*`) | Phase 2 | Own plan (02-04); Phase 2 has 5 plans |
 | 2026-11-05: editor extension is `cstar-lang.cstar-lang`, one language id `cstar` for `.cst`/`.pen`/`.pent`; `pentest.*` settings and command ids honoured until v0.4 | Phase 2 | Existing editor setups keep working |
 | 2026-11-05: human-verify checkpoints are automated by Claude where possible (e.g. a real VS Code test instance) | Phase 2 | Fewer manual steps for you |
+| 2026-11-05: internal names are `cstar_rt.{h,c}`, `cs_`/`CS_`, `namespace cstar`, `__csm<id>_` (historical docs keep old names + a note) | Phase 2 | New runtime code (Phase 3) uses these names |
 
 Full decision log: PROJECT.md → Key Decisions.
 
@@ -57,7 +58,6 @@ Full decision log: PROJECT.md → Key Decisions.
 | Issue | Origin | Effort | Revisit |
 |-------|--------|--------|---------|
 | D-6: SPEC lacks `fvec`/`ivec`/`fvec_fill`/`ivec_fill`/`dot`; says "seventy" (code has 78) | 01-02 | M | With 02-05 (docs/SPEC) or its own plan |
-| D-8: docs/history headers say "current suite is 368 checks" | 01-02 | S | When the rename touches history docs |
 | D-9: CI not yet run on GitHub (branch not pushed); GitHub `main` still has the broken `file_line_edges.out` | 01-03 | S | Whenever you approve a push |
 | D-10: keep the real-VS-Code end-to-end test (45 checks) in the repo as a local-only check | 02-03 | S | Optional; any editor plan |
 | D-11: tools/hpcbench still uses `.pen` workloads and `build/pentest` (both work until v0.4) | 02-04 planning | S | Before the v0.4 legacy removal |
@@ -69,7 +69,7 @@ None.
 
 ### Git State
 
-Last commit: e701ee9 docs(02-03): install script, README and editor guide (+ plan metadata commit)
+Last commit: bf5cf75 docs(02-04): references use the cstar internal names (+ plan metadata commit)
 Branch: phase-2-rename (from phase-1-dev-environment; local only)
 main: 6c82d72 (local and remote, unchanged)
 Feature branches merged: none (merge into main and push only when you ask)
@@ -77,9 +77,9 @@ Feature branches merged: none (merge into main and push only when you ask)
 ## Session Continuity
 
 Last session: 2026-11-05
-Stopped at: Plan 02-04 created
-Next action: Review and approve plan, then run /paul:apply .paul/phases/02-rename-to-cstar/02-04-PLAN.md
-Resume file: .paul/phases/02-rename-to-cstar/02-04-PLAN.md
+Stopped at: Plan 02-04 unified
+Next action: /paul:plan for 02-05 (docs and SPEC wording, D-6, the 02-04 handoff list); it completes Phase 2
+Resume file: .paul/phases/02-rename-to-cstar/02-04-SUMMARY.md
 
 ---
 *STATE.md — Updated after every significant action*

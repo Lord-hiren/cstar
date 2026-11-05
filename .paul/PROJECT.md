@@ -22,7 +22,7 @@ and Linux, with servers, packages and low-level memory access built in.
 | Attribute | Value |
 |-----------|-------|
 | Type | Application (programming language + toolchain) |
-| Version | 0.2.1 (`pentest --version`), plus unreleased work in the tree |
+| Version | 0.2.1 (`cstar --version`), plus unreleased work in the tree |
 | Status | Working compiler on Linux (and on Windows through WSL); Phase 1 done, rename to cstar next |
 | Last Updated | 2026-11-04 |
 
@@ -121,7 +121,7 @@ None yet.
 |-------|------------|-------|
 | Compiler | C++17 (`src/`), built with clang++ | lexer → parser → modules → semantic → codegen |
 | Backend | One C11 file compiled by `clang -O3 -march=native` | No IR; speed decisions made where C is emitted |
-| Runtime | C11 (`runtime/pentest_rt.{h,c}`) | Embedded in the compiler; libc + libm + libcurl |
+| Runtime | C11 (`runtime/cstar_rt.{h,c}`) | Embedded in the compiler; libc + libm + libcurl |
 | Memory | Non-moving mark & sweep GC | Shadow-stack roots |
 | Editor | VSCode extension (JavaScript) | `editors/vscode/` |
 | Tests | Bash harness, Node smoke test, Python docs checker | `make test` is the gate |
