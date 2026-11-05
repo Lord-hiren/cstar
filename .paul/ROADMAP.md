@@ -40,7 +40,7 @@ Phases: 1 of 4 complete
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
 | 1 | Dev environment & repo hygiene | 3/3 | ✅ Complete | 2026-11-04 |
-| 2 | Rename to cstar | 2/5 | In progress | - |
+| 2 | Rename to cstar | 3/5 | In progress | - |
 | 3 | Fix known issues | 2 | Not started | - |
 | 4 | Release v0.3.0 | 1 | Not started | - |
 
