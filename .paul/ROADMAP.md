@@ -40,7 +40,7 @@ Phases: 1 of 4 complete
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
 | 1 | Dev environment & repo hygiene | 3/3 | ✅ Complete | 2026-11-04 |
-| 2 | Rename to cstar | 4 | Planning | - |
+| 2 | Rename to cstar | 1/4 | In progress | - |
 | 3 | Fix known issues | 2 | Not started | - |
 | 4 | Release v0.3.0 | 1 | Not started | - |
 
@@ -86,7 +86,7 @@ VSCode extension and docs.
 - Docs, SPEC, README, CHANGELOG (SPEC section numbers unchanged)
 
 **Plans:**
-- [ ] 02-01: `cstar` CLI — binary + alias, `.cst`, `index.cst`, output naming, `CSTAR_PATH`, cache; harness, CI, SPEC CLI sections
+- [x] 02-01: `cstar` CLI — binary + alias, `.cst`, `index.cst`, output naming, `CSTAR_PATH`, cache; harness, CI, SPEC CLI sections — 2026-11-05
 - [ ] 02-02: Language name in messages, test files → `.cst`, editor extension
 - [ ] 02-03: Internal names (namespace, `pt_` prefixes, runtime files)
 - [ ] 02-04: Docs and SPEC wording
