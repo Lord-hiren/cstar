@@ -16,10 +16,10 @@ See: .paul/PROJECT.md (updated 2026-11-04 after Phase 1)
 ## Current Position
 
 Milestone: v0.3 cstar Foundation (v0.3.0)
-Phase: 2 of 4 (Rename to cstar) — In Progress
-Plan: 02-04 complete
-Status: Ready for next PLAN (02-05, last of Phase 2)
-Last activity: 2026-11-05 — Unified 02-04 (internal names → cstar, proven by A/B; D-8 closed)
+Phase: 2 of 4 (Rename to cstar) — Planning
+Plan: 02-05 created, awaiting approval
+Status: PLAN created, ready for APPLY
+Last activity: 2026-11-05 — Created .paul/phases/02-rename-to-cstar/02-05-PLAN.md
 
 Progress:
 - Milestone: [██████░░░░] 64% (7 of 11 plans; 1 of 4 phases)
@@ -30,7 +30,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Loop complete - ready for next PLAN]
+  ✓        ○        ○     [Plan 02-05 created, awaiting approval]
 ```
 
 ## Accumulated Context
@@ -60,7 +60,7 @@ Full decision log: PROJECT.md → Key Decisions.
 | D-6: SPEC lacks `fvec`/`ivec`/`fvec_fill`/`ivec_fill`/`dot`; says "seventy" (code has 78) | 01-02 | M | With 02-05 (docs/SPEC) or its own plan |
 | D-9: CI not yet run on GitHub (branch not pushed); GitHub `main` still has the broken `file_line_edges.out` | 01-03 | S | Whenever you approve a push |
 | D-10: keep the real-VS-Code end-to-end test (45 checks) in the repo as a local-only check | 02-03 | S | Optional; any editor plan |
-| D-11: tools/hpcbench still uses `.pen` workloads and `build/pentest` (both work until v0.4) | 02-04 planning | S | Before the v0.4 legacy removal |
+| D-11: benchmark tooling (tools/hpcbench, bench/ runners, generators and workloads) still uses `.pen` and `build/pentest` (both work until v0.4) | 02-04/02-05 planning | S | Before the v0.4 legacy removal |
 | Auto-GPU float policy; memory-access scope; "freely code in app" meaning | Init | S | v0.8 / v0.5 / v0.4 planning |
 
 ### Blockers/Concerns
@@ -77,9 +77,9 @@ Feature branches merged: none (merge into main and push only when you ask)
 ## Session Continuity
 
 Last session: 2026-11-05
-Stopped at: Plan 02-04 unified
-Next action: /paul:plan for 02-05 (docs and SPEC wording, D-6, the 02-04 handoff list); it completes Phase 2
-Resume file: .paul/phases/02-rename-to-cstar/02-04-SUMMARY.md
+Stopped at: Plan 02-05 created
+Next action: Review and approve plan, then run /paul:apply .paul/phases/02-rename-to-cstar/02-05-PLAN.md
+Resume file: .paul/phases/02-rename-to-cstar/02-05-PLAN.md
 
 ---
 *STATE.md — Updated after every significant action*
