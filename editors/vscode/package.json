@@ -1,12 +1,12 @@
 {
-  "name": "pentest-lang",
-  "displayName": "Pentest Language",
-  "description": "Syntax highlighting, snippets, autocomplete, and live error diagnostics for the Pentest programming language (.pen / .pent)",
+  "name": "cstar-lang",
+  "displayName": "cstar Language",
+  "description": "Syntax highlighting, snippets, autocomplete, and live error diagnostics for the cstar programming language (.cst; legacy .pen / .pent until v0.4)",
   "version": "0.2.1",
-  "publisher": "pentest-lang",
+  "publisher": "cstar-lang",
   "license": "MIT",
   "keywords": [
-    "pentest",
+    "cstar",
     "control flow",
     "syntax highlighting",
     "autocomplete",
@@ -25,18 +25,18 @@
     "Snippets"
   ],
   "activationEvents": [
-    "onLanguage:pentest"
+    "onLanguage:cstar"
   ],
   "main": "./src/extension.js",
   "contributes": {
     "languages": [
       {
-        "id": "pentest",
+        "id": "cstar",
         "aliases": [
-          "Pentest",
-          "pentest"
+          "cstar"
         ],
         "extensions": [
+          ".cst",
           ".pen",
           ".pent"
         ],
@@ -45,49 +45,49 @@
     ],
     "grammars": [
       {
-        "language": "pentest",
-        "scopeName": "source.pentest",
-        "path": "./syntaxes/pentest.tmLanguage.json"
+        "language": "cstar",
+        "scopeName": "source.cstar",
+        "path": "./syntaxes/cstar.tmLanguage.json"
       }
     ],
     "snippets": [
       {
-        "language": "pentest",
-        "path": "./snippets/pentest.json"
+        "language": "cstar",
+        "path": "./snippets/cstar.json"
       }
     ],
     "commands": [
       {
-        "command": "pentest.run",
+        "command": "cstar.run",
         "title": "Run File",
-        "category": "Pentest",
+        "category": "cstar",
         "icon": "$(play)"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "pentest.run",
-          "when": "resourceLangId == pentest",
+          "command": "cstar.run",
+          "when": "resourceLangId == cstar",
           "group": "navigation@1"
         }
       ],
       "editor/context": [
         {
-          "command": "pentest.run",
-          "when": "resourceLangId == pentest",
-          "group": "pentest@1"
+          "command": "cstar.run",
+          "when": "resourceLangId == cstar",
+          "group": "cstar@1"
         }
       ],
       "commandPalette": [
         {
-          "command": "pentest.run",
-          "when": "editorLangId == pentest || resourceLangId == pentest"
+          "command": "cstar.run",
+          "when": "editorLangId == cstar || resourceLangId == cstar"
         }
       ]
     },
     "configurationDefaults": {
-      "[pentest]": {
+      "[cstar]": {
         "editor.tabSize": 4,
         "editor.insertSpaces": true,
         "editor.tabCompletion": "on",
@@ -101,26 +101,48 @@
       }
     },
     "configuration": {
-      "title": "Pentest",
+      "title": "cstar",
       "properties": {
+        "cstar.executable": {
+          "type": "string",
+          "default": "cstar",
+          "scope": "machine",
+          "description": "Path to the cstar CLI used for live diagnostics and Run. The default 'cstar' searches PATH, ~/.local/bin, and common install locations, then falls back to the legacy 'pentest' command."
+        },
+        "cstar.diagnostics": {
+          "type": "boolean",
+          "default": true,
+          "scope": "resource",
+          "description": "Show syntax and semantic errors while typing. Runs 'cstar check' only — code is never compiled or executed."
+        },
+        "cstar.diagnosticsDelay": {
+          "type": "number",
+          "default": 400,
+          "minimum": 0,
+          "scope": "resource",
+          "description": "Milliseconds to wait after typing before re-checking the document."
+        },
         "pentest.executable": {
           "type": "string",
-          "default": "pentest",
+          "default": "cstar",
           "scope": "machine",
-          "description": "Path to the pentest CLI used for live diagnostics. The default 'pentest' searches PATH, ~/.local/bin, and common install locations automatically."
+          "deprecationMessage": "Renamed to 'cstar.executable' (still read until v0.4 when cstar.executable is not set).",
+          "description": "Legacy name of cstar.executable."
         },
         "pentest.diagnostics": {
           "type": "boolean",
           "default": true,
           "scope": "resource",
-          "description": "Show syntax and semantic errors while typing. Runs 'pentest check' only — code is never compiled or executed."
+          "deprecationMessage": "Renamed to 'cstar.diagnostics' (still read until v0.4 when cstar.diagnostics is not set).",
+          "description": "Legacy name of cstar.diagnostics."
         },
         "pentest.diagnosticsDelay": {
           "type": "number",
           "default": 400,
           "minimum": 0,
           "scope": "resource",
-          "description": "Milliseconds to wait after typing before re-checking the document."
+          "deprecationMessage": "Renamed to 'cstar.diagnosticsDelay' (still read until v0.4 when cstar.diagnosticsDelay is not set).",
+          "description": "Legacy name of cstar.diagnosticsDelay."
         }
       }
     }

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-/* Smoke checks for the Pentest VSCode extension.
+/* Smoke checks for the cstar VSCode extension.
  *
  * Node-only: no network, no dependencies beyond the repo itself.
  *
@@ -39,8 +39,8 @@ const readJson = (p) => JSON.parse(fs.readFileSync(path.join(EXT_ROOT, p), 'utf8
 const readText = (p) => fs.readFileSync(path.join(EXT_ROOT, p), 'utf8');
 const fileExists = (p) => fs.existsSync(path.join(EXT_ROOT, p));
 
-const grammar = readJson('syntaxes/pentest.tmLanguage.json');
-const snippets = readJson('snippets/pentest.json');
+const grammar = readJson('syntaxes/cstar.tmLanguage.json');
+const snippets = readJson('snippets/cstar.json');
 const pkg = readJson('package.json');
 const langCfg = readJson('language-configuration.json');
 const extSrc = readText('src/extension.js');
@@ -329,7 +329,7 @@ function makeDoc(text) {
   const lines = text.split('\n');
   const isWord = (c) => !!c && /[A-Za-z0-9_]/.test(c);
   return {
-    languageId: 'pentest',
+    languageId: 'cstar',
     isClosed: false,
     version: 1,
     lineCount: lines.length,
@@ -392,8 +392,8 @@ const snippetText = (item) => (item.insertText && item.insertText.value ? item.i
 // ---------------------------------------------------------------------------
 section('grammar structure');
 
-check('grammar has scopeName source.pentest', grammar.scopeName === 'source.pentest');
-check('grammar name is Pentest', grammar.name === 'Pentest');
+check('grammar has scopeName source.cstar', grammar.scopeName === 'source.cstar');
+check('grammar name is cstar', grammar.name === 'cstar');
 const ROOT_INCLUDES = [
   'comments', 'strings', 'numbers', 'function-definition', 'main-block',
   'assignment', 'keywords', 'keywords-control', 'keywords-other',
@@ -424,7 +424,7 @@ const CONSTANTS = ['True', 'False', 'None'];
 
 for (const w of M1_KEYWORDS) {
   check(`keywords rule matches ${w}`, ruleMatches('keywords', w));
-  check(`${w} tokenizes as keyword.control`, anyScope(tokenize(w), 'keyword.control.pentest'));
+  check(`${w} tokenizes as keyword.control`, anyScope(tokenize(w), 'keyword.control.cstar'));
 }
 for (const w of A2_KEYWORDS) {
   const inControl = ruleMatches('keywords-control', w);
@@ -433,19 +433,19 @@ for (const w of A2_KEYWORDS) {
   const toks = tokenize(w);
   check(
     `${w} tokenizes as keyword.*`,
-    anyScope(toks, 'keyword.control.pentest') || anyScope(toks, 'keyword.other.pentest')
+    anyScope(toks, 'keyword.control.cstar') || anyScope(toks, 'keyword.other.cstar')
   );
 }
 for (const w of CONSTANTS) {
   check(`constants rule matches ${w}`, ruleMatches('constants', w));
-  check(`${w} tokenizes as constant.language`, anyScope(tokenize(w), 'constant.language.pentest'));
+  check(`${w} tokenizes as constant.language`, anyScope(tokenize(w), 'constant.language.cstar'));
 }
-check('keywords scope is keyword.control.pentest',
-  grammar.repository.keywords.name === 'keyword.control.pentest');
-check('keywords-control scope is keyword.control.pentest',
-  grammar.repository['keywords-control'].name === 'keyword.control.pentest');
-check('keywords-other scope is keyword.other.pentest',
-  grammar.repository['keywords-other'].name === 'keyword.other.pentest');
+check('keywords scope is keyword.control.cstar',
+  grammar.repository.keywords.name === 'keyword.control.cstar');
+check('keywords-control scope is keyword.control.cstar',
+  grammar.repository['keywords-control'].name === 'keyword.control.cstar');
+check('keywords-other scope is keyword.other.cstar',
+  grammar.repository['keywords-other'].name === 'keyword.other.cstar');
 check('word boundary: iffy not a keyword', !ruleMatches('keywords-control', 'iffy'));
 check('word boundary: returning not a keyword', !ruleMatches('keywords', 'returning'));
 
@@ -453,8 +453,8 @@ check('word boundary: returning not a keyword', !ruleMatches('keywords', 'return
 section('operators (2A surface)');
 
 const OPERATOR_SRC = grammar.repository.operators.match;
-check('operators scope is keyword.operator.pentest',
-  grammar.repository.operators.name === 'keyword.operator.pentest');
+check('operators scope is keyword.operator.cstar',
+  grammar.repository.operators.name === 'keyword.operator.cstar');
 const OPERATORS = [
   '==', '!=', '<=', '>=', '**', '<<', '>>',
   '+=', '-=', '*=', '/=', '%=', '&=', '|=', '^=', '**=', '<<=', '>>=',
@@ -466,17 +466,17 @@ for (const op of OPERATORS) {
 for (const op of ['+', '-=', '**=']) {
   const toks = tokenize('a ' + op + ' b');
   const opTok = toks.find((t) => t.t === op);
-  check(`tokenize: ${op} gets operator scope`, hasScope(opTok, 'keyword.operator.pentest'));
+  check(`tokenize: ${op} gets operator scope`, hasScope(opTok, 'keyword.operator.cstar'));
 }
 check('operators rule does not match -> (retired)', !new RegExp('^(?:' + OPERATOR_SRC + ')$').test('->'));
 check('retired-arrow rule exists', !!grammar.repository['retired-arrow']);
 check('retired-arrow scope is invalid.illegal',
-  grammar.repository['retired-arrow'].name === 'invalid.illegal.retired.pentest');
+  grammar.repository['retired-arrow'].name === 'invalid.illegal.retired.cstar');
 {
   const toks = tokenize('a -> b');
   const arrow = toks.find((t) => t.t === '->');
   check('tokenize: -> gets invalid.illegal scope',
-    !!arrow && hasScope(arrow, 'invalid.illegal.retired.pentest'));
+    !!arrow && hasScope(arrow, 'invalid.illegal.retired.cstar'));
 }
 
 // ---------------------------------------------------------------------------
@@ -484,17 +484,17 @@ section('literals, comments, calls');
 
 check('numbers rule matches int', ruleMatches('numbers', '42'));
 check('numbers rule matches float', ruleMatches('numbers', '3.14'));
-check('numbers rule scope', grammar.repository.numbers.name === 'constant.numeric.pentest');
+check('numbers rule scope', grammar.repository.numbers.name === 'constant.numeric.cstar');
 check('builtin rule matches print()', ruleMatches('builtin', 'print()'));
 check('builtin rule matches range()', ruleMatches('builtin', 'range()'));
 check('builtin rule: bare print not builtin', !ruleMatches('builtin', 'print'));
 check('builtin rule: printx(not builtin)', !ruleMatches('builtin', 'printx()'));
-check('builtin scope is support.function.pentest',
-  grammar.repository.builtin.name === 'support.function.pentest');
+check('builtin scope is support.function.cstar',
+  grammar.repository.builtin.name === 'support.function.cstar');
 check('function-call matches foo()', ruleMatches('function-call', 'foo()'));
 check('function-call does not match bare foo', !ruleMatches('function-call', 'foo'));
-check('function-call scope is variable.function.pentest',
-  grammar.repository['function-call'].name === 'variable.function.pentest');
+check('function-call scope is variable.function.cstar',
+  grammar.repository['function-call'].name === 'variable.function.cstar');
 
 const fnDef = new RegExp(grammar.repository['function-definition'].match, 'd');
 const fnM = fnDef.exec('add(a):');
@@ -506,26 +506,26 @@ check('function-definition rejects a call statement `greet(x)`', !fnDef.exec('gr
 check('function-definition does not match `else:`', !fnDef.exec('else:'));
 check('function-definition does not match `if x:`', !fnDef.exec('if x:'));
 check('function-definition name capture scope',
-  grammar.repository['function-definition'].captures['2'].name === 'entity.name.function.pentest');
+  grammar.repository['function-definition'].captures['2'].name === 'entity.name.function.cstar');
 
 const mainM = new RegExp(grammar.repository['main-block'].match, 'd').exec('main:');
 check('main-block matches main:', !!mainM && mainM[2] === 'main');
 
-check('string scope is string.quoted.double.pentest',
-  grammar.repository.strings.name === 'string.quoted.double.pentest');
+check('string scope is string.quoted.double.cstar',
+  grammar.repository.strings.name === 'string.quoted.double.cstar');
 check('string escape rule present',
-  (grammar.repository.strings.patterns || []).some((p) => p.name === 'constant.character.escape.pentest'));
+  (grammar.repository.strings.patterns || []).some((p) => p.name === 'constant.character.escape.cstar'));
 const commentNames = grammar.repository.comments.patterns.map((p) => p.name);
-check('# line comment scoped', commentNames.indexOf('comment.line.number-sign.pentest') !== -1);
-check('// line comment scoped', commentNames.indexOf('comment.line.double-slash.pentest') !== -1);
-check('/* */ block comment scoped', commentNames.indexOf('comment.block.pentest') !== -1);
+check('# line comment scoped', commentNames.indexOf('comment.line.number-sign.cstar') !== -1);
+check('// line comment scoped', commentNames.indexOf('comment.line.double-slash.cstar') !== -1);
+check('/* */ block comment scoped', commentNames.indexOf('comment.block.cstar') !== -1);
 
 const asg = new RegExp(grammar.repository.assignment.match, 'd');
 let am = asg.exec('x = 1');
 check('assignment matches `x = 1`', !!am);
 check('assignment captures target x', am && am[2] === 'x');
-check('assignment target scope is variable.other.readwrite.pentest',
-  grammar.repository.assignment.captures['2'].name === 'variable.other.readwrite.pentest');
+check('assignment target scope is variable.other.readwrite.cstar',
+  grammar.repository.assignment.captures['2'].name === 'variable.other.readwrite.cstar');
 check('assignment does not match `x == 1`', !asg.test('x == 1'));
 const AUGOPS = ['+', '-', '*', '/', '%', '**', '&', '|', '^', '<<', '>>'];
 for (const op of AUGOPS) {
@@ -537,92 +537,92 @@ section('grammar behavior (tokenizer)');
 
 {
   const t = tokenize('x = 1');
-  check('`x = 1`: x is assignment target', hasScope(t.find((k) => k.t === 'x'), 'variable.other.readwrite.pentest'));
-  check('`x = 1`: = is operator', hasScope(t.find((k) => k.t === '='), 'keyword.operator.pentest'));
-  check('`x = 1`: 1 is number', hasScope(t.find((k) => k.t === '1'), 'constant.numeric.pentest'));
+  check('`x = 1`: x is assignment target', hasScope(t.find((k) => k.t === 'x'), 'variable.other.readwrite.cstar'));
+  check('`x = 1`: = is operator', hasScope(t.find((k) => k.t === '='), 'keyword.operator.cstar'));
+  check('`x = 1`: 1 is number', hasScope(t.find((k) => k.t === '1'), 'constant.numeric.cstar'));
 }
 {
   const t = tokenize('x += 1');
-  check('`x += 1`: target scoped', hasScope(t.find((k) => k.t === 'x'), 'variable.other.readwrite.pentest'));
-  check('`x += 1`: += operator scoped', hasScope(t.find((k) => k.t === '+='), 'keyword.operator.pentest'));
+  check('`x += 1`: target scoped', hasScope(t.find((k) => k.t === 'x'), 'variable.other.readwrite.cstar'));
+  check('`x += 1`: += operator scoped', hasScope(t.find((k) => k.t === '+='), 'keyword.operator.cstar'));
 }
 {
   const t = tokenize('if x > 0:');
-  check('`if x > 0:`: if keyword', hasScope(t.find((k) => k.t === 'if'), 'keyword.control.pentest'));
-  check('`if x > 0:`: colon punctuation', hasScope(t.find((k) => k.t === ':'), 'punctuation.pentest'));
-  check('`if x > 0:`: > operator', hasScope(t.find((k) => k.t === '>'), 'keyword.operator.pentest'));
+  check('`if x > 0:`: if keyword', hasScope(t.find((k) => k.t === 'if'), 'keyword.control.cstar'));
+  check('`if x > 0:`: colon punctuation', hasScope(t.find((k) => k.t === ':'), 'punctuation.cstar'));
+  check('`if x > 0:`: > operator', hasScope(t.find((k) => k.t === '>'), 'keyword.operator.cstar'));
 }
 {
   const t = tokenize('add(a):');
-  check('declaration: add entity.name.function', hasScope(t.find((k) => k.t === 'add'), 'entity.name.function.pentest'));
-  check('declaration: open paren punctuation', hasScope(t.find((k) => k.t === '('), 'punctuation.pentest'));
-  check('declaration: colon punctuation', hasScope(t.find((k) => k.t === ':'), 'punctuation.pentest'));
+  check('declaration: add entity.name.function', hasScope(t.find((k) => k.t === 'add'), 'entity.name.function.cstar'));
+  check('declaration: open paren punctuation', hasScope(t.find((k) => k.t === '('), 'punctuation.cstar'));
+  check('declaration: colon punctuation', hasScope(t.find((k) => k.t === ':'), 'punctuation.cstar'));
 }
 {
   const t = tokenize('main:');
-  check('main: entity.name.function', hasScope(t.find((k) => k.t === 'main'), 'entity.name.function.pentest'));
+  check('main: entity.name.function', hasScope(t.find((k) => k.t === 'main'), 'entity.name.function.cstar'));
 }
 {
   const t = tokenize('for i in range(3):');
-  check('for header: for keyword', hasScope(t.find((k) => k.t === 'for'), 'keyword.control.pentest'));
-  check('for header: in keyword', hasScope(t.find((k) => k.t === 'in'), 'keyword.other.pentest'));
-  check('for header: call paren punctuation', hasScope(t.find((k) => k.t === '('), 'punctuation.pentest'));
-  check('for header: range builtin', hasScope(t.find((k) => k.t === 'range'), 'support.function.pentest'));
-  check('for header: colon punctuation', hasScope(t.find((k) => k.t === ':'), 'punctuation.pentest'));
+  check('for header: for keyword', hasScope(t.find((k) => k.t === 'for'), 'keyword.control.cstar'));
+  check('for header: in keyword', hasScope(t.find((k) => k.t === 'in'), 'keyword.other.cstar'));
+  check('for header: call paren punctuation', hasScope(t.find((k) => k.t === '('), 'punctuation.cstar'));
+  check('for header: range builtin', hasScope(t.find((k) => k.t === 'range'), 'support.function.cstar'));
+  check('for header: colon punctuation', hasScope(t.find((k) => k.t === ':'), 'punctuation.cstar'));
 }
 {
   const t = tokenize('switch v:');
-  check('switch header keyword', hasScope(t.find((k) => k.t === 'switch'), 'keyword.control.pentest'));
+  check('switch header keyword', hasScope(t.find((k) => k.t === 'switch'), 'keyword.control.cstar'));
   const c = tokenize('case 1:');
-  check('case label keyword', hasScope(c.find((k) => k.t === 'case'), 'keyword.control.pentest'));
-  check('case label number', hasScope(c.find((k) => k.t === '1'), 'constant.numeric.pentest'));
-  check('case colon punctuation', hasScope(c.find((k) => k.t === ':'), 'punctuation.pentest'));
+  check('case label keyword', hasScope(c.find((k) => k.t === 'case'), 'keyword.control.cstar'));
+  check('case label number', hasScope(c.find((k) => k.t === '1'), 'constant.numeric.cstar'));
+  check('case colon punctuation', hasScope(c.find((k) => k.t === ':'), 'punctuation.cstar'));
 }
 {
   const t = tokenize('print("hi")');
-  check('call: print builtin', hasScope(t.find((k) => k.t === 'print'), 'support.function.pentest'));
-  check('call: string token', hasScope(t.find((k) => k.t === '"hi"'), 'string.quoted.double.pentest'));
-  check('call: open paren punctuation', hasScope(t.find((k) => k.t === '('), 'punctuation.pentest'));
+  check('call: print builtin', hasScope(t.find((k) => k.t === 'print'), 'support.function.cstar'));
+  check('call: string token', hasScope(t.find((k) => k.t === '"hi"'), 'string.quoted.double.cstar'));
+  check('call: open paren punctuation', hasScope(t.find((k) => k.t === '('), 'punctuation.cstar'));
 }
 {
   const t = tokenize('s = "it\'s"');
   check('string with apostrophe stays one token',
-    hasScope(t.find((k) => k.t === '"it\'s"'), 'string.quoted.double.pentest'));
+    hasScope(t.find((k) => k.t === '"it\'s"'), 'string.quoted.double.cstar'));
 }
 {
   const t = tokenize('# comment if x');
-  check('# comment token covers line', hasScope(t.find((k) => k.t === '# comment if x'), 'comment.line.number-sign.pentest'));
-  check('# comment hides keyword if', !anyScope(t.filter((k) => k.t === 'if'), 'keyword.control.pentest'));
+  check('# comment token covers line', hasScope(t.find((k) => k.t === '# comment if x'), 'comment.line.number-sign.cstar'));
+  check('# comment hides keyword if', !anyScope(t.filter((k) => k.t === 'if'), 'keyword.control.cstar'));
 }
 {
   const t = tokenize('// note while y');
-  check('// comment token covers line', hasScope(t.find((k) => k.t === '// note while y'), 'comment.line.double-slash.pentest'));
+  check('// comment token covers line', hasScope(t.find((k) => k.t === '// note while y'), 'comment.line.double-slash.cstar'));
 }
 {
   const t = tokenize('x = True');
-  check('True constant scoped', hasScope(t.find((k) => k.t === 'True'), 'constant.language.pentest'));
+  check('True constant scoped', hasScope(t.find((k) => k.t === 'True'), 'constant.language.cstar'));
 }
 {
   const t = tokenize('a and b');
-  check('and keyword.other scoped', hasScope(t.find((k) => k.t === 'and'), 'keyword.other.pentest'));
+  check('and keyword.other scoped', hasScope(t.find((k) => k.t === 'and'), 'keyword.other.cstar'));
 }
 {
   const t = tokenize('return x');
-  check('return keyword scoped', hasScope(t.find((k) => k.t === 'return'), 'keyword.control.pentest'));
+  check('return keyword scoped', hasScope(t.find((k) => k.t === 'return'), 'keyword.control.cstar'));
 }
 {
   const t = tokenize('if a: print(a)');
-  check('single-line body: if keyword', hasScope(t.find((k) => k.t === 'if'), 'keyword.control.pentest'));
-  check('single-line body: colon punctuation', hasScope(t.find((k) => k.t === ':'), 'punctuation.pentest'));
-  check('single-line body: print builtin', hasScope(t.find((k) => k.t === 'print'), 'support.function.pentest'));
+  check('single-line body: if keyword', hasScope(t.find((k) => k.t === 'if'), 'keyword.control.cstar'));
+  check('single-line body: colon punctuation', hasScope(t.find((k) => k.t === ':'), 'punctuation.cstar'));
+  check('single-line body: print builtin', hasScope(t.find((k) => k.t === 'print'), 'support.function.cstar'));
 }
 {
   const t = tokenize('pass');
-  check('pass keyword.other scoped', hasScope(t.find((k) => k.t === 'pass'), 'keyword.other.pentest'));
+  check('pass keyword.other scoped', hasScope(t.find((k) => k.t === 'pass'), 'keyword.other.cstar'));
 }
 {
   const t = tokenize('x = 3.14');
-  check('float is a single number token', hasScope(t.find((k) => k.t === '3.14'), 'constant.numeric.pentest'));
+  check('float is a single number token', hasScope(t.find((k) => k.t === '3.14'), 'constant.numeric.cstar'));
   check('float: no stray dot token', tokensWithText('x = 3.14', '.').length === 0);
 }
 
@@ -653,9 +653,9 @@ for (const [key, firstLine] of Object.entries(SNIPPET_FIRST_LINE)) {
   check(`snippet ${key} has description`, typeof sn.description === 'string' && sn.description.length > 0);
   check(`snippet ${key} first body line`, Array.isArray(sn.body) && sn.body[0] === firstLine);
 }
-check('package contributes snippets for pentest',
+check('package contributes snippets for cstar',
   Array.isArray(pkg.contributes.snippets) && pkg.contributes.snippets.length === 1
-  && pkg.contributes.snippets[0].language === 'pentest');
+  && pkg.contributes.snippets[0].language === 'cstar');
 
 // ---------------------------------------------------------------------------
 section('completion provider (M1 + 2A)');
@@ -663,8 +663,8 @@ section('completion provider (M1 + 2A)');
 check('completion provider registered on activation',
   typeof captured.provider === 'function'
   || (captured.provider && typeof captured.provider.provideCompletionItems === 'function'));
-check('provider selector targets pentest language',
-  !!captured.selector && captured.selector.language === 'pentest');
+check('provider selector targets cstar language',
+  !!captured.selector && captured.selector.language === 'cstar');
 
 {
   const items = completions('x = 1', 5);
@@ -719,28 +719,29 @@ check('provider selector targets pentest language',
 // ---------------------------------------------------------------------------
 section('package.json contributions');
 
-check('name unchanged (pentest-lang)', pkg.name === 'pentest-lang');
-check('displayName unchanged', pkg.displayName === 'Pentest Language');
-check('publisher unchanged', pkg.publisher === 'pentest-lang');
+check('name is cstar-lang', pkg.name === 'cstar-lang');
+check('displayName is cstar Language', pkg.displayName === 'cstar Language');
+check('publisher is cstar-lang', pkg.publisher === 'cstar-lang');
 check('main points at src/extension.js', pkg.main === './src/extension.js');
 check('main file exists', fileExists('src/extension.js'));
-check('activation event onLanguage:pentest',
-  Array.isArray(pkg.activationEvents) && pkg.activationEvents.indexOf('onLanguage:pentest') !== -1);
+check('activation event onLanguage:cstar',
+  Array.isArray(pkg.activationEvents) && pkg.activationEvents.indexOf('onLanguage:cstar') !== -1);
 const lang = pkg.contributes.languages && pkg.contributes.languages[0];
-check('language id is pentest', !!lang && lang.id === 'pentest');
-check('language has .pen', !!lang && lang.extensions.indexOf('.pen') !== -1);
-check('language has .pent', !!lang && lang.extensions.indexOf('.pent') !== -1);
+check('language id is cstar', !!lang && lang.id === 'cstar');
+check('language has .cst', !!lang && lang.extensions.indexOf('.cst') !== -1);
+check('language keeps legacy .pen', !!lang && lang.extensions.indexOf('.pen') !== -1);
+check('language keeps legacy .pent', !!lang && lang.extensions.indexOf('.pent') !== -1);
 check('language configuration path', !!lang && fileExists(lang.configuration.replace('./', '')));
 const gr = pkg.contributes.grammars && pkg.contributes.grammars[0];
-check('grammar contribution scope source.pentest', !!gr && gr.scopeName === 'source.pentest');
+check('grammar contribution scope source.cstar', !!gr && gr.scopeName === 'source.cstar');
 check('grammar contribution path exists', !!gr && fileExists(gr.path.replace('./', '')));
 const sn = pkg.contributes.snippets && pkg.contributes.snippets[0];
 check('snippet contribution path exists', !!sn && fileExists(sn.path.replace('./', '')));
 check('tabSize default 4',
   pkg.contributes.configurationDefaults
-  && pkg.contributes.configurationDefaults['[pentest]']['editor.tabSize'] === 4);
-check('package keywords mention pentest',
-  Array.isArray(pkg.keywords) && pkg.keywords.indexOf('pentest') !== -1);
+  && pkg.contributes.configurationDefaults['[cstar]']['editor.tabSize'] === 4);
+check('package keywords mention cstar',
+  Array.isArray(pkg.keywords) && pkg.keywords.indexOf('cstar') !== -1);
 
 // ---------------------------------------------------------------------------
 section('language-configuration.json');
@@ -821,7 +822,7 @@ check('method-call rule matches `.append()`',
 check('method-call rule does not match `append()`',
   !new RegExp(mcSrc).test('append()'));
 check('method-call name capture is variable.function',
-  grammar.repository['method-call'].captures['2'].name === 'variable.function.pentest');
+  grammar.repository['method-call'].captures['2'].name === 'variable.function.cstar');
 
 section('2B keywords (global/nonlocal)');
 
@@ -829,35 +830,35 @@ check('keywords-declaration matches global', ruleMatches('keywords-declaration',
 check('keywords-declaration matches nonlocal', ruleMatches('keywords-declaration', 'nonlocal'));
 check('word boundary: `globalx` is not a keyword', !ruleMatches('keywords-declaration', 'globalx'));
 check('word boundary: `nonlocality` is not a keyword', !ruleMatches('keywords-declaration', 'nonlocality'));
-check('keywords-declaration scope is storage.modifier.pentest',
-  grammar.repository['keywords-declaration'].name === 'storage.modifier.pentest');
+check('keywords-declaration scope is storage.modifier.cstar',
+  grammar.repository['keywords-declaration'].name === 'storage.modifier.cstar');
 {
   const t = tokenize('global count');
   const g = t.find((k) => k.t === 'global');
-  check('`global count`: global is storage.modifier', hasScope(g, 'storage.modifier.pentest'));
-  check('`global count`: not mis-scoped keyword.control', !hasScope(g, 'keyword.control.pentest'));
+  check('`global count`: global is storage.modifier', hasScope(g, 'storage.modifier.cstar'));
+  check('`global count`: not mis-scoped keyword.control', !hasScope(g, 'keyword.control.cstar'));
 }
 {
   const t = tokenize('global a, b');
   check('`global a, b`: global scoped',
-    hasScope(t.find((k) => k.t === 'global'), 'storage.modifier.pentest'));
+    hasScope(t.find((k) => k.t === 'global'), 'storage.modifier.cstar'));
   check('`global a, b`: comma is plain punctuation',
-    hasScope(t.find((k) => k.t === ','), 'punctuation.pentest'));
+    hasScope(t.find((k) => k.t === ','), 'punctuation.cstar'));
   check('`global a, b`: no slice scope introduced',
-    t.every((k) => !hasScope(k, 'meta.subscript.slice.pentest')));
+    t.every((k) => !hasScope(k, 'meta.subscript.slice.cstar')));
 }
 {
   const t = tokenize('nonlocal a, b');
   check('`nonlocal a, b`: nonlocal scoped',
-    hasScope(t.find((k) => k.t === 'nonlocal'), 'storage.modifier.pentest'));
+    hasScope(t.find((k) => k.t === 'nonlocal'), 'storage.modifier.cstar'));
   check('`nonlocal a, b`: comma is plain punctuation',
-    hasScope(t.find((k) => k.t === ','), 'punctuation.pentest'));
+    hasScope(t.find((k) => k.t === ','), 'punctuation.cstar'));
 }
 
 section('2B bytes literals');
 
-check('bytes rule scope is string.quoted.double.bytes.pentest',
-  grammar.repository.bytes.name === 'string.quoted.double.bytes.pentest');
+check('bytes rule scope is string.quoted.double.bytes.cstar',
+  grammar.repository.bytes.name === 'string.quoted.double.bytes.cstar');
 const bytesBegin = new RegExp(grammar.repository.bytes.begin);
 check('bytes begin matches b"x"', bytesBegin.test('b"x"'));
 check('bytes begin does NOT match `bad`', !bytesBegin.test('bad'));
@@ -869,7 +870,7 @@ check('bytes begin does NOT match `2b"x"`', !bytesBegin.test('2b"x"'));
   const t = tokenize('b"x"');
   const bt = t.find((k) => k.s === 0 && k.e === 4);
   check('`b"x"` tokenizes as one bytes literal', !!bt && bt.t === 'b"x"');
-  check('`b"x"` carries the bytes scope', hasScope(bt, 'string.quoted.double.bytes.pentest'));
+  check('`b"x"` carries the bytes scope', hasScope(bt, 'string.quoted.double.bytes.cstar'));
 }
 {
   const t = tokenize('bad = 1');
@@ -887,27 +888,27 @@ check('bytes begin does NOT match `2b"x"`', !bytesBegin.test('2b"x"'));
   const strTok = t.find((k) => k.t === '"x"');
   check('`b "x"`: string starts at the quote (index 2)', !!strTok && strTok.s === 2);
   check('`b "x"`: no bytes scope anywhere',
-    t.every((k) => !hasScope(k, 'string.quoted.double.bytes.pentest')));
+    t.every((k) => !hasScope(k, 'string.quoted.double.bytes.cstar')));
 }
 {
   const t = tokenize('x = b"\\x41"');
   const bt = t.find((k) => k.t === 'b"\\x41"');
   check('`b"\\x41"` tokenizes as one bytes literal', !!bt);
-  check('`b"\\x41"` carries the bytes scope', hasScope(bt, 'string.quoted.double.bytes.pentest'));
+  check('`b"\\x41"` carries the bytes scope', hasScope(bt, 'string.quoted.double.bytes.cstar'));
   check('`\\x41` is scoped as escape',
-    hasScope(t.find((k) => k.t === '\\x41'), 'constant.character.escape.pentest'));
+    hasScope(t.find((k) => k.t === '\\x41'), 'constant.character.escape.cstar'));
 }
 {
   const t = tokenize('print((b"hi"))');
   check('bytes argument tokenizes',
-    hasScope(t.find((k) => k.t === 'b"hi"'), 'string.quoted.double.bytes.pentest'));
+    hasScope(t.find((k) => k.t === 'b"hi"'), 'string.quoted.double.bytes.cstar'));
   check('grouping parens still punctuation',
-    hasScope(t.find((k) => k.t === '('), 'punctuation.pentest'));
+    hasScope(t.find((k) => k.t === '('), 'punctuation.cstar'));
 }
 {
   const t = tokenize('x = "a\\0b"');
   check('`\\0` escape scoped in text string',
-    hasScope(t.find((k) => k.t === '\\0'), 'constant.character.escape.pentest'));
+    hasScope(t.find((k) => k.t === '\\0'), 'constant.character.escape.cstar'));
 }
 
 section('2B slices');
@@ -915,68 +916,68 @@ section('2B slices');
 const SLICE_FORMS = ['a[1:2]', 'x = a[:2]', 'x = a[1:]', 'x = a[1:2:3]', 'x = a[:]'];
 for (const line of SLICE_FORMS) {
   const t = tokenize(line);
-  const region = t.find((k) => hasScope(k, 'meta.subscript.slice.pentest') && k.t[0] === '[');
+  const region = t.find((k) => hasScope(k, 'meta.subscript.slice.cstar') && k.t[0] === '[');
   check(`slice \`${line}\`: bracket region scoped`, !!region);
   const colons = t.filter((k) => k.t === ':');
   check(`slice \`${line}\`: colon present`, colons.length > 0);
   check(`slice \`${line}\`: colons are slice operators`,
-    colons.length > 0 && colons.every((c) => hasScope(c, 'keyword.operator.slice.pentest')
-      && hasScope(c, 'meta.subscript.slice.pentest')));
+    colons.length > 0 && colons.every((c) => hasScope(c, 'keyword.operator.slice.cstar')
+      && hasScope(c, 'meta.subscript.slice.cstar')));
 }
 {
   const t = tokenize('t[0]');
   const idx = t.find((k) => k.t === '[');
   check('plain index: bracket is punctuation, not slice',
-    !!idx && hasScope(idx, 'punctuation.pentest') && !hasScope(idx, 'meta.subscript.slice.pentest'));
+    !!idx && hasScope(idx, 'punctuation.cstar') && !hasScope(idx, 'meta.subscript.slice.cstar'));
   check('plain index: no colon token at all', t.every((k) => k.t !== ':'));
 }
 {
   const t = tokenize('if x:');
   const c = t.find((k) => k.t === ':');
   check('statement colon is punctuation, not slice',
-    !!c && hasScope(c, 'punctuation.pentest') && !hasScope(c, 'meta.subscript.slice.pentest'));
+    !!c && hasScope(c, 'punctuation.cstar') && !hasScope(c, 'meta.subscript.slice.cstar'));
 }
 {
   const t = tokenize('case 1:');
   const c = t.find((k) => k.t === ':');
   check('case colon is punctuation, not slice',
-    !!c && hasScope(c, 'punctuation.pentest') && !hasScope(c, 'meta.subscript.slice.pentest'));
+    !!c && hasScope(c, 'punctuation.cstar') && !hasScope(c, 'meta.subscript.slice.cstar'));
 }
 {
   const t = tokenize('while x:');
   const c = t.find((k) => k.t === ':');
   check('while colon is punctuation, not slice',
-    !!c && hasScope(c, 'punctuation.pentest') && !hasScope(c, 'meta.subscript.slice.pentest'));
+    !!c && hasScope(c, 'punctuation.cstar') && !hasScope(c, 'meta.subscript.slice.cstar'));
 }
 {
   const t = tokenize('m = {"k": v}');
   const c = t.find((k) => k.t === ':');
   check('map-literal colon is punctuation, not slice',
-    !!c && hasScope(c, 'punctuation.pentest') && !hasScope(c, 'meta.subscript.slice.pentest'));
+    !!c && hasScope(c, 'punctuation.cstar') && !hasScope(c, 'meta.subscript.slice.cstar'));
 }
 {
   const t = tokenize('print((a[1:2]))');
   check('slice in call: closing paren intact',
-    hasScope(t.filter((k) => k.t === ')').pop(), 'punctuation.pentest'));
+    hasScope(t.filter((k) => k.t === ')').pop(), 'punctuation.cstar'));
   check('slice in call: print still builtin',
-    hasScope(t.find((k) => k.t === 'print'), 'support.function.pentest'));
+    hasScope(t.find((k) => k.t === 'print'), 'support.function.cstar'));
   check('slice in call: inner slice scoped',
-    hasScope(t.find((k) => k.t === '['), 'meta.subscript.slice.pentest'));
+    hasScope(t.find((k) => k.t === '['), 'meta.subscript.slice.cstar'));
 }
 {
   const t = tokenize('t = "a:b"');
   check('colon inside a string never becomes a slice operator',
-    t.filter((k) => k.t === ':').every((c) => !hasScope(c, 'keyword.operator.slice.pentest')));
+    t.filter((k) => k.t === ':').every((c) => !hasScope(c, 'keyword.operator.slice.cstar')));
   check('string with colon stays one token',
-    hasScope(t.find((k) => k.t === '"a:b"'), 'string.quoted.double.pentest'));
+    hasScope(t.find((k) => k.t === '"a:b"'), 'string.quoted.double.cstar'));
 }
 {
   const t = tokenize('xs = [a[1:2], b]');
   check('nested subscript: inner slice scoped',
-    t.some((k) => hasScope(k, 'meta.subscript.slice.pentest')));
+    t.some((k) => hasScope(k, 'meta.subscript.slice.cstar')));
   check('nested subscript: closing bracket tokenized',
-    hasScope(t.filter((k) => k.t === ']').pop(), 'punctuation.pentest')
-    || hasScope(t.filter((k) => k.t === ']').pop(), 'punctuation.section.brackets.end.pentest'));
+    hasScope(t.filter((k) => k.t === ']').pop(), 'punctuation.cstar')
+    || hasScope(t.filter((k) => k.t === ']').pop(), 'punctuation.section.brackets.end.cstar'));
 }
 
 section('2B collection literals');
@@ -984,80 +985,80 @@ section('2B collection literals');
 {
   const t = tokenize('xs = []');
   check('`[]`: open bracket punctuation',
-    hasScope(t.find((k) => k.t === '['), 'punctuation.pentest'));
+    hasScope(t.find((k) => k.t === '['), 'punctuation.cstar'));
   check('`[]`: close bracket punctuation',
-    hasScope(t.find((k) => k.t === ']'), 'punctuation.pentest'));
+    hasScope(t.find((k) => k.t === ']'), 'punctuation.cstar'));
 }
 {
   const t = tokenize('e = {}');
   check('`{}`: open brace punctuation',
-    hasScope(t.find((k) => k.t === '{'), 'punctuation.pentest'));
+    hasScope(t.find((k) => k.t === '{'), 'punctuation.cstar'));
   check('`{}`: close brace punctuation',
-    hasScope(t.find((k) => k.t === '}'), 'punctuation.pentest'));
+    hasScope(t.find((k) => k.t === '}'), 'punctuation.cstar'));
 }
 {
   const t = tokenize('t = ()');
   check('`()` open paren punctuation',
-    hasScope(t.find((k) => k.t === '('), 'punctuation.pentest'));
+    hasScope(t.find((k) => k.t === '('), 'punctuation.cstar'));
   check('`()` close paren punctuation',
-    hasScope(t.find((k) => k.t === ')'), 'punctuation.pentest'));
+    hasScope(t.find((k) => k.t === ')'), 'punctuation.cstar'));
 }
 {
   const t = tokenize('xs = [1, 2]');
   check('list literal: comma punctuation',
-    hasScope(t.find((k) => k.t === ','), 'punctuation.pentest'));
+    hasScope(t.find((k) => k.t === ','), 'punctuation.cstar'));
   check('list literal: first element number',
-    hasScope(t.find((k) => k.t === '1'), 'constant.numeric.pentest'));
+    hasScope(t.find((k) => k.t === '1'), 'constant.numeric.cstar'));
   check('list literal: second element number',
-    hasScope(t.find((k) => k.t === '2'), 'constant.numeric.pentest'));
+    hasScope(t.find((k) => k.t === '2'), 'constant.numeric.cstar'));
 }
 {
   const t = tokenize('s = {1, 2}');
   check('set literal: braces punctuation',
-    hasScope(t.find((k) => k.t === '{'), 'punctuation.pentest'));
+    hasScope(t.find((k) => k.t === '{'), 'punctuation.cstar'));
   check('set literal: elements tokenized',
-    hasScope(t.find((k) => k.t === '1'), 'constant.numeric.pentest'));
+    hasScope(t.find((k) => k.t === '1'), 'constant.numeric.cstar'));
 }
 {
   const t = tokenize('m = {"k": v}');
   check('map literal: key string',
-    hasScope(t.find((k) => k.t === '"k"'), 'string.quoted.double.pentest'));
+    hasScope(t.find((k) => k.t === '"k"'), 'string.quoted.double.cstar'));
   check('map literal: braces punctuation',
-    hasScope(t.find((k) => k.t === '{'), 'punctuation.pentest'));
+    hasScope(t.find((k) => k.t === '{'), 'punctuation.cstar'));
 }
 {
   const t = tokenize('e = set()');
   check('`set()` is the builtin constructor scope',
-    hasScope(t.find((k) => k.t === 'set'), 'support.function.pentest'));
+    hasScope(t.find((k) => k.t === 'set'), 'support.function.cstar'));
 }
 {
   // Comma-join needs (and gets) NO special treatment: the comma stays plain
   // punctuation and neither operand is disturbed.
   const t = tokenize('m = "hello", "world"');
   check('comma-join: comma is plain punctuation',
-    hasScope(t.find((k) => k.t === ','), 'punctuation.pentest'));
+    hasScope(t.find((k) => k.t === ','), 'punctuation.cstar'));
   check('comma-join: first string intact',
-    hasScope(t.find((k) => k.t === '"hello"'), 'string.quoted.double.pentest'));
+    hasScope(t.find((k) => k.t === '"hello"'), 'string.quoted.double.cstar'));
   check('comma-join: second string intact',
-    hasScope(t.find((k) => k.t === '"world"'), 'string.quoted.double.pentest'));
+    hasScope(t.find((k) => k.t === '"world"'), 'string.quoted.double.cstar'));
   check('comma-join: no slice scope anywhere',
-    t.every((k) => !hasScope(k, 'meta.subscript.slice.pentest')));
+    t.every((k) => !hasScope(k, 'meta.subscript.slice.cstar')));
 }
 {
   const t = tokenize('xs[0] = 1');
   check('index-assign: target scoped',
-    hasScope(t.find((k) => k.t === 'xs'), 'variable.other.readwrite.pentest'));
+    hasScope(t.find((k) => k.t === 'xs'), 'variable.other.readwrite.cstar'));
   check('index-assign: `=` operator',
-    hasScope(t.find((k) => k.t === '='), 'keyword.operator.pentest'));
+    hasScope(t.find((k) => k.t === '='), 'keyword.operator.cstar'));
   check('index-assign: index number',
-    hasScope(t.find((k) => k.t === '0'), 'constant.numeric.pentest'));
+    hasScope(t.find((k) => k.t === '0'), 'constant.numeric.cstar'));
 }
 {
   const t = tokenize('xs[i] += v');
   check('index compound-assign: target scoped',
-    hasScope(t.find((k) => k.t === 'xs'), 'variable.other.readwrite.pentest'));
+    hasScope(t.find((k) => k.t === 'xs'), 'variable.other.readwrite.cstar'));
   check('index compound-assign: `+=` operator',
-    hasScope(t.find((k) => k.t === '+='), 'keyword.operator.pentest'));
+    hasScope(t.find((k) => k.t === '+='), 'keyword.operator.cstar'));
 }
 
 section('2B method-call grammar');
@@ -1065,21 +1066,21 @@ section('2B method-call grammar');
 {
   const t = tokenize('xs.append(1)');
   check('`xs.append(1)`: dot has accessor scope',
-    hasScope(t.find((k) => k.t === '.'), 'punctuation.accessor.dot.pentest'));
+    hasScope(t.find((k) => k.t === '.'), 'punctuation.accessor.dot.cstar'));
   check('`xs.append(1)`: append is a function-name scope',
-    hasScope(t.find((k) => k.t === 'append'), 'variable.function.pentest'));
+    hasScope(t.find((k) => k.t === 'append'), 'variable.function.cstar'));
 }
 {
   const t = tokenize('b.decode()');
   const dec = t.find((k) => k.t === 'decode');
   check('`b.decode()`: decode scoped as method call, not the builtin',
-    !!dec && hasScope(dec, 'variable.function.pentest')
-    && !hasScope(dec, 'support.function.pentest'));
+    !!dec && hasScope(dec, 'variable.function.cstar')
+    && !hasScope(dec, 'support.function.cstar'));
 }
 {
   const t = tokenize('s = set(1)');
   check('bare `set()` still builtin scope in an expression',
-    hasScope(t.find((k) => k.t === 'set'), 'support.function.pentest'));
+    hasScope(t.find((k) => k.t === 'set'), 'support.function.cstar'));
 }
 
 section('2B snippets');
@@ -1273,24 +1274,24 @@ check('keywords-other word boundary: `island` is not a keyword',
 {
   const cd = grammar.repository['class-definition'];
   check('class-definition captures the class keyword',
-    cd.captures['2'].name === 'storage.type.class.pentest');
+    cd.captures['2'].name === 'storage.type.class.cstar');
   check('class-definition captures the class name',
-    cd.captures['4'].name === 'entity.name.class.pentest');
+    cd.captures['4'].name === 'entity.name.class.cstar');
   check('class-definition matches `class Point:`-style line',
     new RegExp(cd.match).test('class Point:'));
   check('class-definition does not match a mid-line word',
     !new RegExp('^(?:' + cd.match + ')$').test('x = classy'));
   const at = grammar.repository['attribute'];
   check('attribute rule captures member name',
-    at.captures['2'].name === 'variable.other.member.pentest');
+    at.captures['2'].name === 'variable.other.member.cstar');
   check('attribute rule matches bare `.nope`', new RegExp(at.match).test('.nope'));
   {
     // Method calls are pre-empted by the earlier #method-call include, so
     // this is checked behaviorally (the isolated regex alone backtracks).
     const t = tokenize('xs.append(1)');
     check('`.append()` is method-call scope, not a bare attribute',
-      hasScope(t.find((k) => k.t === 'append'), 'variable.function.pentest')
-      && !hasScope(t.find((k) => k.t === 'append'), 'variable.other.member.pentest'));
+      hasScope(t.find((k) => k.t === 'append'), 'variable.function.cstar')
+      && !hasScope(t.find((k) => k.t === 'append'), 'variable.other.member.cstar'));
   }
 }
 
@@ -1299,48 +1300,48 @@ section('2C tokenizer behavior');
 {
   const t = tokenize('class Point:');
   check('`class Point:`: class keyword scoped',
-    hasScope(t.find((k) => k.t === 'class'), 'storage.type.class.pentest'));
+    hasScope(t.find((k) => k.t === 'class'), 'storage.type.class.cstar'));
   check('`class Point:`: name is entity.name.class',
-    hasScope(t.find((k) => k.t === 'Point'), 'entity.name.class.pentest'));
+    hasScope(t.find((k) => k.t === 'Point'), 'entity.name.class.cstar'));
   const c = t.find((k) => k.t === ':');
   check('`class Point:`: colon is punctuation, not slice',
-    !!c && hasScope(c, 'punctuation.pentest') && !hasScope(c, 'meta.subscript.slice.pentest'));
+    !!c && hasScope(c, 'punctuation.cstar') && !hasScope(c, 'meta.subscript.slice.cstar'));
 }
 {
   const t = tokenize('try:');
   check('`try:`: try is control keyword',
-    hasScope(t.find((k) => k.t === 'try'), 'keyword.control.pentest'));
+    hasScope(t.find((k) => k.t === 'try'), 'keyword.control.cstar'));
   const c = t.find((k) => k.t === ':');
-  check('`try:`: colon is punctuation', !!c && hasScope(c, 'punctuation.pentest'));
+  check('`try:`: colon is punctuation', !!c && hasScope(c, 'punctuation.cstar'));
 }
 {
   const t = tokenize('except ValueError as e:');
   check('except is control keyword',
-    hasScope(t.find((k) => k.t === 'except'), 'keyword.control.pentest'));
+    hasScope(t.find((k) => k.t === 'except'), 'keyword.control.cstar'));
   check('as is keyword.other',
-    hasScope(t.find((k) => k.t === 'as'), 'keyword.other.pentest'));
+    hasScope(t.find((k) => k.t === 'as'), 'keyword.other.cstar'));
   const c = t.find((k) => k.t === ':');
   check('except colon is punctuation, not slice',
-    !!c && hasScope(c, 'punctuation.pentest') && !hasScope(c, 'meta.subscript.slice.pentest'));
+    !!c && hasScope(c, 'punctuation.cstar') && !hasScope(c, 'meta.subscript.slice.cstar'));
 }
 {
   const t = tokenize('raise ValueError');
   check('raise is control keyword',
-    hasScope(t.find((k) => k.t === 'raise'), 'keyword.control.pentest'));
+    hasScope(t.find((k) => k.t === 'raise'), 'keyword.control.cstar'));
 }
 {
   const t = tokenize('if a is b:');
   check('`is` inside a condition is keyword.other',
-    hasScope(t.find((k) => k.t === 'is'), 'keyword.other.pentest'));
+    hasScope(t.find((k) => k.t === 'is'), 'keyword.other.cstar'));
 }
 {
   const t = tokenize('p.x');
   check('`p.x`: dot has accessor scope',
-    hasScope(t.find((k) => k.t === '.'), 'punctuation.accessor.dot.pentest'));
+    hasScope(t.find((k) => k.t === '.'), 'punctuation.accessor.dot.cstar'));
   check('`p.x`: member is variable.other.member',
-    hasScope(t.find((k) => k.t === 'x'), 'variable.other.member.pentest'));
+    hasScope(t.find((k) => k.t === 'x'), 'variable.other.member.cstar'));
   check('`p.x` bare: member is NOT scoped as a function name',
-    !hasScope(t.find((k) => k.t === 'x'), 'variable.function.pentest'));
+    !hasScope(t.find((k) => k.t === 'x'), 'variable.function.cstar'));
 }
 {
   const t = tokenize('p.x = 1');
@@ -1348,14 +1349,14 @@ section('2C tokenizer behavior');
   check('assignment rule matches dotted target `p.x = 1`', asg.test('p.x = 1'));
   check('`p.x = 1`: whole dotted target scoped readwrite',
     t.some((k) => k.t === 'p.x'
-      && hasScope(k, 'variable.other.readwrite.pentest')));
+      && hasScope(k, 'variable.other.readwrite.cstar')));
   check('`p.x = 1`: `=` operator scoped',
-    hasScope(t.find((k) => k.t === '='), 'keyword.operator.pentest'));
+    hasScope(t.find((k) => k.t === '='), 'keyword.operator.cstar'));
 }
 {
   const t = tokenize('n = collect()');
   check('`collect()` gets the builtin scope',
-    hasScope(t.find((k) => k.t === 'collect'), 'support.function.pentest'));
+    hasScope(t.find((k) => k.t === 'collect'), 'support.function.cstar'));
 }
 
 section('2C snippets');
@@ -1486,46 +1487,50 @@ check('README mentions 2C snippets', readme.indexOf('`init`') !== -1);
 section('post-2C basics: run button + input/time/clock');
 
 // Run command (TODO.txt: "run button not working for .pen").
-check('extension registers pentest.run command',
+check('extension registers cstar.run command',
+  typeof captured.commands['cstar.run'] === 'function');
+check('extension registers cstar.toggleLineComment',
+  typeof captured.commands['cstar.toggleLineComment'] === 'function');
+check('legacy pentest.run alias still registered (until v0.4)',
   typeof captured.commands['pentest.run'] === 'function');
-check('extension still registers pentest.toggleLineComment',
+check('legacy pentest.toggleLineComment alias still registered (until v0.4)',
   typeof captured.commands['pentest.toggleLineComment'] === 'function');
 {
   const cmds = (pkg.contributes.commands || []);
-  const run = cmds.find((c) => c.command === 'pentest.run');
-  check('package contributes pentest.run command', !!run);
+  const run = cmds.find((c) => c.command === 'cstar.run');
+  check('package contributes cstar.run command', !!run);
   if (run) {
     check('run command has title', typeof run.title === 'string' && run.title.length > 0);
     check('run command has play icon', run.icon === '$(play)');
-    check('run command is in the Pentest category', run.category === 'Pentest');
+    check('run command is in the cstar category', run.category === 'cstar');
   }
   const title = ((pkg.contributes.menus || {})['editor/title'] || []);
-  const titleRun = title.find((m) => m.command === 'pentest.run');
+  const titleRun = title.find((m) => m.command === 'cstar.run');
   check('run button in editor/title', !!titleRun);
   if (titleRun) {
-    check('editor/title run button gated to pentest files',
-      /resourceLangId == pentest/.test(titleRun.when || ''));
+    check('editor/title run button gated to cstar files',
+      /resourceLangId == cstar/.test(titleRun.when || ''));
     check('editor/title run button is navigation-grouped',
       /^navigation/.test(titleRun.group || ''));
   }
   const ctx = ((pkg.contributes.menus || {})['editor/context'] || []);
   check('run command in editor/context menu',
-    !!ctx.find((m) => m.command === 'pentest.run'));
+    !!ctx.find((m) => m.command === 'cstar.run'));
   const palette = ((pkg.contributes.menus || {})['commandPalette'] || []);
   check('run command in command palette (language-gated)',
-    !!palette.find((m) => m.command === 'pentest.run'));
+    !!palette.find((m) => m.command === 'cstar.run'));
 }
-check('run implementation spawns `pentest run` in a Pentest terminal',
-  extSrc.indexOf("createTerminal('Pentest')") !== -1
+check('run implementation spawns `<cli> run` in a cstar terminal',
+  extSrc.indexOf("createTerminal('cstar')") !== -1
   && extSrc.indexOf("' run '") !== -1);
 check('run implementation saves dirty documents first',
   extSrc.indexOf('doc.save()') !== -1);
 check('run paths are shell-quoted',
   extSrc.indexOf('shellQuote(doc.uri.fsPath)') !== -1);
 // Invoking with no active editor must not throw (info message + return).
-check('pentest.run is safe with no active editor', (() => {
+check('cstar.run is safe with no active editor', (() => {
   try {
-    captured.commands['pentest.run']();
+    captured.commands['cstar.run']();
     return true;
   } catch (e) {
     return false;
@@ -1539,11 +1544,11 @@ check('run resolves the clicked editor resource first',
   && extSrc.indexOf('openTextDocument(resource)') !== -1);
 check('run falls back to the active editor document',
   extSrc.indexOf('doc = editor && editor.document') !== -1);
-check('run listens for a closed Pentest terminal',
+check('run listens for a closed cstar terminal',
   extSrc.indexOf('onDidCloseTerminal') !== -1);
 {
   const docOf = (fsPath) => ({
-    languageId: 'pentest',
+    languageId: 'cstar',
     isUntitled: false,
     isDirty: false,
     version: 1,
@@ -1553,23 +1558,23 @@ check('run listens for a closed Pentest terminal',
     lineAt: () => ({ text: '' }),
     save: () => true,
   });
-  const clicked = docOf('/tmp/opencode/clicked.pen');
+  const clicked = docOf('/tmp/opencode/clicked.cst');
   fakeVscode.workspace.textDocuments = [clicked];
   fakeVscode.window.activeTextEditor = undefined;
-  captured.commands['pentest.run'](clicked.uri); // menu passes the resource
+  captured.commands['cstar.run'](clicked.uri); // menu passes the resource
   const t1 = captured.terminals[0];
   check('resource-arg run executes the clicked file', !!t1
     && t1.sent.length === 1
-    && t1.sent[0].indexOf('/tmp/opencode/clicked.pen') !== -1);
+    && t1.sent[0].indexOf('/tmp/opencode/clicked.cst') !== -1);
   check('resource-arg run shows the terminal', !!t1 && t1.shown >= 1);
 
-  const active = docOf('/tmp/opencode/active.pen');
+  const active = docOf('/tmp/opencode/active.cst');
   fakeVscode.workspace.textDocuments = [];
   fakeVscode.window.activeTextEditor = { document: active };
-  captured.commands['pentest.run'](); // palette: no resource argument
+  captured.commands['cstar.run'](); // palette: no resource argument
   check('active-editor fallback runs the active file', !!t1
     && t1.sent.length === 2
-    && t1.sent[1].indexOf('/tmp/opencode/active.pen') !== -1);
+    && t1.sent[1].indexOf('/tmp/opencode/active.cst') !== -1);
   check('repeat runs reuse one terminal', captured.terminals.length === 1);
   fakeVscode.window.activeTextEditor = undefined;
 }
@@ -1577,26 +1582,26 @@ check('run listens for a closed Pentest terminal',
   // Dirty documents are saved BEFORE execution — `await doc.save()` makes
   // this scenario async, so its final assertions land in `late` below.
   const dirty = {
-    languageId: 'pentest',
+    languageId: 'cstar',
     isUntitled: false,
     isDirty: true,
     saveCalls: 0,
     uri: {
-      fsPath: '/tmp/opencode/dirty.pen',
-      toString: () => 'file:///tmp/opencode/dirty.pen',
+      fsPath: '/tmp/opencode/dirty.cst',
+      toString: () => 'file:///tmp/opencode/dirty.cst',
     },
     getText: () => '',
     lineAt: () => ({ text: '' }),
     save() { this.saveCalls += 1; return Promise.resolve(true); },
   };
   fakeVscode.window.activeTextEditor = { document: dirty };
-  const p = captured.commands['pentest.run']();
+  const p = captured.commands['cstar.run']();
   check('dirty run saves the document first', dirty.saveCalls === 1);
   late = Promise.resolve(p).then(() => {
     const t = captured.terminals[0];
     check('dirty run executes after the save', !!t
       && t.sent.length === 3
-      && t.sent[2].indexOf('/tmp/opencode/dirty.pen') !== -1);
+      && t.sent[2].indexOf('/tmp/opencode/dirty.cst') !== -1);
     fakeVscode.window.activeTextEditor = undefined;
   }, (err) => {
     check('dirty run completes without error' + (err ? ` (${err})` : ''), false);
@@ -1609,7 +1614,7 @@ check('run listens for a closed Pentest terminal',
     const t = tokenize(`${name}(x)`);
     const tok = t.find((k) => k.t === name);
     check(`grammar: ${name}(call scoped as builtin)`, !!tok
-      && hasScope(tok, 'support.function.pentest'));
+      && hasScope(tok, 'support.function.cstar'));
   }
   const builtinRule = JSON.stringify(grammar.repository && grammar.repository.builtin
     ? grammar.repository.builtin : grammar);
@@ -1650,7 +1655,7 @@ const HTTP_BUILTINS = ['http_get', 'http_post', 'url_encode'];
     const t = tokenize(`${name}(x)`);
     const tok = t.find((k) => k.t === name);
     check(`grammar: ${name}(...) scoped as builtin`, !!tok
-      && hasScope(tok, 'support.function.pentest'));
+      && hasScope(tok, 'support.function.cstar'));
     check(`grammar: bare ${name} not builtin`, !ruleMatches('builtin', name));
     check(`grammar: ${name}x() not builtin`, !ruleMatches('builtin', name + 'x()'));
   }
@@ -1735,17 +1740,17 @@ check('root patterns include #varqual', rootIncludeNames.indexOf('#varqual') !==
 check('repository has #varqual', !!grammar.repository.varqual);
 {
   const vq = grammar.repository.varqual;
-  check('varqual rule scope is meta.variable-access.pentest',
-    !!vq && vq.name === 'meta.variable-access.pentest');
+  check('varqual rule scope is meta.variable-access.cstar',
+    !!vq && vq.name === 'meta.variable-access.cstar');
   if (vq) {
     check('varqual match covers `variable.owner`', new RegExp(vq.match).test('variable.owner'));
     check('varqual does not match bare `variable`', !new RegExp(vq.match).test('variable'));
     check('varqual keyword capture is keyword.other',
-      vq.captures['1'].name === 'keyword.other.pentest');
+      vq.captures['1'].name === 'keyword.other.cstar');
     check('varqual dot capture is punctuation.accessor.dot',
-      vq.captures['2'].name === 'punctuation.accessor.dot.pentest');
+      vq.captures['2'].name === 'punctuation.accessor.dot.cstar');
     check('varqual qualifier capture is variable.other.qualifier',
-      vq.captures['3'].name === 'variable.other.qualifier.pentest');
+      vq.captures['3'].name === 'variable.other.qualifier.cstar');
     check('varqual include precedes #assignment (same-index win)',
       rootIncludeNames.indexOf('#varqual') < rootIncludeNames.indexOf('#assignment'));
   }
@@ -1753,30 +1758,30 @@ check('repository has #varqual', !!grammar.repository.varqual);
 {
   const t = tokenize('variable.global count');
   check('`variable.global count`: variable is keyword.other',
-    hasScope(t.find((k) => k.t === 'variable'), 'keyword.other.pentest'));
+    hasScope(t.find((k) => k.t === 'variable'), 'keyword.other.cstar'));
   check('`variable.global count`: dot is accessor punctuation',
-    hasScope(t.find((k) => k.t === '.'), 'punctuation.accessor.dot.pentest'));
+    hasScope(t.find((k) => k.t === '.'), 'punctuation.accessor.dot.cstar'));
   check('`variable.global count`: global is the qualifier',
-    hasScope(t.find((k) => k.t === 'global'), 'variable.other.qualifier.pentest'));
+    hasScope(t.find((k) => k.t === 'global'), 'variable.other.qualifier.cstar'));
 }
 {
   const t = tokenize('print((variable.owner k))');
   check('`variable.owner` in a call: qualifier scoped',
-    hasScope(t.find((k) => k.t === 'owner'), 'variable.other.qualifier.pentest'));
+    hasScope(t.find((k) => k.t === 'owner'), 'variable.other.qualifier.cstar'));
   check('`print()` still builtin in the same line',
-    hasScope(t.find((k) => k.t === 'print'), 'support.function.pentest'));
+    hasScope(t.find((k) => k.t === 'print'), 'support.function.cstar'));
 }
 {
   const t = tokenize('variable.parent p += 100');
   check('`variable.parent`: parent qualifier scoped',
-    hasScope(t.find((k) => k.t === 'parent'), 'variable.other.qualifier.pentest'));
+    hasScope(t.find((k) => k.t === 'parent'), 'variable.other.qualifier.cstar'));
   check('`variable.parent p += 100`: compound operator intact',
-    hasScope(t.find((k) => k.t === '+='), 'keyword.operator.pentest'));
+    hasScope(t.find((k) => k.t === '+='), 'keyword.operator.cstar'));
 }
 {
   const t = tokenize('variable = 1');
   check('bare `variable = 1`: identifier, NOT keyword.other (not reserved)',
-    !hasScope(t.find((k) => k.t === 'variable'), 'keyword.other.pentest'));
+    !hasScope(t.find((k) => k.t === 'variable'), 'keyword.other.cstar'));
 }
 {
   const items = completions('variable.', 9);
@@ -1876,7 +1881,7 @@ check('parity set is 55 names', PARITY_BUILTINS.length === 55);
 for (const name of PARITY_BUILTINS) {
   const tok = tokenize(`${name}(x)`).find((k) => k.t === name);
   check(`grammar: ${name}(call scoped as builtin)`, !!tok
-    && hasScope(tok, 'support.function.pentest'));
+    && hasScope(tok, 'support.function.cstar'));
 }
 check('grammar: bare `sorted` not builtin', !ruleMatches('builtin', 'sorted'));
 check('grammar: `sortedx()` not builtin', !ruleMatches('builtin', 'sortedx()'));
@@ -1974,7 +1979,7 @@ check('README mentions the unavailable trio', /eval/.test(readme) && /compile/.t
 // ===========================================================================
 section('0.2.1: hover provider (docs on pointer-over)');
 
-check('hover provider registered for pentest', !!captured.hoverProvider);
+check('hover provider registered for cstar', !!captured.hoverProvider);
 
 // Builtins: plain signature (placeholders stripped) + contract doc + footer.
 {
@@ -2068,6 +2073,78 @@ check('hover provider registered for pentest', !!captured.hoverProvider);
 
 // README documents hover.
 check('README documents Hover', /Pointer-over/.test(readme));
+
+// ===========================================================================
+section('cstar rename: settings, CLI and module fallbacks (legacy until v0.4)');
+{
+  const props = (pkg.contributes.configuration || {}).properties || {};
+  for (const k of ['executable', 'diagnostics', 'diagnosticsDelay']) {
+    check(`cstar.${k} is contributed`, !!props['cstar.' + k]);
+    check(`legacy pentest.${k} is contributed and marked deprecated`,
+      !!props['pentest.' + k] && typeof props['pentest.' + k].deprecationMessage === 'string');
+  }
+  check('cstar.executable defaults to cstar',
+    !!props['cstar.executable'] && props['cstar.executable'].default === 'cstar');
+
+  // Settings resolution: cstar.* wins when set, else the legacy pentest.*.
+  const values = { cstar: {}, pentest: {} };
+  const fakeCfg = (section) => {
+    const v = values[section] || {};
+    return {
+      get: (k, d) => (k in v ? v[k] : d),
+      inspect: (k) => (k in v ? { key: section + '.' + k, globalValue: v[k] } : { key: section + '.' + k }),
+    };
+  };
+  const origGetConfiguration = fakeVscode.workspace.getConfiguration;
+  fakeVscode.workspace.getConfiguration = fakeCfg;
+  const T = ext._test;
+  check('no settings: executable defaults to cstar', T.setting('executable', 'cstar') === 'cstar');
+  values.pentest = { executable: '/opt/old/pentest', diagnosticsDelay: 900, diagnostics: false };
+  check('legacy pentest.executable honoured when cstar.executable is unset',
+    T.setting('executable', 'cstar') === '/opt/old/pentest');
+  check('legacy pentest.diagnosticsDelay honoured', T.setting('diagnosticsDelay', 400) === 900);
+  check('legacy pentest.diagnostics honoured', T.setting('diagnostics', true) === false);
+  values.cstar = { executable: '/opt/new/cstar' };
+  check('cstar.executable wins over the legacy key', T.setting('executable', 'cstar') === '/opt/new/cstar');
+  check('an explicit executable path is the only candidate',
+    T.cliCandidates().length === 1 && T.cliCandidates()[0] === '/opt/new/cstar');
+  values.cstar = {};
+  values.pentest = {};
+  const cands = T.cliCandidates();
+  const lastCstar = cands.map((c) => path.basename(c)).lastIndexOf('cstar');
+  const firstPentest = cands.map((c) => path.basename(c)).indexOf('pentest');
+  check('default CLI candidates try every cstar location before the legacy pentest',
+    cands[0] === 'cstar' && lastCstar >= 2 && firstPentest > lastCstar);
+  fakeVscode.workspace.getConfiguration = origGetConfiguration;
+
+  // Diagnostics: .cst temp copy, CSTAR_PATH (plus the legacy PENTEST_PATH).
+  check('diagnostics check a .cst temp copy',
+    extSrc.indexOf('cstar-check-') !== -1 && /cstar-check-[^`]*\.cst`/.test(extSrc));
+  check('diagnostics pass CSTAR_PATH and the legacy PENTEST_PATH',
+    extSrc.indexOf('CSTAR_PATH: [docDir') !== -1 && extSrc.indexOf('PENTEST_PATH: [docDir') !== -1);
+
+  // Module resolution for hover/completion: .cst first, legacy .pen still found.
+  const os = require('os');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cstar-smoke-'));
+  try {
+    fs.mkdirSync(path.join(tmp, 'lib'));
+    fs.writeFileSync(path.join(tmp, 'lib', 'tool.cst'), 'tag():\n    return 1\n');
+    fs.writeFileSync(path.join(tmp, 'lib', 'tool.pen'), 'tag():\n    return 2\n');
+    fs.writeFileSync(path.join(tmp, 'lib', 'old.pen'), 'tag():\n    return 3\n');
+    const r1 = T.resolveModule('lib.tool', tmp);
+    check('module resolution prefers .cst over .pen', !!r1 && /tool\.cst$/.test(r1));
+    const r2 = T.resolveModule('lib.old', tmp);
+    check('module resolution still finds legacy .pen', !!r2 && /old\.pen$/.test(r2));
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+
+  // No user-visible "Pentest" left in hover/completion texts.
+  check('hover/completion texts do not say "not available in Pentest"',
+    extSrc.indexOf('not available in Pentest') === -1);
+  check('code fences use the cstar language tag',
+    extSrc.indexOf('```pentest') === -1 && extSrc.indexOf('```cstar') !== -1);
+}
 
 // ===========================================================================
 // Report

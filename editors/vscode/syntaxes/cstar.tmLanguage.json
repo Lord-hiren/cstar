@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-  "name": "Pentest",
-  "scopeName": "source.pentest",
+  "name": "cstar",
+  "scopeName": "source.cstar",
   "patterns": [
     { "include": "#comments" },
     { "include": "#bytes" },
@@ -31,148 +31,148 @@
     "comments": {
       "patterns": [
         {
-          "name": "comment.block.pentest",
+          "name": "comment.block.cstar",
           "begin": "/\\*",
           "end": "\\*/"
         },
         {
-          "name": "comment.block.pentest",
+          "name": "comment.block.cstar",
           "begin": "\"\"\"",
           "end": "\"\"\""
         },
         {
-          "name": "comment.line.number-sign.pentest",
+          "name": "comment.line.number-sign.cstar",
           "match": "#.*$"
         },
         {
-          "name": "comment.line.double-slash.pentest",
+          "name": "comment.line.double-slash.cstar",
           "match": "//.*$"
         }
       ]
     },
     "bytes": {
-      "name": "string.quoted.double.bytes.pentest",
+      "name": "string.quoted.double.bytes.cstar",
       "begin": "\\bb\"",
       "end": "\"",
       "patterns": [
         {
-          "name": "constant.character.escape.pentest",
+          "name": "constant.character.escape.cstar",
           "match": "\\\\(x[0-9A-Fa-f]{2}|[nrt0\\\\\"])"
         }
       ]
     },
     "strings": {
-      "name": "string.quoted.double.pentest",
+      "name": "string.quoted.double.cstar",
       "begin": "\"",
       "end": "\"",
       "patterns": [
         {
-          "name": "constant.character.escape.pentest",
+          "name": "constant.character.escape.cstar",
           "match": "\\\\[nrt0\\\\\"]"
         }
       ]
     },
     "numbers": {
-      "name": "constant.numeric.pentest",
+      "name": "constant.numeric.cstar",
       "match": "\\b\\d+\\.\\d+\\b|\\b\\d+\\b"
     },
     "varqual": {
-      "name": "meta.variable-access.pentest",
+      "name": "meta.variable-access.cstar",
       "match": "\\b(variable)(\\.)([A-Za-z_][A-Za-z0-9_]*)",
       "captures": {
-        "1": { "name": "keyword.other.pentest" },
-        "2": { "name": "punctuation.accessor.dot.pentest" },
-        "3": { "name": "variable.other.qualifier.pentest" }
+        "1": { "name": "keyword.other.cstar" },
+        "2": { "name": "punctuation.accessor.dot.cstar" },
+        "3": { "name": "variable.other.qualifier.cstar" }
       }
     },
     "function-definition": {
       "match": "^(\\s*)(?!(?:if|elif|else|for|while|switch|case|try|except|finally|class|main|return|break|continue|pass|raise|global|nonlocal|and|or|not|is|in|as|None|True|False)\\b)([A-Za-z_][A-Za-z0-9_]*)(?=\\s*\\(.*\\)\\s*:(?:\\s*#.*)?$)",
       "captures": {
-        "2": { "name": "entity.name.function.pentest" }
+        "2": { "name": "entity.name.function.cstar" }
       }
     },
     "retired-arrow": {
-      "name": "invalid.illegal.retired.pentest",
+      "name": "invalid.illegal.retired.cstar",
       "match": "->"
     },
     "class-definition": {
       "match": "^(\\s*)(class)(\\s+)([A-Za-z_][A-Za-z0-9_]*)",
       "captures": {
-        "2": { "name": "storage.type.class.pentest" },
-        "4": { "name": "entity.name.class.pentest" }
+        "2": { "name": "storage.type.class.cstar" },
+        "4": { "name": "entity.name.class.cstar" }
       }
     },
     "main-block": {
       "match": "^(\\s*)(main)(\\s*:)",
       "captures": {
-        "2": { "name": "entity.name.function.pentest" }
+        "2": { "name": "entity.name.function.cstar" }
       }
     },
     "assignment": {
       "match": "^(\\s*)([A-Za-z_][A-Za-z0-9_]*(?:\\s*\\.\\s*[A-Za-z_][A-Za-z0-9_]*)*)(?=\\s*(?:\\.\\s*[A-Za-z_][A-Za-z0-9_]*)*\\s*(?:\\[[^\\]\\n]*\\])?\\s*(?:\\*\\*|<<|>>|\\+|-|\\*|/|%|&|\\||\\^)?=(?!=))",
       "captures": {
-        "2": { "name": "variable.other.readwrite.pentest" }
+        "2": { "name": "variable.other.readwrite.cstar" }
       }
     },
     "keywords": {
-      "name": "keyword.control.pentest",
+      "name": "keyword.control.cstar",
       "match": "\\b(main|return)\\b"
     },
     "keywords-control": {
-      "name": "keyword.control.pentest",
+      "name": "keyword.control.cstar",
       "match": "\\b(if|elif|else|for|while|switch|case|break|continue|try|except|finally|raise)\\b"
     },
     "keywords-other": {
-      "name": "keyword.other.pentest",
+      "name": "keyword.other.cstar",
       "match": "\\b(and|or|not|pass|as|is|in)\\b"
     },
     "keywords-declaration": {
-      "name": "storage.modifier.pentest",
+      "name": "storage.modifier.cstar",
       "match": "\\b(global|nonlocal)\\b"
     },
     "keywords-module": {
-      "name": "keyword.control.pentest",
+      "name": "keyword.control.cstar",
       "match": "\\b(import|from)\\b"
     },
     "constants": {
-      "name": "constant.language.pentest",
+      "name": "constant.language.cstar",
       "match": "\\b(True|False|None)\\b"
     },
     "method-call": {
       "match": "(\\.)([A-Za-z_][A-Za-z0-9_]*)(?=\\s*\\()",
       "captures": {
-        "1": { "name": "punctuation.accessor.dot.pentest" },
-        "2": { "name": "variable.function.pentest" }
+        "1": { "name": "punctuation.accessor.dot.cstar" },
+        "2": { "name": "variable.function.cstar" }
       }
     },
     "attribute": {
       "match": "(\\.)([A-Za-z_][A-Za-z0-9_]*)(?!\\s*\\()",
       "captures": {
-        "1": { "name": "punctuation.accessor.dot.pentest" },
-        "2": { "name": "variable.other.member.pentest" }
+        "1": { "name": "punctuation.accessor.dot.cstar" },
+        "2": { "name": "variable.other.member.cstar" }
       }
     },
     "builtin": {
-      "name": "support.function.pentest",
+      "name": "support.function.cstar",
       "match": "\\b(print|range|len|str|int|float|bool|type|encode|decode|set|collect|input|time|clock|http_post|http_get|url_encode|abs|all|any|ascii|bin|bytes|callable|chr|compile|delattr|dict|dir|divmod|enumerate|eval|exec|filter|format|getattr|globals|hasattr|hash|hex|id|isinstance|iter|list|locals|map|max|min|next|oct|open|ord|pow|repr|reversed|round|setattr|slice|sorted|sum|tuple|vars|zip|breakpoint|classmethod|help|issubclass|memoryview|object|property|staticmethod|super)(?=\\s*\\()"
     },
     "function-call": {
-      "name": "variable.function.pentest",
+      "name": "variable.function.cstar",
       "match": "\\b([A-Za-z_][A-Za-z0-9_]*)(?=\\s*\\()"
     },
     "subscript": {
-      "name": "meta.subscript.slice.pentest",
+      "name": "meta.subscript.slice.cstar",
       "begin": "\\[(?=[^\\]{}\\n]*:)",
       "beginCaptures": {
-        "0": { "name": "punctuation.section.brackets.begin.pentest" }
+        "0": { "name": "punctuation.section.brackets.begin.cstar" }
       },
       "end": "\\]",
       "endCaptures": {
-        "0": { "name": "punctuation.section.brackets.end.pentest" }
+        "0": { "name": "punctuation.section.brackets.end.cstar" }
       },
       "patterns": [
         {
-          "name": "keyword.operator.slice.pentest",
+          "name": "keyword.operator.slice.cstar",
           "match": ":"
         },
         { "include": "#numbers" },
@@ -187,11 +187,11 @@
       ]
     },
     "operators": {
-      "name": "keyword.operator.pentest",
+      "name": "keyword.operator.cstar",
       "match": "\\*\\*=|<<=|>>=|==|!=|<=|>=|\\*\\*|<<|>>|\\+=|-=|\\*=|/=|%=|&=|\\|=|\\^=|[+*/%<>=&|^~-]"
     },
     "punctuation": {
-      "name": "punctuation.pentest",
+      "name": "punctuation.cstar",
       "match": "[()\\[\\]{},.:]"
     }
   }

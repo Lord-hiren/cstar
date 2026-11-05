@@ -1,6 +1,6 @@
 'use strict';
 
-// Pentest Language support for VSCode.
+// cstar Language support for VSCode.
 //
 //  * Autocomplete: language keywords (M1 + Stage 2A control flow + Stage 2B
 //    `global`/`nonlocal` + Stage 2C `try except finally raise as class is`),
@@ -19,16 +19,16 @@
 //    builtin exception classes, method names right of a dot (per-type
 //    contracts), the `variable.` qualifier form, and user function
 //    (`name():` / `name(params):`) and class declarations (signature + line).
-//  * Live diagnostics: debounced `pentest check` runs (parse + semantic
+//  * Live diagnostics: debounced `cstar check` runs (parse + semantic
 //    analysis only — code is never compiled or executed) whose
 //    `file:line:col: error: msg` output is mapped to editor squiggles.
-//  * `pentest.toggleLineComment` command: line-comment toggling for BOTH
+//  * `cstar.toggleLineComment` command: line-comment toggling for BOTH
 //    `#` and `//` (the built-in Ctrl+/ can only use the one token declared
 //    in language-configuration.json, which is `#`).
-//  * `pentest.run` command + Run button (editor title ▶ and editor context
+//  * `cstar.run` command + Run button (editor title ▶ and editor context
 //    menu): runs THE FILE THE DEVELOPER IS ON — the clicked editor's
 //    resource when the button passes one, else the active document — after
-//    saving it, via `pentest run <file>` in a reusable "Pentest" terminal
+//    saving it, via `cstar run <file>` in a reusable "cstar" terminal
 //    (interactive stdin, so input() works; the terminal is recreated if it
 //    was closed in the meantime).
 //
@@ -82,37 +82,37 @@ const RESERVED = new Set([
 ]);
 
 const KEYWORD_DOCS = {
-  'main': 'Special entry block — its body runs automatically when top-level execution reaches it:\n\n```pentest\nmain:\n    print("start"\n)```',
+  'main': 'Special entry block — its body runs automatically when top-level execution reaches it:\n\n```cstar\nmain:\n    print("start"\n)```',
   'return': 'Return a value from a function. Bare `return` returns `None`. Falling off the end also returns `None`.',
   'True': 'bool literal',
   'False': 'bool literal',
   'None': 'The None value (the absence of a value).',
-  'if': 'Conditional statement (`if cond:`) — also used mid-expression in ternaries (`a if cond else b`). Single-line bodies are allowed:\n\n```pentest\nif x > 0:\n    print(x\nif x > 0): print(x\n)```',
-  'elif': 'Another condition in an `if` chain; conditions are tried in order, once each, until one is truthy:\n\n```pentest\nif x > 0:\n    print("pos"\nelif x == 0):\n    print("zero"\n)```',
-  'else': 'Optional last branch of an `if` chain — runs only when no `if`/`elif` condition matched:\n\n```pentest\nif x > 0:\n    print("pos"\nelse):\n    print("not positive"\n)```',
-  'for': 'Loop with a binding variable: `for var in iterable:` — requires an indented block. Iterates a `range(n)` value or a string:\n\n```pentest\nfor i in range(3):\n    print(i\n)```\nThe loop variable leaks after the loop.',
-  'while': 'Pre-test loop — may run zero iterations. `break`/`continue` apply to the innermost loop:\n\n```pentest\nwhile x < 10:\n    x += 1\n```',
+  'if': 'Conditional statement (`if cond:`) — also used mid-expression in ternaries (`a if cond else b`). Single-line bodies are allowed:\n\n```cstar\nif x > 0:\n    print(x\nif x > 0): print(x\n)```',
+  'elif': 'Another condition in an `if` chain; conditions are tried in order, once each, until one is truthy:\n\n```cstar\nif x > 0:\n    print("pos"\nelif x == 0):\n    print("zero"\n)```',
+  'else': 'Optional last branch of an `if` chain — runs only when no `if`/`elif` condition matched:\n\n```cstar\nif x > 0:\n    print("pos"\nelse):\n    print("not positive"\n)```',
+  'for': 'Loop with a binding variable: `for var in iterable:` — requires an indented block. Iterates a `range(n)` value or a string:\n\n```cstar\nfor i in range(3):\n    print(i\n)```\nThe loop variable leaks after the loop.',
+  'while': 'Pre-test loop — may run zero iterations. `break`/`continue` apply to the innermost loop:\n\n```cstar\nwhile x < 10:\n    x += 1\n```',
   'break': "Exit the innermost loop immediately. **Loop-only**: a compile error outside any loop (`'break' outside of a loop`); a `switch` does not count as a loop.",
   'continue': "Skip to the next iteration of the innermost loop. **Loop-only**: a compile error outside any loop (`'continue' outside of a loop`).",
-  'switch': 'Multi-way branch; constant-literal labels only, first match wins (no fall-through, no `break` needed). `case *:` is optional and must be the last case:\n\n```pentest\nswitch v:\n    case 1:\n        print("one"\n    case *):\n        print("other"\n)```',
+  'switch': 'Multi-way branch; constant-literal labels only, first match wins (no fall-through, no `break` needed). `case *:` is optional and must be the last case:\n\n```cstar\nswitch v:\n    case 1:\n        print("one"\n    case *):\n        print("other"\n)```',
   'case': 'One arm of a `switch`. The label must be a constant literal (int/float/string/`True`/`False`/`None`); duplicate labels are a compile error. `case *:` is the wildcard arm and must come last.',
-  'pass': 'No-op placeholder statement — use it where a block needs at least one statement:\n\n```pentest\nif ready:\n    pass\n```',
+  'pass': 'No-op placeholder statement — use it where a block needs at least one statement:\n\n```cstar\nif ready:\n    pass\n```',
   'and': 'Logical AND. **Returns `Bool`** and short-circuits: if the left operand is falsy, the right side is never evaluated.',
   'or': 'Logical OR. **Returns `Bool`** and short-circuits: if the left operand is truthy, the result is `True` without evaluating the right side.',
   'not': 'Logical NOT. Returns `Bool`: `not a` is `!truthy(a)`; truthiness is total (never an error).',
-  'global': 'Declaration form (Stage 2B): `global name` / `global a, b` — later assignments in the function target the module global.\n\n```pentest\ncount = 0\nbump():\n    global count\n    count += 1\n```\n\nMust appear **before any binding or use** of the name in the function (else `name \'x\' is used before \'global\' declaration`). Reading a global needs no declaration; mutating an object\'s contents (`xs.append(1)`) is not a rebinding and needs no declaration. At top level / in `main:` it is allowed but redundant.',
-  'nonlocal': 'Declaration form (Stage 2B): `nonlocal name` / `nonlocal a, b` — assignments target the **nearest enclosing function\'s** binding (used from a nested function to rebind an enclosing local).\n\n```pentest\nouter():\n    n = 0\n    inner():\n        nonlocal n\n        n += 1\n```\n\nMust appear **before any binding or use** of the name; without it, assigning to an enclosing local from a nested function creates/shadows a local instead. No enclosing binding → `no binding for nonlocal \'n\' found`. Mutating contents needs no declaration.',
-  'try': 'Exception handling (Stage 2C). Block-form body; one or more `except` clauses and/or a `finally` (at least one required):\n\n```pentest\ntry:\n    risky(\nexcept ValueError as e):\n    print(e\nfinally):\n    print("always"\n)```\n\n`break`/`continue`/`return` crossing a `finally` run it first.',
+  'global': 'Declaration form (Stage 2B): `global name` / `global a, b` — later assignments in the function target the module global.\n\n```cstar\ncount = 0\nbump():\n    global count\n    count += 1\n```\n\nMust appear **before any binding or use** of the name in the function (else `name \'x\' is used before \'global\' declaration`). Reading a global needs no declaration; mutating an object\'s contents (`xs.append(1)`) is not a rebinding and needs no declaration. At top level / in `main:` it is allowed but redundant.',
+  'nonlocal': 'Declaration form (Stage 2B): `nonlocal name` / `nonlocal a, b` — assignments target the **nearest enclosing function\'s** binding (used from a nested function to rebind an enclosing local).\n\n```cstar\nouter():\n    n = 0\n    inner():\n        nonlocal n\n        n += 1\n```\n\nMust appear **before any binding or use** of the name; without it, assigning to an enclosing local from a nested function creates/shadows a local instead. No enclosing binding → `no binding for nonlocal \'n\' found`. Mutating contents needs no declaration.',
+  'try': 'Exception handling (Stage 2C). Block-form body; one or more `except` clauses and/or a `finally` (at least one required):\n\n```cstar\ntry:\n    risky(\nexcept ValueError as e):\n    print(e\nfinally):\n    print("always"\n)```\n\n`break`/`continue`/`return` crossing a `finally` run it first.',
   'except': 'Catches the pending exception. Matching is **exact class identity** (no inheritance): `except TypeError:` does not catch a `ValueError`; bare `except:` catches everything. `as e` binds the exception instance for the clause body (`.type` / `.message` attributes). A non-class except expression at runtime → `TypeError: except expects a class, got <t>`.',
   'finally': 'Runs exactly once per entry path — normal completion, `break`/`continue`/`return` out of the `try`, and exception unwind. Optional trailing clause of a `try`; a second one is a compile error (`duplicate \'finally\' clause`).',
   'raise': 'Raise an exception (Stage 2C): `raise e` with an instance (re-raise via the `as` binding), or a bare builtin exception class (`raise ValueError` — constructs an instance with an empty message). Anything else → `TypeError: exceptions must be class or instance, got <t>`; user classes/instances are not raisable. There is no bare `raise`.',
-  'as': 'Binds the caught exception in an `except … as e:` clause (Stage 2C) — the only place `as` appears. The binding is scoped like other statement bindings and lives for the clause body:\n\n```pentest\ntry:\n    parse(data\nexcept ValueError as e):\n    print(e\n)```',
-  'class': 'Declare a class (Stage 2C) — **block form, top level or `main:` only**, body holds methods (and `pass`) only:\n\n```pentest\nclass Point:\n    __init__(self, x, y):\n        self.x = x\n        self.y = y\n\n    move(self, dx, dy):\n        self.x += dx\n        self.y += dy\n```\n\n`self` is an explicit first parameter. Fields are dynamic (`p.x = 1` reads/writes any attribute); `Point(1, 2)` runs `__init__`. No inheritance, no class attributes; the class name is an ordinary guarded global (reads before the declaration runs → `global variable \'Point\' used before assignment`).',
+  'as': 'Binds the caught exception in an `except … as e:` clause (Stage 2C) — the only place `as` appears. The binding is scoped like other statement bindings and lives for the clause body:\n\n```cstar\ntry:\n    parse(data\nexcept ValueError as e):\n    print(e\n)```',
+  'class': 'Declare a class (Stage 2C) — **block form, top level or `main:` only**, body holds methods (and `pass`) only:\n\n```cstar\nclass Point:\n    __init__(self, x, y):\n        self.x = x\n        self.y = y\n\n    move(self, dx, dy):\n        self.x += dx\n        self.y += dy\n```\n\n`self` is an explicit first parameter. Fields are dynamic (`p.x = 1` reads/writes any attribute); `Point(1, 2)` runs `__init__`. No inheritance, no class attributes; the class name is an ordinary guarded global (reads before the declaration runs → `global variable \'Point\' used before assignment`).',
   'is': 'Object-identity operator (Stage 2C): `a is b` / `a is not b` at comparison precedence. True iff the same heap object (instances, lists, …), shared storage for text/bytes, or equal non-heap values (`1 is 1` → True, `1 is 1.0` → False, `None is None` → True). Never a runtime error; never constant-folded.',
-  '->': 'Retired — `->` is **not an operator** in v0.3. It spelled the call in pre-0.3 releases (and, before that, the `for` binder), but calls are now written `f(args)`, zero-argument calls `f()`, and declarations `name(args):` or `name():`.\n\n```pentest\nprint("hi")\nf(x, y)\np.step(i)\n```\nThe parser rejects it with \'->\' is not an operator; call with \'f(args)\'`.',
-  'in': 'Membership / loop-binding operator. Membership — usable in `if`/`while` headers and mid-expression, returning `Bool` (a string target tests byte-substring containment):\n\n```pentest\nif x in range(5):\n    print("in range"\n)```\n\nBinding form in a `for` header:\n\n```pentest\nfor item in collection:\n    print(item\n)```\n',
-  'import': 'Module import (Stage 2D): `import m` / `import m as x`. `m` may be dotted (`import lib.toolkit`). Imports resolve relative to the importing file, then the current working directory, then each `$PENTEST_PATH` entry — and are top-level only. Binding the last dotted component as the module name.\n\n```pentest\nimport lib.toolkit\nimport lib.toolkit as tk\n```',
-  'from': 'Selective module import (Stage 2D): `from m import a` / `from m import a as b` / `from m import a, b as c`. Imported names bind exactly like local declarations. Top-level only.\n\n```pentest\nfrom lib.ports import probe\nfrom AI import jev\n```',
+  '->': 'Retired — `->` is **not an operator** in v0.3. It spelled the call in pre-0.3 releases (and, before that, the `for` binder), but calls are now written `f(args)`, zero-argument calls `f()`, and declarations `name(args):` or `name():`.\n\n```cstar\nprint("hi")\nf(x, y)\np.step(i)\n```\nThe parser rejects it with \'->\' is not an operator; call with \'f(args)\'`.',
+  'in': 'Membership / loop-binding operator. Membership — usable in `if`/`while` headers and mid-expression, returning `Bool` (a string target tests byte-substring containment):\n\n```cstar\nif x in range(5):\n    print("in range"\n)```\n\nBinding form in a `for` header:\n\n```cstar\nfor item in collection:\n    print(item\n)```\n',
+  'import': 'Module import (Stage 2D): `import m` / `import m as x`. `m` may be dotted (`import lib.toolkit`). Imports resolve relative to the importing file, then the current working directory, then each `$CSTAR_PATH` entry (then the legacy `$PENTEST_PATH`) — and are top-level only. Binding the last dotted component as the module name.\n\n```cstar\nimport lib.toolkit\nimport lib.toolkit as tk\n```',
+  'from': 'Selective module import (Stage 2D): `from m import a` / `from m import a as b` / `from m import a, b as c`. Imported names bind exactly like local declarations. Top-level only.\n\n```cstar\nfrom lib.ports import probe\nfrom AI import jev\n```',
 };
 
 // ---------------------------------------------------------------------------
@@ -150,16 +150,16 @@ const VARQUAL_DOC =
   "- `variable.parent n` — the **enclosing function's** binding, from a nested function\n" +
   '- `variable.<fn> n` — a **sibling (or self) function\'s** binding, when the\n' +
   '  named function shares this scope (top-level ↔ top-level, nested ↔ nested)\n\n' +
-  '```pentest\ng = 0\n\ntick():\n    variable.global g += 1\n```\n\n' +
+  '```cstar\ng = 0\n\ntick():\n    variable.global g += 1\n```\n\n' +
   'Full rules: `docs/reference/cross-scope-access.md`.';
 
 const VARQUAL_QUALIFIER_DOCS = {
   'global': '`variable.global n` — read/write the **module global** `n` from ' +
     'wherever you are. No `global` declaration, and every `variable.global` ' +
-    'site and the owner share one storage:\n\n```pentest\ng = 0\ntick():\n    variable.global g += 1\n```',
+    'site and the owner share one storage:\n\n```cstar\ng = 0\ntick():\n    variable.global g += 1\n```',
   'parent': "`variable.parent n` — read/write the **enclosing function's** " +
     'binding `n` from a nested function. No `nonlocal` declaration needed:\n\n' +
-    '```pentest\nouter():\n    n = 0\n    inner():\n        variable.parent n += 1\n```',
+    '```cstar\nouter():\n    n = 0\n    inner():\n        variable.parent n += 1\n```',
 };
 
 // ---------------------------------------------------------------------------
@@ -236,7 +236,7 @@ const BUILTIN_DOCS = {
   // -------------------------------------------------------------------------
   // 0.2.1 — Python-parity builtins (SPEC §5.11.3). Same call-only/reserved
   // treatment as the legacy set; arity and named arguments are compile-time
-  // checked (SPEC §5.11.1). Error wordings match CPython except Pentest's
+  // checked (SPEC §5.11.1). Error wordings match CPython except cstar's
   // type names (text/None/map/class) — the documented deviations live in
   // SPEC §5.11.5.
   // -------------------------------------------------------------------------
@@ -286,7 +286,7 @@ const BUILTIN_DOCS = {
   },
   'divmod': {
     sig: 'divmod(${1:a}, ${2:b})',
-    doc: '`divmod(a, b)` — `(quotient, remainder)` using Pentest\'s C99 truncating `/` and `%` (**not** Python\'s floor — documented deviation): `divmod(-7, 2)` → `(-3, -1)`. `b == 0` → `ZeroDivisionError`.',
+    doc: '`divmod(a, b)` — `(quotient, remainder)` using cstar\'s C99 truncating `/` and `%` (**not** Python\'s floor — documented deviation): `divmod(-7, 2)` → `(-3, -1)`. `b == 0` → `ZeroDivisionError`.',
   },
   'enumerate': {
     sig: 'enumerate(${1:iterable})',
@@ -294,7 +294,7 @@ const BUILTIN_DOCS = {
   },
   'filter': {
     sig: 'filter(${1:function}, ${2:iterable})',
-    doc: '`filter(fn, it)` — eager list of elements whose item is truthy; `fn` may be `None` (keeps truthy, like Python). Non-callable → `TypeError` `filter() arg 1 must be callable or None`. Callbacks are named `function` declarations (Pentest has no lambdas).',
+    doc: '`filter(fn, it)` — eager list of elements whose item is truthy; `fn` may be `None` (keeps truthy, like Python). Non-callable → `TypeError` `filter() arg 1 must be callable or None`. Callbacks are named `function` declarations (cstar has no lambdas).',
   },
   'format': {
     sig: 'format(${1:value}, ${2:spec})',
@@ -326,7 +326,7 @@ const BUILTIN_DOCS = {
   },
   'isinstance': {
     sig: 'isinstance(${1:value}, ${2:type})',
-    doc: '`isinstance(x, t)` / `isinstance(x, (t1, t2))` — **exact** type match: no subclassing (`isinstance(True, int)` is `False`). `t` may be a bare builtin-type name (`int`, `text`, `type`, … — rewritten at compile time), a type-name string (`"int"` — a Pentest extension Python rejects), an exception class, a user class, or a tuple of those. A shadowing parameter/local of that name wins.',
+    doc: '`isinstance(x, t)` / `isinstance(x, (t1, t2))` — **exact** type match: no subclassing (`isinstance(True, int)` is `False`). `t` may be a bare builtin-type name (`int`, `text`, `type`, … — rewritten at compile time), a type-name string (`"int"` — a cstar extension Python rejects), an exception class, a user class, or a tuple of those. A shadowing parameter/local of that name wins.',
   },
   'iter': {
     sig: 'iter(${1:value})',
@@ -394,7 +394,7 @@ const BUILTIN_DOCS = {
   },
   'sorted': {
     sig: 'sorted(${1:iterable})',
-    doc: '`sorted(it)` / `sorted(it, key=fn, reverse=…)` — a new sorted **list**; stable merge sort. `key` callable or `None`; `reverse` is truth-tested (any truthy value reverses, like Python). Incomparable items → the `<` comparison `TypeError` (Pentest orders only numbers/text — documented).',
+    doc: '`sorted(it)` / `sorted(it, key=fn, reverse=…)` — a new sorted **list**; stable merge sort. `key` callable or `None`; `reverse` is truth-tested (any truthy value reverses, like Python). Incomparable items → the `<` comparison `TypeError` (cstar orders only numbers/text — documented).',
   },
   'sum': {
     sig: 'sum(${1:iterable})',
@@ -430,9 +430,9 @@ const BUILTIN_DOCS = {
   // -------------------------------------------------------------------------
   // 0.2.1 — the dynamic-code trio: rejected at COMPILE time (SPEC §5.11.6).
   // -------------------------------------------------------------------------
-  'eval': { sig: 'eval(${1:source})', doc: '`eval(source)` — **not available in Pentest**: programs are compiled ahead of time and the runtime never compiles source. Calling it is a compile-time error (SPEC §5.11.6).' },
-  'exec': { sig: 'exec(${1:source})', doc: '`exec(source)` — **not available in Pentest**: calling it is a compile-time error — no embedded parser/interpreter in the runtime (SPEC §5.11.6).' },
-  'compile': { sig: 'compile(${1:source})', doc: '`compile(source, filename, mode)` — **not available in Pentest**: calling it is a compile-time error — the runtime never compiles source (SPEC §5.11.6).' },
+  'eval': { sig: 'eval(${1:source})', doc: '`eval(source)` — **not available in cstar**: programs are compiled ahead of time and the runtime never compiles source. Calling it is a compile-time error (SPEC §5.11.6).' },
+  'exec': { sig: 'exec(${1:source})', doc: '`exec(source)` — **not available in cstar**: calling it is a compile-time error — no embedded parser/interpreter in the runtime (SPEC §5.11.6).' },
+  'compile': { sig: 'compile(${1:source})', doc: '`compile(source, filename, mode)` — **not available in cstar**: calling it is a compile-time error — the runtime never compiles source (SPEC §5.11.6).' },
 };
 
 // ---------------------------------------------------------------------------
@@ -577,20 +577,58 @@ function isMethodAccess(linePrefix) {
 let runTerminal;
 
 function ensureRunTerminal() {
-  if (!runTerminal) runTerminal = vscode.window.createTerminal('Pentest');
+  if (!runTerminal) runTerminal = vscode.window.createTerminal('cstar');
   return runTerminal;
 }
 
-function resolveRunCli() {
-  const cfg = vscode.workspace.getConfiguration('pentest');
-  const exe = (cfg.get('executable', 'pentest') || 'pentest').trim();
-  if (exe.includes('/')) return exe; // explicit path — the shell runs it as-is
+// Settings live under `cstar.*`. The legacy `pentest.*` keys (kept until
+// v0.4) are still honoured for any key the user has not set under cstar.
+function settingIsSet(info) {
+  return !!info && [
+    'globalValue', 'workspaceValue', 'workspaceFolderValue',
+    'globalLanguageValue', 'workspaceLanguageValue',
+    'workspaceFolderLanguageValue',
+  ].some((k) => info[k] !== undefined);
+}
+
+function setting(key, def, scope) {
+  const cfg = vscode.workspace.getConfiguration('cstar', scope);
+  if (typeof cfg.inspect !== 'function') return cfg.get(key, def);
+  if (settingIsSet(cfg.inspect(key))) return cfg.get(key, def);
+  const legacy = vscode.workspace.getConfiguration('pentest', scope);
+  if (typeof legacy.inspect === 'function' && settingIsSet(legacy.inspect(key))) {
+    return legacy.get(key, def);
+  }
+  return def;
+}
+
+// The configured CLI name (default `cstar`), plus the legacy `pentest`
+// command as a fallback when the default is in use.
+function cliNames() {
+  const exe = (setting('executable', 'cstar') || 'cstar').trim();
+  return exe === 'cstar' ? ['cstar', 'pentest'] : [exe];
+}
+
+// Where a bare CLI name is looked for: PATH, ~/.local/bin, and the
+// developer checkout's build folder.
+function cliLocations(name) {
   const home = os.homedir();
-  const local = path.join(home, '.local', 'bin', exe);
-  if (fs.existsSync(local)) return local;
-  const repo = path.join(home, 'Projects', 'Pentest', 'build', exe);
-  if (fs.existsSync(repo)) return repo;
-  return exe; // last resort: whatever the terminal's PATH finds
+  return [
+    name,
+    path.join(home, '.local', 'bin', name),
+    path.join(home, 'Projects', 'Pentest', 'build', name),
+  ];
+}
+
+function resolveRunCli() {
+  const names = cliNames();
+  if (names[0].includes('/')) return names[0]; // explicit path — run as-is
+  for (const name of names) {
+    for (const loc of cliLocations(name).slice(1)) {
+      if (fs.existsSync(loc)) return loc;
+    }
+  }
+  return names[0]; // last resort: whatever the terminal's PATH finds
 }
 
 // Double-quote a path for the user's shell so spaces and the usual
@@ -622,17 +660,17 @@ async function runActiveFile(resource) {
     doc = editor && editor.document;
   }
   if (!doc) {
-    vscode.window.showInformationMessage('Pentest: open a .pen file to run.');
+    vscode.window.showInformationMessage('cstar: open a .cst file to run.');
     return;
   }
-  if (doc.languageId !== 'pentest') {
+  if (doc.languageId !== 'cstar') {
     vscode.window.showInformationMessage(
-      'Pentest: Run File works on .pen/.pent documents.'
+      'cstar: Run File works on .cst documents (and legacy .pen/.pent).'
     );
     return;
   }
   if (doc.isUntitled) {
-    vscode.window.showWarningMessage('Pentest: save the file before running.');
+    vscode.window.showWarningMessage('cstar: save the file before running.');
     return;
   }
   if (doc.isDirty) {
@@ -644,7 +682,7 @@ async function runActiveFile(resource) {
     }
     if (!saved) {
       vscode.window.showErrorMessage(
-        'Pentest: could not save the file — run cancelled.'
+        'cstar: could not save the file — run cancelled.'
       );
       return;
     }
@@ -670,13 +708,13 @@ async function runActiveFile(resource) {
 // ---------------------------------------------------------------------------
 
 function activate(context) {
-  outputChannel = vscode.window.createOutputChannel('Pentest');
-  diagCollection = vscode.languages.createDiagnosticCollection('pentest');
+  outputChannel = vscode.window.createOutputChannel('cstar');
+  diagCollection = vscode.languages.createDiagnosticCollection('cstar');
   context.subscriptions.push(outputChannel, diagCollection);
 
   context.subscriptions.push(
     vscode.languages.registerCompletionItemProvider(
-      { language: 'pentest' },
+      { language: 'cstar' },
       { provideCompletionItems },
       '.' // Stage 2B: pop method completions right after `value.`
     )
@@ -689,20 +727,23 @@ function activate(context) {
   // (signature + declaration line).
   context.subscriptions.push(
     vscode.languages.registerHoverProvider(
-      { language: 'pentest' },
+      { language: 'cstar' },
       { provideHover }
     )
   );
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand('pentest.toggleLineComment', toggleLineComment)
-  );
+  // `cstar.*` commands, plus the legacy `pentest.*` ids as aliases (until
+  // v0.4) so existing keybindings keep working.
+  for (const prefix of ['cstar', 'pentest']) {
+    context.subscriptions.push(
+      vscode.commands.registerCommand(prefix + '.toggleLineComment', toggleLineComment)
+    );
+    context.subscriptions.push(
+      vscode.commands.registerCommand(prefix + '.run', runActiveFile)
+    );
+  }
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand('pentest.run', runActiveFile)
-  );
-
-  // A closed "Pentest" terminal must not leave a dangling handle behind —
+  // A closed "cstar" terminal must not leave a dangling handle behind —
   // the next Run click then recreates it (ensureRunTerminal + the sendText
   // fallback in runActiveFile).
   context.subscriptions.push(
@@ -844,20 +885,25 @@ function importLines(text) {
 }
 
 function resolveModule(spec, docDir) {
-  const rel = spec.replace(/\./g, '/') + '.pen';
+  const base = spec.replace(/\./g, '/');
   const dirs = [docDir];
-  if (process.env.PENTEST_PATH) {
-    for (const d of String(process.env.PENTEST_PATH).split(':')) {
+  // $CSTAR_PATH first, then the legacy $PENTEST_PATH (until v0.4).
+  for (const v of ['CSTAR_PATH', 'PENTEST_PATH']) {
+    if (!process.env[v]) continue;
+    for (const d of String(process.env[v]).split(':')) {
       if (d) dirs.push(d);
     }
   }
   dirs.push(process.cwd());
   for (const d of dirs) {
-    try {
-      const p = path.join(d, rel);
-      if (fs.existsSync(p)) return p;
-    } catch (e) {
-      /* ignore unreadable/unsafe path */
+    // `.cst` first; the legacy `.pen` / `.pent` spellings until v0.4.
+    for (const ext of ['.cst', '.pen', '.pent']) {
+      try {
+        const p = path.join(d, base + ext);
+        if (fs.existsSync(p)) return p;
+      } catch (e) {
+        /* ignore unreadable/unsafe path */
+      }
     }
   }
   return null;
@@ -965,7 +1011,7 @@ function buildCompletions(document, position) {
 
   for (const kw of Object.keys(KEYWORD_DOCS)) {
     const item = new vscode.CompletionItem(kw, vscode.CompletionItemKind.Keyword);
-    item.detail = /^[A-Za-z_]/.test(kw) ? 'Pentest keyword' : 'Pentest operator';
+    item.detail = /^[A-Za-z_]/.test(kw) ? 'cstar keyword' : 'cstar operator';
     item.documentation = new vscode.MarkdownString(KEYWORD_DOCS[kw]);
     item.sortText = '0_' + kw;
     applyRange(item);
@@ -988,7 +1034,7 @@ function buildCompletions(document, position) {
     '`range(stop)` / `range(start, stop)` / `range(start, stop, step)` — lazy int ' +
       'range for `for` loops and `in` membership. **Stop is exclusive** (default ' +
       'start=0, step=1), all arguments must be int, and `step` must not be 0.\n\n' +
-      '```pentest\nfor i in range(5):\n    print(i\n)```'
+      '```cstar\nfor i in range(5):\n    print(i\n)```'
   );
   range.insertText = new vscode.SnippetString('range(${1:stop})');
   range.sortText = '0_range';
@@ -1012,7 +1058,7 @@ function buildCompletions(document, position) {
   // reserved — so a plain-word duplicate is suppressed in the document-word
   // pass below; accepting this item inserts the whole qualified shape.
   const vqItem = new vscode.CompletionItem('variable', vscode.CompletionItemKind.Keyword);
-  vqItem.detail = 'Pentest contextual form — cross-scope variable access';
+  vqItem.detail = 'cstar contextual form — cross-scope variable access';
   vqItem.documentation = new vscode.MarkdownString(VARQUAL_DOC);
   vqItem.insertText = new vscode.SnippetString('variable.${1:global} ${2:name}');
   vqItem.sortText = '0_variable';
@@ -1068,15 +1114,15 @@ function buildCompletions(document, position) {
 // VSCode's language configuration accepts exactly ONE `comments.lineComment`
 // token (which is `#`, so the built-in Ctrl+/ keeps working as before), so
 // lines commented with `//` are handled by this command instead. It is
-// registered at runtime as `pentest.toggleLineComment`; bind it to a key in
+// registered at runtime as `cstar.toggleLineComment`; bind it to a key in
 // keybindings.json if you want one shortcut for both styles, e.g.
-//   { "key": "ctrl+/", "command": "pentest.toggleLineComment",
-//     "when": "editorTextFocus && editorLangId == pentest" }
+//   { "key": "ctrl+/", "command": "cstar.toggleLineComment",
+//     "when": "editorTextFocus && editorLangId == cstar" }
 
 function toggleLineComment() {
   try {
     const editor = vscode.window.activeTextEditor;
-    if (!editor || editor.document.languageId !== 'pentest') return;
+    if (!editor || editor.document.languageId !== 'cstar') return;
     const doc = editor.document;
 
     const selections = (editor.selections && editor.selections.length)
@@ -1141,19 +1187,18 @@ function toggleLineComment() {
 }
 
 // ---------------------------------------------------------------------------
-// Live diagnostics (pentest check — parse + semantic only)
+// Live diagnostics (cstar check — parse + semantic only)
 // ---------------------------------------------------------------------------
 
 function schedule(doc, delay) {
-  if (doc.languageId !== 'pentest' || doc.isClosed) return;
-  const cfg = vscode.workspace.getConfiguration('pentest', doc.uri);
-  if (!cfg.get('diagnostics', true)) {
+  if (doc.languageId !== 'cstar' || doc.isClosed) return;
+  if (!setting('diagnostics', true, doc.uri)) {
     clearPending(doc);
     diagCollection.delete(doc.uri);
     return;
   }
   clearPending(doc);
-  const ms = delay !== undefined ? delay : cfg.get('diagnosticsDelay', 400);
+  const ms = delay !== undefined ? delay : setting('diagnosticsDelay', 400, doc.uri);
   const t = setTimeout(() => {
     pending.delete(doc.uri.toString());
     runCheck(doc);
@@ -1170,15 +1215,10 @@ function clearPending(doc) {
 }
 
 function cliCandidates() {
-  const cfg = vscode.workspace.getConfiguration('pentest');
-  const exe = (cfg.get('executable', 'pentest') || 'pentest').trim();
-  if (exe.includes('/')) return [exe];
-  const home = os.homedir();
-  const list = [
-    exe, // PATH
-    path.join(home, '.local', 'bin', exe),
-    path.join(home, 'Projects', 'Pentest', 'build', exe),
-  ];
+  const names = cliNames();
+  if (names[0].includes('/')) return [names[0]];
+  // cstar locations first, then the legacy `pentest` ones.
+  const list = [].concat(...names.map(cliLocations));
   return list.filter((v, i) => list.indexOf(v) === i);
 }
 
@@ -1188,11 +1228,12 @@ function runCheck(doc) {
   const text = doc.getText();
   // The temp copy lives outside the project, so module imports must still
   // resolve as if the file were in its real folder. Run the check from the
-  // document's own directory and put that directory first on $PENTEST_PATH.
+  // document's own directory and put that directory first on $CSTAR_PATH
+  // (and on the legacy $PENTEST_PATH, for an older pentest CLI).
   const docDir = path.dirname(doc.uri.fsPath);
   const tmpFile = path.join(
     os.tmpdir(),
-    `pentest-check-${process.pid}-${++checkCounter}-${Date.now()}.pen`
+    `cstar-check-${process.pid}-${++checkCounter}-${Date.now()}.cst`
   );
 
   fs.writeFile(tmpFile, text, (err) => {
@@ -1208,11 +1249,11 @@ function runCheck(doc) {
         if (!cliWarned) {
           cliWarned = true;
           vscode.window.showWarningMessage(
-            'Pentest CLI not found — live error diagnostics are disabled. ' +
-              'Set "pentest.executable" in Settings.'
+            'cstar CLI not found — live error diagnostics are disabled. ' +
+              'Set "cstar.executable" in Settings.'
           );
           outputChannel.appendLine(
-            'pentest CLI not found; tried: ' + candidates.join(', ')
+            'cstar CLI not found; tried: ' + candidates.join(', ')
           );
         }
         cleanup();
@@ -1224,6 +1265,9 @@ function runCheck(doc) {
       const child = spawn(candidates[i], ['check', tmpFile], {
         cwd: docDir,
         env: Object.assign({}, process.env, {
+          CSTAR_PATH: [docDir, process.env.CSTAR_PATH]
+            .filter(Boolean)
+            .join(':'),
           PENTEST_PATH: [docDir, process.env.PENTEST_PATH]
             .filter(Boolean)
             .join(':'),
@@ -1246,7 +1290,7 @@ function runCheck(doc) {
           applyDiagnostics(doc, version, code === 1 ? stderr : '');
         } else {
           outputChannel.appendLine(
-            `pentest check exited ${code}: ${stderr.trim()}`
+            `cstar check exited ${code}: ${stderr.trim()}`
           );
         }
       });
@@ -1296,7 +1340,7 @@ function applyDiagnosticsInner(doc, version, stderr) {
     if (end > src.length) end = src.length;
     const range = new vscode.Range(lineIdx, start, lineIdx, Math.max(end, start));
     const d = new vscode.Diagnostic(range, m[4], vscode.DiagnosticSeverity.Error);
-    d.source = 'pentest';
+    d.source = 'cstar';
     diags.push(d);
     if (diags.length >= 200) break;
   }
@@ -1314,7 +1358,7 @@ function hoverSig(sig) {
 }
 
 const BUILTIN_HOVER_FOOTER =
-  '*Pentest builtin — call-only and reserved; arity and named arguments are\n' +
+  '*cstar builtin — call-only and reserved; arity and named arguments are\n' +
   'checked at compile time (SPEC §5.11).*\n';
 
 // `print`/`range` keep their bespoke completion items (M1/2A — the completion
@@ -1331,7 +1375,7 @@ const LEGACY_HOVER_DOCS = {
     doc: '`range(stop)` / `range(start, stop)` / `range(start, stop, step)` — ' +
       'lazy int range for `for` loops and `in` membership. **Stop is ' +
       'exclusive** (default start=0, step=1), all arguments must be int, and ' +
-      '`step` must not be 0.\n\n```pentest\nfor i in range(5):\n    print(i\n)```',
+      '`step` must not be 0.\n\n```cstar\nfor i in range(5):\n    print(i\n)```',
   },
 };
 
@@ -1357,7 +1401,7 @@ function provideHover(document, position) {
   const b = BUILTIN_DOCS[word] || LEGACY_HOVER_DOCS[word];
   if (b) {
     const md = new vscode.MarkdownString();
-    md.appendCodeblock(hoverSig(b.sig), 'pentest');
+    md.appendCodeblock(hoverSig(b.sig), 'cstar');
     md.appendMarkdown(b.doc + '\n\n' + BUILTIN_HOVER_FOOTER);
     return new vscode.Hover(md, range);
   }
@@ -1366,9 +1410,9 @@ function provideHover(document, position) {
   const exc = EXCEPTION_DOCS[word];
   if (exc) {
     const md = new vscode.MarkdownString();
-    md.appendCodeblock(word, 'pentest');
+    md.appendCodeblock(word, 'cstar');
     md.appendMarkdown(
-      exc + '\n\n*Pentest builtin exception class — catch with exact class identity\n' +
+      exc + '\n\n*cstar builtin exception class — catch with exact class identity\n' +
       '(`except ' + word + ' as e:`); instances expose `.type` and `.message`\n' +
       '(SPEC §6.10).*\n');
     return new vscode.Hover(md, range);
@@ -1402,7 +1446,7 @@ function provideHover(document, position) {
   const d = userDecls(document).get(word);
   if (d) {
     const md = new vscode.MarkdownString();
-    md.appendCodeblock(d.sig, 'pentest');
+    md.appendCodeblock(d.sig, 'cstar');
     let note;
     if (d.kind === 'method') {
       note = '*Declared at line ' + (d.line + 1) + '. Methods take an explicit `self`;\n' +
@@ -1412,7 +1456,7 @@ function provideHover(document, position) {
         'call operator (`Class(args)`); fields are dynamic; no inheritance (SPEC §8).*\n';
     } else {
       note = '*Declared at line ' + (d.line + 1) + '. Named `name():` / `name(params):`\n' +
-        'declarations only — Pentest has no lambdas; callbacks are passed as named\n' +
+        'declarations only — cstar has no lambdas; callbacks are passed as named\n' +
         'functions.*\n';
     }
     md.appendMarkdown(note);
@@ -1422,4 +1466,9 @@ function provideHover(document, position) {
   return undefined;
 }
 
-module.exports = { activate, deactivate };
+module.exports = {
+  activate,
+  deactivate,
+  // Internal helpers, exported only for test/smoke.js.
+  _test: { setting, cliNames, cliCandidates, resolveModule },
+};
