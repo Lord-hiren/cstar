@@ -16,21 +16,21 @@ See: .paul/PROJECT.md (updated 2026-11-04 after Phase 1)
 ## Current Position
 
 Milestone: v0.3 cstar Foundation (v0.3.0)
-Phase: 2 of 4 (Rename to cstar) — In progress
-Plan: 02-01 complete (1 of 4 in phase)
-Status: Ready for next PLAN (02-02)
-Last activity: 2026-11-05 — 02-01 unified: cstar CLI; make test 376/0
+Phase: 2 of 4 (Rename to cstar) — Applying
+Plan: 02-02 approved, executing
+Status: Applying 02-02
+Last activity: 2026-11-05 — Created .paul/phases/02-rename-to-cstar/02-02-PLAN.md (Phase 2 split into 5 plans)
 
 Progress:
-- Milestone: [████░░░░░░] 40% (4 of 10 plans; 1 of 4 phases)
-- Phase 2: [██░░░░░░░░] 25% (1 of 4 plans)
+- Milestone: [████░░░░░░] 36% (4 of 11 plans; 1 of 4 phases)
+- Phase 2: [██░░░░░░░░] 20% (1 of 5 plans)
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Loop complete - ready for next PLAN]
+  ✓        ◉        ○     [Applying 02-02]
 ```
 
 ## Accumulated Context
@@ -54,8 +54,8 @@ Full decision log: PROJECT.md → Key Decisions.
 
 | Issue | Origin | Effort | Revisit |
 |-------|--------|--------|---------|
-| D-6: SPEC lacks `fvec`/`ivec`/`fvec_fill`/`ivec_fill`/`dot`; says "seventy" (code has 78) | 01-02 | M | With 02-03 (SPEC) or its own plan |
-| D-7: VSCode extension `RESERVED` lacks the 5 vector builtins | 01-02 | S | 02-02 (editor extension) |
+| D-6: SPEC lacks `fvec`/`ivec`/`fvec_fill`/`ivec_fill`/`dot`; says "seventy" (code has 78) | 01-02 | M | With 02-05 (docs/SPEC) or its own plan |
+| D-7: VSCode extension `RESERVED` lacks the 5 vector builtins | 01-02 | S | 02-03 (editor extension) |
 | D-8: docs/history headers say "current suite is 368 checks" | 01-02 | S | When the rename touches history docs |
 | D-9: CI not yet run on GitHub (branch not pushed); GitHub `main` still has the broken `file_line_edges.out` | 01-03 | S | Whenever you approve a push |
 | Auto-GPU float policy; memory-access scope; "freely code in app" meaning | Init | S | v0.8 / v0.5 / v0.4 planning |
@@ -74,9 +74,9 @@ Feature branches merged: none (merge into main and push only when you ask)
 ## Session Continuity
 
 Last session: 2026-11-05
-Stopped at: Plan 02-01 loop closed (SUMMARY written)
-Next action: /paul:plan for 02-02 (language name in messages, test files → .cst, editor extension + D-7)
-Resume file: .paul/phases/02-rename-to-cstar/02-01-SUMMARY.md
+Stopped at: Plan 02-02 created
+Next action: Review and approve plan, then run /paul:apply .paul/phases/02-rename-to-cstar/02-02-PLAN.md
+Resume file: .paul/phases/02-rename-to-cstar/02-02-PLAN.md
 
 ---
 *STATE.md — Updated after every significant action*

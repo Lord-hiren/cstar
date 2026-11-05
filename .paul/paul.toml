@@ -21,7 +21,9 @@ status = "in_progress"
 plans_completed = 1
 
 [loop]
-position = "IDLE"
+position = "PLAN"
+plan = "02-02"
+plan_path = "phases/02-rename-to-cstar/02-02-PLAN.md"
 
 [satellite]
 groom = true
