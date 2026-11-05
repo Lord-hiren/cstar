@@ -15,11 +15,11 @@
 // instead of the generic pre-integration failures.
 // while preserving the M1 output structure
 // byte-for-byte for M1 programs:
-//   #include "pentest_rt.h"
-//   static pt_value pt_g_<name>;                 (one per Program.globals)
+//   #include "cstar_rt.h"
+//   static cs_value cs_g_<name>;                 (one per Program.globals)
 //   <forward declarations of ALL functions>
 //   <function definitions, declaration order>
-//   static void pt_main_block(void)              (if Program.has_main)
+//   static void cs_main_block(void)              (if Program.has_main)
 //   int main(int argc, char** argv)              (top-level flow in source order)
 //
 // Expressions are A-normalized: every effectful subexpression (variable read
@@ -32,14 +32,14 @@
 // inline emission path (Emitter::try_inline): a tree is inlined as a single
 // C expression only when every call node ends up with at most one effectful
 // child, which keeps evaluation order deterministic and lets headers take
-// the literal contract forms `if/else if (pt_truthy(cond, line))` and
-// `while (pt_truthy(cond, line))`. Trees that cannot be inlined fall back to
+// the literal contract forms `if/else if (cs_truthy(cond, line))` and
+// `while (cs_truthy(cond, line))`. Trees that cannot be inlined fall back to
 // A-normalized temporaries placed in the lazy position: before the `if` for
 // the first condition, inside the `else { ... }` block for a non-inlineable
 // `elif` (forcing an inner `if`), and inside `for (;;) { ... }` for a while
 // whose header cannot be written as one expression (condition statements
 // must be re-evaluated every iteration, so they live inside the loop and a
-// `if (!pt_truthy(...)) break;` pre-test replaces the C header).
+// `if (!cs_truthy(...)) break;` pre-test replaces the C header).
 //
 // Subexpressions that must stay lazy inside a single expression (ternary
 // arms, the right operand of and/or) use try_inline with a GNU statement
@@ -54,7 +54,7 @@
 // and case labels are constants.
 //
 // Generated runtime calls all receive the Pentest source line of their AST
-// node (pt_eq is the M1 total operator and takes no line; pt_guard takes the
+// node (cs_eq is the M1 total operator and takes no line; cs_guard takes the
 // Var/compound-target line).
 
 #include "codegen.h"
@@ -76,12 +76,12 @@
 #include <utility>
 #include <vector>
 
-namespace pentest {
+namespace cstar {
 namespace {
 
 [[noreturn]] void fail(const std::string& msg) { throw std::runtime_error(msg); }
 
-// Escapes raw bytes for a C string literal (or the pt_init path):
+// Escapes raw bytes for a C string literal (or the cs_init path):
 //  - '"' and '\\' are backslash-escaped;
 //  - the first '?' of any "??" pair becomes \077 so no trigraph can form
 //    (clang performs trigraph conversion in -std=c11 mode, which would both
@@ -112,15 +112,15 @@ std::string c_escape(const std::string& s) {
 }
 
 std::string int_literal(long long v) {
-  if (v == INT64_MIN) return "pt_int(INT64_MIN)";
-  return "pt_int(" + std::to_string(v) + "LL)";
+  if (v == INT64_MIN) return "cs_int(INT64_MIN)";
+  return "cs_int(" + std::to_string(v) + "LL)";
 }
 
 // Emits a double literal that strtod's back to the identical value: shortest
 // of %.15g/%.16g/%.17g that round-trips, forced to stay a double literal.
 std::string float_literal(double d) {
-  if (std::isnan(d)) return "pt_float(__builtin_nan(\"\"))";
-  if (std::isinf(d)) return d < 0 ? "pt_float(-__builtin_inf())" : "pt_float(__builtin_inf())";
+  if (std::isnan(d)) return "cs_float(__builtin_nan(\"\"))";
+  if (std::isinf(d)) return d < 0 ? "cs_float(-__builtin_inf())" : "cs_float(__builtin_inf())";
   char buf[64];
   for (int prec = 15; prec <= 17; ++prec) {
     std::snprintf(buf, sizeof(buf), "%.*g", prec, d);
@@ -131,11 +131,11 @@ std::string float_literal(double d) {
       s.find('E') == std::string::npos) {
     s += ".0";
   }
-  return "pt_float(" + s + ")";
+  return "cs_float(" + s + ")";
 }
 
-// RAW C literals for the fused SIMD kernels (the pt_int/pt_float forms
-// above box into pt_value; vector lanes need the unwrapped text).
+// RAW C literals for the fused SIMD kernels (the cs_int/cs_float forms
+// above box into cs_value; vector lanes need the unwrapped text).
 std::string int_literal_raw(long long v) { return std::to_string(v) + "LL"; }
 std::string float_literal_raw(double d) {
   if (std::isnan(d)) return "__builtin_nan(\"\")";
@@ -154,32 +154,32 @@ std::string float_literal_raw(double d) {
 
 // Runtime function for a binary op (M1 + M2-2A §3). `*total` is set for the
 // ops that never fail and therefore take no line argument (M1 == / !=);
-// `*contains` is set for "in" (bool-returning pt_contains).
+// `*contains` is set for "in" (bool-returning cs_contains).
 const char* binary_fn(const std::string& op, bool* total, bool* contains) {
   *total = false;
   *contains = false;
   /* The numeric/comparison ops emit the header's static-inline _f fast
-   * paths (see pentest_rt.h): identical semantics via the same tag checks
+   * paths (see cstar_rt.h): identical semantics via the same tag checks
    * with an out-of-line fallback, but no call on the numeric hot path —
    * an opaque call in a loop body blocks LLVM's register promotion. */
-  if (op == "+") return "pt_add_f";
-  if (op == "-") return "pt_sub_f";
-  if (op == "*") return "pt_mul_f";
-  if (op == "/") return "pt_div_f";
-  if (op == "%") return "pt_mod_f";
-  if (op == "<") return "pt_lt_f";
-  if (op == "<=") return "pt_le_f";
-  if (op == ">") return "pt_gt_f";
-  if (op == ">=") return "pt_ge_f";
-  if (op == "==") { *total = true; return "pt_eq_f"; }
-  if (op == "!=") { *total = true; return "pt_ne_f"; }
-  if (op == "**") return "pt_pow";      // M2-2A §3.1
-  if (op == "&") return "pt_band";      // M2-2A §3.2
-  if (op == "|") return "pt_bor";
-  if (op == "^") return "pt_bxor";
-  if (op == "<<") return "pt_shl";
-  if (op == ">>") return "pt_shr";
-  if (op == "in") { *contains = true; return "pt_contains"; }  // §3.4
+  if (op == "+") return "cs_add_f";
+  if (op == "-") return "cs_sub_f";
+  if (op == "*") return "cs_mul_f";
+  if (op == "/") return "cs_div_f";
+  if (op == "%") return "cs_mod_f";
+  if (op == "<") return "cs_lt_f";
+  if (op == "<=") return "cs_le_f";
+  if (op == ">") return "cs_gt_f";
+  if (op == ">=") return "cs_ge_f";
+  if (op == "==") { *total = true; return "cs_eq_f"; }
+  if (op == "!=") { *total = true; return "cs_ne_f"; }
+  if (op == "**") return "cs_pow";      // M2-2A §3.1
+  if (op == "&") return "cs_band";      // M2-2A §3.2
+  if (op == "|") return "cs_bor";
+  if (op == "^") return "cs_bxor";
+  if (op == "<<") return "cs_shl";
+  if (op == ">>") return "cs_shr";
+  if (op == "in") { *contains = true; return "cs_contains"; }  // §3.4
   fail("unknown binary operator '" + op + "'");
 }
 
@@ -191,28 +191,28 @@ std::string binary_text(const std::string& op, const std::string& l,
   std::string ln = std::to_string(line);
   // M2-2C §3.4: `is`/`is not` — object identity (never folded: heap
   // identity and text storage sharing are runtime facts).
-  if (op == "is") return "pt_bool(pt_identical(" + l + ", " + r + ", " + ln + "))";
-  if (op == "is not") return "pt_bool(!pt_identical(" + l + ", " + r + ", " + ln + "))";
+  if (op == "is") return "cs_bool(cs_identical(" + l + ", " + r + ", " + ln + "))";
+  if (op == "is not") return "cs_bool(!cs_identical(" + l + ", " + r + ", " + ln + "))";
   const char* fn = binary_fn(op, &total, &contains);
-  if (contains) return "pt_bool(pt_contains(" + l + ", " + r + ", " + ln + "))";
+  if (contains) return "cs_bool(cs_contains(" + l + ", " + r + ", " + ln + "))";
   std::string s = std::string(fn) + "(" + l + ", " + r;
   if (!total) s += ", " + ln;
   s += ")";
   return s;
 }
 
-// C expression text for `pt_range3(...)` from 1..3 evaluated argument
+// C expression text for `cs_range3(...)` from 1..3 evaluated argument
 // expressions (defaults: start=0, step=1; M2-2A §6).
 std::string range3_text(const std::vector<std::string>& a, int line) {
   std::string r0, r1, r2;
   if (a.size() == 1) {
-    r0 = "pt_int(0)";
+    r0 = "cs_int(0)";
     r1 = a[0];
-    r2 = "pt_int(1)";
+    r2 = "cs_int(1)";
   } else if (a.size() == 2) {
     r0 = a[0];
     r1 = a[1];
-    r2 = "pt_int(1)";
+    r2 = "cs_int(1)";
   } else if (a.size() == 3) {
     r0 = a[0];
     r1 = a[1];
@@ -220,7 +220,7 @@ std::string range3_text(const std::vector<std::string>& a, int line) {
   } else {
     fail("range() expects 1 to 3 arguments, got " + std::to_string(a.size()));
   }
-  return "pt_range3(" + r0 + ", " + r1 + ", " + r2 + ", " +
+  return "cs_range3(" + r0 + ", " + r1 + ", " + r2 + ", " +
          std::to_string(line) + ")";
 }
 
@@ -378,7 +378,7 @@ static bool bind_bulk_call_args(const Expr& e, const FuncDecl& f,
 
 // Proof-shaped facts behind folding a `range(...)` header: true ONLY when
 // every effective bound is a compile-time int literal and the step is a
-// non-zero literal — then pt_range3's validation cannot fire (§6.9: all
+// non-zero literal — then cs_range3's validation cannot fire (§6.9: all
 // three must be int, so no TypeError; step != 0, so no ValueError) and the
 // call would just build a stack value, so skipping it is behavior-preserving
 // at execution time AND evaluation order (nothing left to evaluate).
@@ -410,48 +410,48 @@ static std::string cint64(int64_t v) {
                         : std::to_string(v) + "LL";
 }
 
-// C expression text for an inline print: the void-returning pt_print folded
+// C expression text for an inline print: the void-returning cs_print folded
 // into a value via the comma operator. The compound literal is block-scoped
 // and consumed by the call within the same full expression.
 std::string print_inline_text(const std::vector<std::string>& a, int line) {
-  std::string s = "(pt_print(";
+  std::string s = "(cs_print(";
   if (a.empty()) {
     s += "NULL, 0";
   } else {
-    s += "(pt_value[]){";
+    s += "(cs_value[]){";
     for (size_t i = 0; i < a.size(); ++i) {
       if (i) s += ",";
       s += " " + a[i];
     }
     s += " }, " + std::to_string(a.size());
   }
-  s += ", " + std::to_string(line) + "), pt_none())";
+  s += ", " + std::to_string(line) + "), cs_none())";
   return s;
 }
 
 // Runtime function for a compound-assignment base operator (M2-2A §3.3,
 // M2-2B §10 for index targets); nullptr for anything else.
 const char* compound_fn(const std::string& op) {
-  if (op == "+=") return "pt_add_f";
-  if (op == "-=") return "pt_sub_f";
-  if (op == "*=") return "pt_mul_f";
-  if (op == "/=") return "pt_div_f";
-  if (op == "%=") return "pt_mod_f";
-  if (op == "**=") return "pt_pow";
-  if (op == "&=") return "pt_band";
-  if (op == "|=") return "pt_bor";
-  if (op == "^=") return "pt_bxor";
-  if (op == "<<=") return "pt_shl";
-  if (op == ">>=") return "pt_shr";
+  if (op == "+=") return "cs_add_f";
+  if (op == "-=") return "cs_sub_f";
+  if (op == "*=") return "cs_mul_f";
+  if (op == "/=") return "cs_div_f";
+  if (op == "%=") return "cs_mod_f";
+  if (op == "**=") return "cs_pow";
+  if (op == "&=") return "cs_band";
+  if (op == "|=") return "cs_bor";
+  if (op == "^=") return "cs_bxor";
+  if (op == "<<=") return "cs_shl";
+  if (op == ">>=") return "cs_shr";
   return nullptr;
 }
 
-// `(pt_value[]){ a, b, ... }` from already-emitted element expressions.
+// `(cs_value[]){ a, b, ... }` from already-emitted element expressions.
 // Callers A-normalize every effectful element into its own temp first, so
 // the initializer performs plain reads only and no C evaluation-order
 // question can arise inside it.
 std::string value_array_text(const std::vector<std::string>& a) {
-  std::string s = "(pt_value[]){";
+  std::string s = "(cs_value[]){";
   for (size_t i = 0; i < a.size(); ++i) {
     if (i) s += ",";
     s += " " + a[i];
@@ -466,14 +466,14 @@ std::string value_array_text(const std::vector<std::string>& a) {
 
 // ---- M2-2B §13 uniform function ABI helpers -----------------------------
 //
-// Every generated function is `pt_value f(pt_value* bound, pt_cell** env)`.
+// Every generated function is `cs_value f(cs_value* bound, cs_cell** env)`.
 // The bound vector holds one slot per positional param, then the *vararg
 // slot (list), then the **kwarg slot (map); omitted slots arrive as
-// PT_MISSING and are initialized by the callee's entry code.
+// CS_MISSING and are initialized by the callee's entry code.
 
 // All bound-vector slot names in ABI order: positional params, then the
 // *vararg name, then the **kwarg name (M2-2B §6 parameter order). Also the
-// param_names order of the function's pt_funmeta.
+// param_names order of the function's cs_funmeta.
 std::vector<std::string> slot_names(const FuncDecl& f) {
   std::vector<std::string> ps = f.params;
   if (f.has_vararg) ps.push_back(f.vararg);
@@ -486,18 +486,18 @@ size_t n_slots(const FuncDecl& f) {
 }
 
 // Per-function metadata instance name (unique: derived from the unique c_name).
-std::string meta_name(const FuncDecl& f) { return "pt_meta_" + f.c_name; }
+std::string meta_name(const FuncDecl& f) { return "cs_meta_" + f.c_name; }
 
 // Binds a static call's already-emitted argument texts into the callee's
 // bound-vector slots (M2-2B §6/§13): positional arguments fill slots
 // left-to-right — including over defaulted slots, before overflowing into
 // the vararg list (Python order) — named arguments fill their slot by
-// name, an unfilled defaulted slot passes PT_MISSING (the callee evaluates
+// name, an unfilled defaulted slot passes CS_MISSING (the callee evaluates
 // the default at entry, fresh per call), the vararg slot receives a fresh
 // list of the positional arguments beyond the parameter count (or
-// PT_MISSING when there are none — the callee initializes it empty), and
+// CS_MISSING when there are none — the callee initializes it empty), and
 // the kwarg slot a fresh map of the named arguments that matched no
-// parameter (likewise PT_MISSING when empty). `a` holds the
+// parameter (likewise CS_MISSING when empty). `a` holds the
 // ALREADY-EMITTED argument texts in source order (side effects happened
 // exactly once, left-to-right); texts are only re-placed into slots,
 // never re-evaluated. Returns one C expression per slot.
@@ -541,7 +541,7 @@ std::vector<std::string> bound_slots_text(const FuncDecl& f, const Expr& call,
     if (!has_default)
       fail("static call to '" + f.name + "' left required parameter '" +
            f.params[p] + "' unbound (line " + std::to_string(line) + ")");
-    slots[p] = "pt_missing()";  // callee evaluates the default at entry
+    slots[p] = "cs_missing()";  // callee evaluates the default at entry
   }
   if (f.has_vararg) {
     std::vector<std::string>::const_iterator start =
@@ -549,9 +549,9 @@ std::vector<std::string> bound_slots_text(const FuncDecl& f, const Expr& call,
                                     : positional.cend();
     std::vector<std::string> extra(start, positional.cend());
     if (extra.empty()) {
-      slots[nparams] = "pt_missing()";  // callee builds the empty list
+      slots[nparams] = "cs_missing()";  // callee builds the empty list
     } else {
-      slots[nparams] = "pt_list_of(" + value_array_text(extra) + ", " +
+      slots[nparams] = "cs_list_of(" + value_array_text(extra) + ", " +
                        std::to_string(extra.size()) + "u)";
     }
   }
@@ -562,14 +562,14 @@ std::vector<std::string> bound_slots_text(const FuncDecl& f, const Expr& call,
       for (const std::string& p : f.params)
         if (p == nv.first) { is_param = true; break; }
       if (is_param) continue;
-      ks.push_back("PT_STR(\"" + c_escape(nv.first) + "\")");
+      ks.push_back("CS_STR(\"" + c_escape(nv.first) + "\")");
       vs.push_back(nv.second);
     }
     if (ks.empty()) {
-      slots[n_slots(f) - 1] = "pt_missing()";  // callee builds the empty map
+      slots[n_slots(f) - 1] = "cs_missing()";  // callee builds the empty map
     } else {
       slots[n_slots(f) - 1] =
-          "pt_map_of(" + value_array_text(ks) + ", " + value_array_text(vs) +
+          "cs_map_of(" + value_array_text(ks) + ", " + value_array_text(vs) +
           ", " + std::to_string(ks.size()) + "u, " + std::to_string(line) + ")";
     }
   }
@@ -591,7 +591,7 @@ bool has_effect(const Expr& e) {
     case ExprKind::Call:
       return true;  // print / user call / range() validation
     case ExprKind::Unary:
-      if (e.op == "not") return e.lhs && has_effect(*e.lhs);  // pt_truthy is total
+      if (e.op == "not") return e.lhs && has_effect(*e.lhs);  // cs_truthy is total
       return true;  // "-" and "~" can raise a type error
     case ExprKind::Binary:
       if (e.op == "==" || e.op == "!=")  // total ops: only the children matter
@@ -725,12 +725,12 @@ void collect_var_reads(const Expr& e, std::set<std::pair<VarRes, std::string>>& 
 // ---- main-only native globals: promote to automatic locals --------------
 //
 // A native int/float "global" that is referenced ONLY by the main block can
-// live in an automatic local of pt_main_block instead of file-scope static
+// live in an automatic local of cs_main_block instead of file-scope static
 // storage. The main block runs exactly once and no other region can name
 // the slot, so storage duration and visibility are unobservable; the win is
 // that the C compiler can keep the value in a register across the loop
 // (clang otherwise reloads/stores file-scope statics around the lane's
-// value-conversion/error helpers). The boxed pt_g_* slot still exists as a
+// value-conversion/error helpers). The boxed cs_g_* slot still exists as a
 // GC root and stays unset, exactly as for every native global today.
 //
 // References are collected per region with the same AST coverage as
@@ -905,16 +905,16 @@ class Emitter {
     out_ += '\n';
   }
   std::string ind() const { return std::string(static_cast<size_t>(indent_), ' '); }
-  std::string fresh_temp() { return "pt_t" + std::to_string(temps_++); }
-  std::string fresh_ivar() { return "pt_iv" + std::to_string(ivars_++); }
+  std::string fresh_temp() { return "cs_t" + std::to_string(temps_++); }
+  std::string fresh_ivar() { return "cs_iv" + std::to_string(ivars_++); }
 
-  // M2-2C §1.3(2): pt_value slots of the frame region currently being
+  // M2-2C §1.3(2): cs_value slots of the frame region currently being
   // emitted (hoisted temps; locals/params/cells are declared by the caller
   // around the region). decl_temp records; emit_framed declares them at the
   // top of the region and puts their addresses into the shadow frame.
   std::vector<std::string> slot_names_;
   bool framed_ = false;  // inside a shadow-framed region: `return` emits
-                         // pt_frame_end(&pt_fr) before leaving
+                         // cs_frame_end(&cs_fr) before leaving
   // Temps created during the statement currently being emitted that have NOT
   // yet been cleared by a nested statement's own tail. decl_temp pushes to
   // BOTH slot_names_ (declaration + shadow frame: every temp in the region)
@@ -922,7 +922,7 @@ class Emitter {
   // clears + truncates its own slice of pending_temps_ at its tail, so the
   // enclosing statement does NOT re-clear them (M2-2C §1.5 clears each temp
   // exactly once — the statement that created it). This keeps a redundant
-  // `x = pt_unset()` out of hot loop bodies on the common (not-taken) path.
+  // `x = cs_unset()` out of hot loop bodies on the common (not-taken) path.
   std::vector<std::string> pending_temps_;
 
   std::string decl_temp() {
@@ -934,12 +934,12 @@ class Emitter {
 
   // Emits `body_fn` with every decl_temp'd slot hoisted into a declaration
   // block followed by the GC shadow frame (2C §1.3/§1.4). The captured text
-  // lands after `pt_frame_begin`, so anything the body needs protected must
-  // be rooted by the frame (or by the caller's own `pt_gc_protect` lines —
+  // lands after `cs_frame_begin`, so anything the body needs protected must
+  // be rooted by the frame (or by the caller's own `cs_gc_protect` lines —
   // emit them as the first statements of `body_fn`, before its gc point).
-  // `base_slots` are pt_value slots already declared by the caller (locals,
-  // params, `&pt_cell_x->v`); they are referenced by the frame array but
-  // not re-declared. frame_end adds pt_frame_end after the region (regions
+  // `base_slots` are cs_value slots already declared by the caller (locals,
+  // params, `&cs_cell_x->v`); they are referenced by the frame array but
+  // not re-declared. frame_end adds cs_frame_end after the region (regions
   // whose `return` paths are emitted inside handle it themselves).
   void emit_framed(const std::function<void()>& body_fn, bool frame_end,
                    const std::vector<std::string>& base_slots = {}) {
@@ -966,23 +966,23 @@ class Emitter {
       throw;
     }
     for (const std::string& s : slot_names_)
-      line(ind() + "pt_value " + s + " = pt_unset();");
+      line(ind() + "cs_value " + s + " = cs_unset();");
     std::vector<std::string> all = base_slots;
     all.insert(all.end(), slot_names_.begin(), slot_names_.end());
     if (!all.empty()) {
-      std::string arr = ind() + "pt_value* pt_slots[] = {";
+      std::string arr = ind() + "cs_value* cs_slots[] = {";
       for (size_t i = 0; i < all.size(); ++i)
         arr += (i ? ", &" : " &") + all[i];
       arr += " };";
       line(arr);
     }
-    line(ind() + "pt_frame pt_fr;");
-    line(ind() + "pt_frame_begin(&pt_fr, " +
+    line(ind() + "cs_frame cs_fr;");
+    line(ind() + "cs_frame_begin(&cs_fr, " +
          (all.empty() ? std::string("NULL, 0u")
-                      : "pt_slots, " + std::to_string(all.size()) + "u") +
+                      : "cs_slots, " + std::to_string(all.size()) + "u") +
          ");");
     out_ += captured;
-    if (frame_end) line(ind() + "pt_frame_end(&pt_fr);");
+    if (frame_end) line(ind() + "cs_frame_end(&cs_fr);");
     slot_names_ = saved_slots;
     pending_temps_ = saved_pending;
     framed_ = saved_framed;
@@ -1013,7 +1013,7 @@ class Emitter {
   // ---- post-2C perf: native int64 slots (TODO.txt speed goal) ------------
   // analyze_native_ints() runs once before emission; see the block comment
   // above its definition for the proof rules. Native slots keep their
-  // pt_value slot (frame/GC layout unchanged) but read/write a parallel
+  // cs_value slot (frame/GC layout unchanged) but read/write a parallel
   // native int64_t + used-before-assignment flag.
   void analyze_native_ints();
   bool native_is_local(const std::string& name) const;
@@ -1022,9 +1022,9 @@ class Emitter {
   bool native_slot_text(const std::string& name, VarRes res,
                         std::string& slot, std::string& flag) const;
   std::string native_int_text(const Expr& e) const;
-  // Operand rendering for a context that only needs a boxed pt_value but
+  // Operand rendering for a context that only needs a boxed cs_value but
   // can compute it from the int lane: proven-int expressions are evaluated
-  // natively and boxed ONCE (pt_int(...)), instead of going through the
+  // natively and boxed ONCE (cs_int(...)), instead of going through the
   // generic boxed operator chain. Falls back to emit_expr for everything
   // else (exact evaluation order is the caller's existing temp order).
   std::string scalar_int_operand(const Expr& e, bool in_function);
@@ -1033,8 +1033,8 @@ class Emitter {
   bool body_alloc_free(const std::vector<Stmt>& body) const;
   std::set<std::string> nativ_g_;  // program globals kept native int64
   std::map<const FuncDecl*, std::set<std::string>> nativ_l_;  // locals / fn
-  // Native globals referenced only by the main block: their pt_ng_/pt_nfg_
-  // pair is declared as an automatic local inside pt_main_block (file-scope
+  // Native globals referenced only by the main block: their cs_ng_/cs_nfg_
+  // pair is declared as an automatic local inside cs_main_block (file-scope
   // declaration skipped), so the C compiler can register-allocate it.
   void analyze_promotable_globals();
   std::set<std::string> local_g_;
@@ -1077,7 +1077,7 @@ class Emitter {
   void scan_use_target(const AssignTarget& t, const Stmt* st,
                        bool unpack = false);
 
-  // Names proven to hold only PT_INT elements for their whole lifetime.
+  // Names proven to hold only CS_INT elements for their whole lifetime.
   std::set<std::string> int_lists_;
   // Subset of int_lists_ whose object is proven flat (seq.stride == 0 for the
   // whole lifetime): literals, list(), .copy(). Slices are views, so they are
@@ -1100,7 +1100,7 @@ class Emitter {
   // ---- lazy (ephemeral) slices -------------------------------------------
   // A slice assigned to a main-only global and read ONLY as `target[idx]` in
   // the same straight-line statement list can stay materialized in bounds
-  // form: pt_slice_bounds normalizes once, and each read addresses the
+  // form: cs_slice_bounds normalizes once, and each read addresses the
   // source directly. The target slot is never written; if any other read,
   // a second write, or a source mutation after the snapshot exists, the
   // candidate is rejected. Handlers are excluded wholesale because a
@@ -1108,7 +1108,7 @@ class Emitter {
   struct EphemSlice {
     std::string target;
     std::string src;
-    std::string psrc;   // source global's rooted storage (pt_g_<name>)
+    std::string psrc;   // source global's rooted storage (cs_g_<name>)
     std::string items;  // stable view fields (source write-free after)
     std::string stride;
     std::string len;
@@ -1118,7 +1118,7 @@ class Emitter {
     std::string base_bs, base_be, base_span;
     bool flat = false;      // source proven stride == 0 (no stride load)
     bool own_facts = true;  // false when another candidate emitted the locals
-    std::string span;   // pt_slice_span (first/count) local
+    std::string span;   // cs_slice_span (first/count) local
     std::string bstart, bstop;  // raw int64 bound locals
     std::string step_lit;       // positive literal step ("1" when absent)
   };
@@ -1144,12 +1144,12 @@ class Emitter {
 
   // ---- native float64 slots (float twin of the int64 lane) ---------------
   // analyze_native_floats() (run after analyze_native_ints, before
-  // analyze_definite_assign) proves which slots hold ONLY PT_FLOAT values
+  // analyze_definite_assign) proves which slots hold ONLY CS_FLOAT values
   // and keeps them as a native double pair (value + used-flag) beside the
-  // untouched pt_value slot — the exact architecture of the int lane above.
+  // untouched cs_value slot — the exact architecture of the int lane above.
   // One-directional dependency: float_shape consults the FINAL int lane for
   // mixed int64->double operands (the runtime converts with a plain C cast,
-  // pt_dbl/pt_as_double), but nothing in the int fixpoint ever consults
+  // cs_dbl/cs_as_double), but nothing in the int fixpoint ever consults
   // float state — so the int lane's output is provably unchanged.
   // float vs int slots are disjoint by construction (int_shape admits no
   // FloatLit/float slot, float_shape admits no IntLit/int slot), and no
@@ -1193,12 +1193,12 @@ class Emitter {
   // sanctioned position (whole iterable of `for m in more`, or the single
   // argument of `len(more)` — is_bulk_for/is_bulk_len_call below, shared by
   // admission AND emission so they can never drift) gets a second entry
-  // `pt_fn_<x>_b(fixed int64s..., const int64_t* bulk, int64_t n)` whose
+  // `cs_fn_<x>_b(fixed int64s..., const int64_t* bulk, int64_t n)` whose
   // body is the DYNAMIC body re-emitted over a raw int64 tail: no bound
-  // vector, no PT_MISSING, no pt_list_of, no frame of its own dispatch —
+  // vector, no CS_MISSING, no cs_list_of, no frame of its own dispatch —
   // the call site packs stack int64s directly (see emit_bulk_call). The
   // function stays OUT of nativ_fns_/int_shape entirely: its result is a
-  // boxed pt_value, so no existing lane/twin proof changes shape (the
+  // boxed cs_value, so no existing lane/twin proof changes shape (the
   // registry is admission-only; decline anything unprovable, §0.3).
   void analyze_bulk_varargs();
   std::set<const FuncDecl*> bulk_ok_;   // admissible bulk callees
@@ -1211,11 +1211,11 @@ class Emitter {
   //   * bulk_l_[f]: _b-body LOCAL slots whose every write is int-shaped
   //     under BULK-context facts (params are int64 BY ABI here). The
   //     dynamic body does NOT share these lanes: it keeps the boxed
-  //     pt_l_* slot and binds the vararg loop by the iterator protocol,
-  //     while the _b body reads pt_nl_* lanes — per-body rendering behind
+  //     cs_l_* slot and binds the vararg loop by the iterator protocol,
+  //     while the _b body reads cs_nl_* lanes — per-body rendering behind
   //     bulk_fn_, exactly how twin_fn_ already splits param rendering.
   //   * bulk_int_fns_/bulk_int_decls_: bulk callees whose RETURN VALUE is
-  //     provably PT_INT in the _b context — an int-shape RETURN fact,
+  //     provably CS_INT in the _b context — an int-shape RETURN fact,
   //     joint (retract-only) with bulk_l_. 4b2 ties it into int_shape/
   //     native_int_text so a caller can prove `acc + <bulk call>` int64
   //     and keep its accumulation raw; anything unprovable declines
@@ -1242,7 +1242,7 @@ class Emitter {
   // (the runtime dynamic operators are SIMD too, but every chained op
   // would materialize a temporary; fusion removes the memory traffic).
   // The proof is the entire type contract: slots keep their dynamic
-  // pt_value storage, and only expressions whose operands are all proven
+  // cs_value storage, and only expressions whose operands are all proven
   // (vector-kind or int-lane scalar) fuse.
   void analyze_native_fvecs();
   // Shape of an expression in the fusion lattice: -1 = not shaped,
@@ -1261,12 +1261,12 @@ class Emitter {
   // A `+` chain whose parts are ALL provably text — string literals and
   // str() calls (anything else, like a bare variable, could carry a
   // non-text operand whose TypeError ordering we would have to reproduce)
-  // — compiles to one pt_sb buffer instead of a tree of heap pt_concat
+  // — compiles to one cs_sb buffer instead of a tree of heap cs_concat
   // calls: literals copy straight in, str(<int-lane expr>) formats straight
-  // in (pt_sb_puti — no heap text at all), other str() args materialize
+  // in (cs_sb_puti — no heap text at all), other str() args materialize
   // once and append. Two tails: a value chain becomes ONE heap text
-  // (pt_sb_finish), and f.write(<chain>) writes the buffer with a single
-  // fwrite (pt_file_write_buf) — zero heap traffic per record, the
+  // (cs_sb_finish), and f.write(<chain>) writes the buffer with a single
+  // fwrite (cs_file_write_buf) — zero heap traffic per record, the
   // file-side equivalent of the print fast path. text_chain_zeroalloc (the
   // all-literal/all-int-lane subset) also reports alloc_free, so the loop
   // back-edge safe point elides on fused write loops.
@@ -1285,8 +1285,8 @@ class Emitter {
   // candidate statement (`name = name + expr`, plain; `name += expr`) to
   // catok_ exactly when the destination slot's buffer is reachable from
   // that slot alone — then the statement emits
-  // pt_text_cat2(..., may_grow=1), the capacity-aware amortized append,
-  // instead of pt_add_f's exact-size rebuild. The proof rules and the
+  // cs_text_cat2(..., may_grow=1), the capacity-aware amortized append,
+  // instead of cs_add_f's exact-size rebuild. The proof rules and the
   // soundness argument are the block comment above its definition; any
   // doubt means the statement stays on the pre-existing emission path.
   void analyze_text_cats();
@@ -1297,8 +1297,8 @@ class Emitter {
   // nodes whose every dynamic-dispatch premise it can prove program-wide; the
   // rules and the soundness argument live in the block comment before the
   // definition. A planned site is emitted by emit_inline_method: the callee's
-  // body inlined at the site over per-site slots `pt_il<id>_<name>`, result
-  // slot `pt_ilr<id>`, merge label `pt_ile<id>end` (the prefixes are pairwise
+  // body inlined at the site over per-site slots `cs_il<id>_<name>`, result
+  // slot `cs_ilr<id>`, merge label `cs_ile<id>end` (the prefixes are pairwise
   // disjoint from each other and from every other generated identifier, so a
   // method local named `res` cannot collide with the result slot).
   // try_inline returns "" for a planned node (forces the A-normal statement
@@ -1321,19 +1321,19 @@ class Emitter {
   // harmless for the dynamic path too).
   std::vector<const FuncDecl*> il_stack_;
   // Emission context of an inlined body ("" outside any): while set,
-  // storage_for maps the method's own params/locals to `pt_il<id>_<name>`
-  // and `return` intercepts into `pt_ilr<id> = ...; goto pt_ile<id>end;`.
+  // storage_for maps the method's own params/locals to `cs_il<id>_<name>`
+  // and `return` intercepts into `cs_ilr<id> = ...; goto cs_ile<id>end;`.
   std::string micx_;
   int micx_id_ = -1;  // site id of the current inline context
   std::string il_name(const std::string& n) const {
-    return "pt_il" + micx_ + "_" + n;
+    return "cs_il" + micx_ + "_" + n;
   }
   // Register a site slot with the CURRENT frame region: declared and
   // shadow-frame-rooted at the region top (emit_framed), assigned at entry.
   void il_register(const std::string& slot) { slot_names_.push_back(slot); }
 
   // ---- post-2C perf: used-flag elision for definitely-assigned slots -------
-  // A native slot's used-before-assignment flag (`pt_ng_ok_X`) costs a load+branch
+  // A native slot's used-before-assignment flag (`cs_ng_ok_X`) costs a load+branch
   // on every read and a store on every write, and — worse — those memory ops
   // pin loop counters to the stack so LLVM can't keep them in registers. For a
   // slot whose EVERY read is provably preceded by an unconditional assignment,
@@ -1364,8 +1364,8 @@ class Emitter {
 
   // ---- C2 (task-5): try-elision x lane joint monotone fixpoint -------------
   // A `try` statement whose TRY BODY is proven unable to raise a Pentest
-  // exception needs no handler at all: emit_try skips setjmp/pt_try_enter/
-  // pt_try_leave (and the whole except-arm pad — dead by construction) when
+  // exception needs no handler at all: emit_try skips setjmp/cs_try_enter/
+  // cs_try_leave (and the whole except-arm pad — dead by construction) when
   // elided_trys_ holds the statement, while try-stack bookkeeping keeps the
   // finally copy on every exit edge exactly as before (ctx.entered empty).
   // has_own_try() — the FOUR lane/twin disqualification sites
@@ -1420,30 +1420,30 @@ class Emitter {
     return false;
   }
 
-  // ---- Phase 2.1: boxed-slot pt_guard elimination for provably-bound reads --
-  // Every guarded read compiles to pt_guard(slot, name, scope, line), whose
+  // ---- Phase 2.1: boxed-slot cs_guard elimination for provably-bound reads --
+  // Every guarded read compiles to cs_guard(slot, name, scope, line), whose
   // hit path is a single tag compare — but the compare still costs a load
   // (or reload), a branch and the name/scope/line arguments at EVERY read.
   // analyze_guard_elim() (run from run(), before emission) computes
   // noguard_g_/noguard_l_: slots for which EVERY read site can be proven to
-  // see a materialized (non-PT_UNSET) value on that path. The proof rules —
+  // see a materialized (non-CS_UNSET) value on that path. The proof rules —
   // soundness argument in the definition:
   //   * params: every bound-vector source (exact VLA paths and the §13
-  //     binder) fills slots with real values or PT_MISSING, never PT_UNSET,
-  //     and pt_guard only fires on PT_UNSET — so a param read AFTER slot
+  //     binder) fills slots with real values or CS_MISSING, never CS_UNSET,
+  //     and cs_guard only fires on CS_UNSET — so a param read AFTER slot
   //     materialization can never raise NameError. Reads inside a default
   //     expression of param i keep their guard unless the param's own slot
   //     is already materialized (index <= i): later params are still
-  //     pt_unset() there and their guards MUST keep firing.
+  //     cs_unset() there and their guards MUST keep firing.
   //   * locals/globals: definite-assignment walk with the same conservative
   //     join discipline as analyze_definite_assign() (branches/loops/try
   //     bodies are walked isolated — their assignments never escape), but
   //     unlike the native-flag pass this walk must model EVERY read that
-  //     can emit a pt_guard (including compound-assignment target reads,
+  //     can emit a cs_guard (including compound-assignment target reads,
   //     VarQual reads, tuple-target subexpressions and for/except bind
   //     names), because the starting assumption is "needs no guard".
   // Reads of a no-guard slot compile to the bare storage lvalue; anything
-  // the analysis cannot prove keeps the byte-identical pt_guard call.
+  // the analysis cannot prove keeps the byte-identical cs_guard call.
   void analyze_guard_elim();
   void ge_check_expr(const Expr& e, std::set<std::string>& da_g,
                      std::set<std::string>& da_l, const FuncDecl* fn);
@@ -1465,7 +1465,7 @@ class Emitter {
   std::string guard_text(const std::string& storage, const std::string& name,
                          VarRes res, int line) const {
     if (ge_elide(name, res)) return storage;
-    return "pt_guard(" + storage + ", \"" + c_escape(name) + "\", " +
+    return "cs_guard(" + storage + ", \"" + c_escape(name) + "\", " +
            scope_name(res) + ", " + std::to_string(line) + ")";
   }
   std::set<std::string> noguard_g_;  // globals whose every read is DA-proven
@@ -1494,12 +1494,12 @@ class Emitter {
   // Lowered form of a reserved builtin call other than print/range (M2-2B
   // §8 legacy set; SPEC §5.11.5 Python-parity set): places the already-
   // emitted argument texts into the call's fixed slot layout — unfilled
-  // slots arrive as pt_missing(), variadics as a compound-literal array,
+  // slots arrive as cs_missing(), variadics as a compound-literal array,
   // dict's named keys as parallel value/name arrays. One direct
-  // pt_builtin_* call per builtin, no dispatch.
+  // cs_builtin_* call per builtin, no dispatch.
   std::string builtin_call_text(const Expr& e,
                                 const std::vector<std::string>& a, int line);
-  // The pt_name_slot table for globals()/locals()/vars()/dir() (SPEC
+  // The cs_name_slot table for globals()/locals()/vars()/dir() (SPEC
   // §5.11.5) as an automatic compound literal: one entry per live name of
   // the requested scope (frame for locals/vars, module for globals/dir),
   // referencing the storage the name reads from. `count` receives the
@@ -1520,7 +1520,7 @@ class Emitter {
                         bool in_function);
   // C1 perf: a switch over a PROVEN int64 scrutinee with compile-time int
   // labels lowers to a native C `switch` (jump table) instead of the boxed
-  // `pt_truthy(pt_eq_f(...))` ladder. native_switch_ok() is the proof gate;
+  // `cs_truthy(cs_eq_f(...))` ladder. native_switch_ok() is the proof gate;
   // anything it cannot prove falls back to the ladder above, unchanged.
   bool native_switch_ok(const Stmt& s) const;
   void emit_native_switch(const Stmt& s, const std::string& nat,
@@ -1545,9 +1545,9 @@ class Emitter {
                              const std::vector<const Expr*>& tail,
                              const FuncDecl& cf);
   // M2-2B §13: dynamic call through a function value (callee_expr first):
-  // pt_call binds arguments at runtime.
+  // cs_call binds arguments at runtime.
   std::string emit_dynamic_call(const Expr& e, bool in_function);
-  // M2-2B §13: the static pt_funmeta instance + param-name array of `f`.
+  // M2-2B §13: the static cs_funmeta instance + param-name array of `f`.
   void emit_funmeta(const FuncDecl& f);
   // Nested declarations hoisted out of a function body (source order,
   // descending into blocks but never into function bodies).
@@ -1558,8 +1558,8 @@ class Emitter {
   // A binding referenced through `variable.` is "pinned": its storage is a
   // program-lifetime static instead of a frame slot. Two shapes, decided by
   // whether some closure also captures the binding:
-  //   * plain pin  — `static pt_cell pt_p_<c>_<n>;`      (value in .v)
-  //   * pinned cell — `static pt_cell* pt_px_<c>_<n>;`   (immortal heap
+  //   * plain pin  — `static cs_cell cs_p_<c>_<n>;`      (value in .v)
+  //   * pinned cell — `static cs_cell* cs_px_<c>_<n>;`   (immortal heap
   //     cell created once at entry; closures share it through env slots,
   //     which must point at registered GC blocks — never at statics)
   // Owner-side accesses and qualified accesses both lower to the SAME
@@ -1584,7 +1584,7 @@ class Emitter {
       if (e.res != VarRes::Global)
         fail("internal: unresolved variable-access (line " +
              std::to_string(e.loc.line) + ")");
-      return "pt_g_" + e.name;
+      return "cs_g_" + e.name;
     }
     return e.pin + (e.pin_cell ? "->v" : ".v");
   }
@@ -1593,7 +1593,7 @@ class Emitter {
       if (t.res != VarRes::Global)
         fail("internal: unresolved variable-access target (line " +
              std::to_string(t.loc.line) + ")");
-      return "pt_g_" + t.name;
+      return "cs_g_" + t.name;
     }
     return t.pin + (t.pin_cell ? "->v" : ".v");
   }
@@ -1606,7 +1606,7 @@ class Emitter {
                           int line) {
     switch (res) {
       case VarRes::Global:
-        return "pt_g_" + name;
+        return "cs_g_" + name;
       case VarRes::Function: {
         // 2B §6.6: a function name read yields a function value. A
         // top-level (or main-declared) function closes over nothing; a
@@ -1614,7 +1614,7 @@ class Emitter {
         // owner local (or that local's cell when boxed).
         const FuncDecl* fn = find_function(name);
         if (fn && !fn->is_nested)
-          return "pt_fun_value(&" + meta_name(*fn) + ", NULL, 0u)";
+          return "cs_fun_value(&" + meta_name(*fn) + ", NULL, 0u)";
         const FuncDecl* own = cur_func_ ? find_own_nested(name) : nullptr;
         if (!own)
           fail("function value '" + name + "' not visible here (line " +
@@ -1624,8 +1624,8 @@ class Emitter {
           fail("internal: nested function '" + name +
                "' has no owning local (line " + std::to_string(line) + ")");
         return cur_func_->local_is_cell[idx]
-                   ? "pt_cell_" + name + "->v"
-                   : "pt_l_" + name;
+                   ? "cs_cell_" + name + "->v"
+                   : "cs_l_" + name;
       }
       case VarRes::Local:
       case VarRes::Param: {
@@ -1644,8 +1644,8 @@ class Emitter {
                 *cur_func_, name,
                 pi < cur_func_->param_is_cell.size() &&
                     cur_func_->param_is_cell[pi]);
-          return slot_is_cell(*cur_func_, pi) ? "pt_cell_" + name + "->v"
-                                              : "pt_l_" + name;
+          return slot_is_cell(*cur_func_, pi) ? "cs_cell_" + name + "->v"
+                                              : "cs_l_" + name;
         }
         size_t li;
         if (own_local_index(name, li)) {
@@ -1655,8 +1655,8 @@ class Emitter {
                 *cur_func_, name,
                 li < cur_func_->local_is_cell.size() &&
                     cur_func_->local_is_cell[li]);
-          return cur_func_->local_is_cell[li] ? "pt_cell_" + name + "->v"
-                                              : "pt_l_" + name;
+          return cur_func_->local_is_cell[li] ? "cs_cell_" + name + "->v"
+                                              : "cs_l_" + name;
         }
         long ci = capture_index(name);
         if (ci >= 0) {
@@ -1673,10 +1673,10 @@ class Emitter {
   }
 
   static std::string scope_name(VarRes res) {
-    return res == VarRes::Global ? "PT_SCOPE_GLOBAL" : "PT_SCOPE_LOCAL";
+    return res == VarRes::Global ? "CS_SCOPE_GLOBAL" : "CS_SCOPE_LOCAL";
   }
 
-  // Constant label of a case arm as a pt_value expression (M2-2A §2: the
+  // Constant label of a case arm as a cs_value expression (M2-2A §2: the
   // parser guarantees a constant literal; the semantic pass checked dupes).
   static std::string case_label_text(const CaseArm& arm) {
     switch (arm.label_kind) {
@@ -1685,11 +1685,11 @@ class Emitter {
       case ExprKind::FloatLit:
         return float_literal(arm.fval);
       case ExprKind::StrLit:
-        return "PT_STR(\"" + c_escape(arm.sval) + "\")";
+        return "CS_STR(\"" + c_escape(arm.sval) + "\")";
       case ExprKind::BoolLit:
-        return arm.bval ? "pt_bool(true)" : "pt_bool(false)";
+        return arm.bval ? "cs_bool(true)" : "cs_bool(false)";
       case ExprKind::NoneLit:
-        return "pt_none()";
+        return "cs_none()";
       default:
         break;
     }
@@ -1777,87 +1777,87 @@ const FuncDecl* Emitter::find_own_nested(const std::string& name) const {
 // counts are re-checked here defensively). The SPEC §5.11.5 Python-parity
 // set follows the semantic pass's slot binding (e.arg_slots/e.arg_nslots):
 // this only PLACES the already-emitted texts, unfilled slots arriving as
-// pt_missing() — never re-evaluating anything, exactly like
+// cs_missing() — never re-evaluating anything, exactly like
 // bound_slots_text does for user calls.
 std::string Emitter::builtin_call_text(const Expr& e,
                                        const std::vector<std::string>& a,
                                        int line) {
   const std::string& n = e.builtin_name;
   std::string ln = std::to_string(line);
-  if (n == "len") return "pt_len_f(" + a[0] + ", " + ln + ")";
-  if (n == "str") return "pt_builtin_str(" + a[0] + ", " + ln + ")";
-  if (n == "int") return "pt_builtin_int(" + a[0] + ", " + ln + ")";
-  if (n == "float") return "pt_builtin_float(" + a[0] + ", " + ln + ")";
-  if (n == "bool") return "pt_builtin_bool(" + a[0] + ", " + ln + ")";
-  if (n == "type") return "pt_builtin_type(" + a[0] + ", " + ln + ")";
-  if (n == "encode") return "pt_builtin_encode(" + a[0] + ", " + ln + ")";
-  if (n == "decode") return "pt_builtin_decode(" + a[0] + ", " + ln + ")";
+  if (n == "len") return "cs_len_f(" + a[0] + ", " + ln + ")";
+  if (n == "str") return "cs_builtin_str(" + a[0] + ", " + ln + ")";
+  if (n == "int") return "cs_builtin_int(" + a[0] + ", " + ln + ")";
+  if (n == "float") return "cs_builtin_float(" + a[0] + ", " + ln + ")";
+  if (n == "bool") return "cs_builtin_bool(" + a[0] + ", " + ln + ")";
+  if (n == "type") return "cs_builtin_type(" + a[0] + ", " + ln + ")";
+  if (n == "encode") return "cs_builtin_encode(" + a[0] + ", " + ln + ")";
+  if (n == "decode") return "cs_builtin_decode(" + a[0] + ", " + ln + ")";
   if (n == "http_post") {
     if (a.size() < 2 || a.size() > 3)
       fail("'http_post' expects 2 to 3 argument(s), got " +
            std::to_string(a.size()));
-    std::string hdr = (a.size() == 3) ? a[2] : "pt_none()";
-    return "pt_builtin_http(" + a[0] + ", " + a[1] + ", " + hdr + ", " + ln + ")";
+    std::string hdr = (a.size() == 3) ? a[2] : "cs_none()";
+    return "cs_builtin_http(" + a[0] + ", " + a[1] + ", " + hdr + ", " + ln + ")";
   }
   if (n == "http_get") {
     if (a.empty() || a.size() > 2)
       fail("'http_get' expects 1 to 2 argument(s), got " +
            std::to_string(a.size()));
-    std::string hdr = (a.size() == 2) ? a[1] : "pt_none()";
-    return "pt_builtin_http_get(" + a[0] + ", " + hdr + ", " + ln + ")";
+    std::string hdr = (a.size() == 2) ? a[1] : "cs_none()";
+    return "cs_builtin_http_get(" + a[0] + ", " + hdr + ", " + ln + ")";
   }
-  if (n == "url_encode") return "pt_builtin_url_encode(" + a[0] + ", " + ln + ")";
+  if (n == "url_encode") return "cs_builtin_url_encode(" + a[0] + ", " + ln + ")";
   /* SIMD vector constructors and the inner product (fvec/ivec). */
-  if (n == "fvec") return "pt_builtin_fvec(" + a[0] + ", " + ln + ")";
-  if (n == "ivec") return "pt_builtin_ivec(" + a[0] + ", " + ln + ")";
-  if (n == "fvec_fill") return "pt_builtin_fvec_fill(" + a[0] + ", " + a[1] + ", " + ln + ")";
-  if (n == "ivec_fill") return "pt_builtin_ivec_fill(" + a[0] + ", " + a[1] + ", " + ln + ")";
-  if (n == "dot") return "pt_builtin_dot(" + a[0] + ", " + a[1] + ", " + ln + ")";
+  if (n == "fvec") return "cs_builtin_fvec(" + a[0] + ", " + ln + ")";
+  if (n == "ivec") return "cs_builtin_ivec(" + a[0] + ", " + ln + ")";
+  if (n == "fvec_fill") return "cs_builtin_fvec_fill(" + a[0] + ", " + a[1] + ", " + ln + ")";
+  if (n == "ivec_fill") return "cs_builtin_ivec_fill(" + a[0] + ", " + a[1] + ", " + ln + ")";
+  if (n == "dot") return "cs_builtin_dot(" + a[0] + ", " + a[1] + ", " + ln + ")";
   if (n == "set") {
-    if (a.empty()) return "pt_builtin_set(NULL, 0u, " + ln + ")";
+    if (a.empty()) return "cs_builtin_set(NULL, 0u, " + ln + ")";
     if (a.size() != 1)
       fail("'set' expects 0 to 1 argument(s), got " + std::to_string(a.size()));
-    return "pt_builtin_set(" + value_array_text(a) + ", 1u, " + ln + ")";
+    return "cs_builtin_set(" + value_array_text(a) + ", 1u, " + ln + ")";
   }
   if (n == "collect") {
     if (!a.empty()) fail("'collect' expects 0 argument(s), got " + std::to_string(a.size()));
-    return "pt_int(pt_builtin_collect())";
+    return "cs_int(cs_builtin_collect())";
   }
   if (n == "input") {
-    if (a.empty()) return "pt_builtin_input(pt_none(), 0, " + ln + ")";
+    if (a.empty()) return "cs_builtin_input(cs_none(), 0, " + ln + ")";
     if (a.size() > 1)
       fail("'input' expects 0 to 1 argument(s), got " + std::to_string(a.size()));
-    return "pt_builtin_input(" + a[0] + ", 1, " + ln + ")";
+    return "cs_builtin_input(" + a[0] + ", 1, " + ln + ")";
   }
-  if (n == "time") return "pt_float(pt_builtin_time())";
-  if (n == "clock") return "pt_float(pt_builtin_clock())";
+  if (n == "time") return "cs_float(cs_builtin_time())";
+  if (n == "clock") return "cs_float(cs_builtin_clock())";
   // ---- SPEC §5.11.5: the Python-parity builtins ---------------------------
   if (py_builtin_stub(n))  // exists, always raises its own RuntimeError
-    return "pt_builtin_unsupported(\"" + n + "\", " + ln + ")";
+    return "cs_builtin_unsupported(\"" + n + "\", " + ln + ")";
   const BuiltinSpec* spec = py_builtin_spec(n);
   if (spec == nullptr)
     fail("unsupported builtin '" + n + "' (line " + ln + ")");
   if (n == "globals" || n == "locals") {  // no value arguments at all
     size_t cnt = 0;
     std::string tbl = name_table_text(n == "locals", cnt);
-    return "pt_builtin_" + n + "(" + tbl + ", " + std::to_string(cnt) + "u, " +
+    return "cs_builtin_" + n + "(" + tbl + ", " + std::to_string(cnt) + "u, " +
            ln + ")";
   }
   if (n == "vars" || n == "dir") {
-    // obj slot (pt_missing() in the no-argument form): vars() gets the
+    // obj slot (cs_missing() in the no-argument form): vars() gets the
     // frame table, dir() the globals table.
-    std::string obj = a.empty() ? "pt_missing()" : a[0];
+    std::string obj = a.empty() ? "cs_missing()" : a[0];
     size_t cnt = 0;
     std::string tbl = name_table_text(n == "vars", cnt);
-    return "pt_builtin_" + n + "(" + obj + ", " + tbl + ", " +
+    return "cs_builtin_" + n + "(" + obj + ", " + tbl + ", " +
            std::to_string(cnt) + "u, " + ln + ")";
   }
   if (spec->variadic) {
     // positionals → compound-literal array; max/min's named key/default
     // pull through as fixed trailing parameters.
     std::vector<std::string> pos;
-    std::string key_txt = "pt_missing()";
-    std::string dflt_txt = "pt_missing()";
+    std::string key_txt = "cs_missing()";
+    std::string dflt_txt = "cs_missing()";
     for (size_t i = 0; i < a.size(); ++i) {
       std::string an = i < e.arg_names.size() ? e.arg_names[i] : "";
       if (an == "key" && spec->variadic_key) {
@@ -1874,9 +1874,9 @@ std::string Emitter::builtin_call_text(const Expr& e,
         pos.empty() ? std::string("NULL") : value_array_text(pos);
     std::string cnt = std::to_string(pos.size()) + "u";
     if (spec->variadic_key || spec->variadic_default)
-      return "pt_builtin_" + n + "(" + arr + ", " + cnt + ", " + key_txt + ", " +
+      return "cs_builtin_" + n + "(" + arr + ", " + cnt + ", " + key_txt + ", " +
              dflt_txt + ", " + ln + ")";
-    return "pt_builtin_" + n + "(" + arr + ", " + cnt + ", " + ln + ")";
+    return "cs_builtin_" + n + "(" + arr + ", " + cnt + ", " + ln + ")";
   }
   if (spec->dict_form) {
     // ≤1 positional source + arbitrary named keys (dict(a=1)): positionals
@@ -1900,7 +1900,7 @@ std::string Emitter::builtin_call_text(const Expr& e,
     }
     if (!names.empty()) name_arr = "(const char* const[]){" + name_arr + "}";
     else name_arr = "NULL";
-    return "pt_builtin_dict(" +
+    return "cs_builtin_dict(" +
            (pos.empty() ? std::string("NULL") : value_array_text(pos)) + ", " +
            std::to_string(pos.size()) + "u, " +
            (vals.empty() ? std::string("NULL") : value_array_text(vals)) +
@@ -1908,9 +1908,9 @@ std::string Emitter::builtin_call_text(const Expr& e,
            ")";
   }
   // Uniform slots: slot k takes the text the semantic pass bound to it, or
-  // pt_missing() when no argument filled it (the runtime defaults it).
+  // cs_missing() when no argument filled it (the runtime defaults it).
   {
-    std::vector<std::string> slots(e.arg_nslots, "pt_missing()");
+    std::vector<std::string> slots(e.arg_nslots, "cs_missing()");
     std::string joined;
     for (size_t i = 0; i < a.size(); ++i) {
       int s = (i < e.arg_slots.size()) ? e.arg_slots[i] : -1;
@@ -1921,13 +1921,13 @@ std::string Emitter::builtin_call_text(const Expr& e,
       joined += slots[k];
     }
     if (!joined.empty()) joined += ", ";
-    return "pt_builtin_" + n + "(" + joined + ln + ")";
+    return "cs_builtin_" + n + "(" + joined + ln + ")";
   }
 }
 
-// The pt_name_slot table for globals()/locals()/vars()/dir() (SPEC
-// §5.11.5). Boxed names reference their pt_value slot (kind 0 — the runtime
-// skips PT_UNSET, i.e. not-yet-assigned); native-int names their int64
+// The cs_name_slot table for globals()/locals()/vars()/dir() (SPEC
+// §5.11.5). Boxed names reference their cs_value slot (kind 0 — the runtime
+// skips CS_UNSET, i.e. not-yet-assigned); native-int names their int64
 // slot plus the guard flag (kind 1 — a definitely-assigned noflag slot
 // passes NULL, always visible); top-level functions their meta (kind 2 —
 // synthesized into a function value on read). Names resolve with the same
@@ -1986,7 +1986,7 @@ std::string Emitter::name_table_text(bool frame_scope, size_t& count) {
         continue;
       }
       entries.push_back(
-          "{ \"" + c_escape(nm) + "\", 0, (void*)&(pt_g_" + nm + "), NULL }");
+          "{ \"" + c_escape(nm) + "\", 0, (void*)&(cs_g_" + nm + "), NULL }");
     }
     // Top-level function names only. A nested declaration binds through
     // its owning local (already in the lists above); a class METHOD is a
@@ -2008,7 +2008,7 @@ std::string Emitter::name_table_text(bool frame_scope, size_t& count) {
     if (i) joined += ", ";
     joined += entries[i];
   }
-  return "(const pt_name_slot[]){" + joined + " }";
+  return "(const cs_name_slot[]){" + joined + " }";
 }
 
 bool Emitter::own_param_index(const std::string& name, size_t& idx) const {
@@ -2065,7 +2065,7 @@ const MainDecl* Emitter::find_main() const {
 // and right-hand side are provably int64-shaped, and no protocol binding
 // (for target, except-as) or pattern (destructuring) leaf ever writes it.
 // Native slots are kept as a native int64_t pair (value + used-before-
-// assignment flag) next to their untouched pt_value slot (shadow frame and
+// assignment flag) next to their untouched cs_value slot (shadow frame and
 // GC roots stay exactly as before), so hot scalar loops compile to the
 // same straight C arithmetic a C twin gets, while every observable byte —
 // wraps, div/mod edge cases, guard messages, error classes and lines —
@@ -2076,9 +2076,9 @@ const MainDecl* Emitter::find_main() const {
 // and C11 7.13.2.1 makes only that frame's automatic objects indeterminate
 // after longjmp (handlers reading native locals would see stale/garbage
 // values). Globals are static storage — exempt — and never need this.
-// Exception-class globals are excluded (injected `pt_g_X = pt_exc_class`
+// Exception-class globals are excluded (injected `cs_g_X = cs_exc_class`
 // at startup) and class-name globals are poisoned (the class statement
-// writes pt_g_<name> = pt_class_new directly).
+// writes cs_g_<name> = cs_class_new directly).
 //
 // Conservative by construction: params, cells/captures, nonlocal targets,
 // call results, floats, bools, **/bitwise/shift operators and anything
@@ -2118,7 +2118,7 @@ using LocalSlots =
 //    twin_fn_), so a param-reading RHS would land the emitter's
 //    "assigned a non-int expression" internal failure. Declining it keeps
 //    the slot dynamic (conservative by one slot, §0.3). Returns/args keep
-//    the param rule: a twin return spells pt_nl_*, a dynamic return boxes.
+//    the param rule: a twin return spells cs_nl_*, a dynamic return boxes.
 //  * `tdecls` maps callee name -> still-viable twin decl so the shared
 //    call binder (bind_call_args) can order named/omitted args.
 // Float-lane predicate, defined after int_shape (the two are mutually
@@ -2191,8 +2191,8 @@ static bool int_shape(const Expr& e, const FuncDecl* fn,
                        int_lists, int_list_reads);
     }
     case ExprKind::Unary:
-      // "-" and "~" over an int operand are int64 (pt_neg's int path wraps;
-      // pt_bnot's is a uint64 complement) — mirrors native_int_text.
+      // "-" and "~" over an int operand are int64 (cs_neg's int path wraps;
+      // cs_bnot's is a uint64 complement) — mirrors native_int_text.
       return (e.op == "-" || e.op == "~") && e.lhs &&
              int_shape(*e.lhs, fn, ig, il, twin, slot_write, tdecls, fg, fl, int_lists, int_list_reads);
     case ExprKind::Binary: {
@@ -2235,7 +2235,7 @@ static bool int_shape(const Expr& e, const FuncDecl* fn,
       // (no key/default — a key callback is opaque user code).
       const std::string& n = e.builtin_name;
       if (n == "int" && e.args.size() == 1u) {
-        // int(<proven float lane>): the lane emits pt_nf2i, which keeps the
+        // int(<proven float lane>): the lane emits cs_nf2i, which keeps the
         // ValueError for NaN/inf/out-of-range and otherwise returns the
         // identical truncation. fg/fl are the float lane: with no proven
         // float operand the call could be int("...")/int(bool)/type-error,
@@ -2276,20 +2276,20 @@ static bool native_compound_op(const std::string& op) {
 
 // Expression predicate of the native FLOAT lane (Emitter::analyze_native_
 // floats). An expression is float-shaped when evaluating it on the dynamic
-// path would produce exactly a PT_FLOAT value:
+// path would produce exactly a CS_FLOAT value:
 //  * a float literal or a read of a float-lane slot;
-//  * unary "-" over a float-shaped operand (pt_neg_f's PT_FLOAT path is a
+//  * unary "-" over a float-shaped operand (cs_neg_f's CS_FLOAT path is a
 //    plain IEEE negate — sign bit flips, -0.0 -> 0.0, inf/nan preserved);
-//  * "+", "-", "*", "/" where BOTH sides are float-shaped (pt_add_f et al.
+//  * "+", "-", "*", "/" where BOTH sides are float-shaped (cs_add_f et al.
 //    take the numeric fast path), or where exactly ONE side is float-shaped
 //    and the other is int-shaped under the FINAL int lane: the runtime then
-//    converts int64 -> double with a plain C cast (pt_dbl/pt_as_double) and
-//    returns pt_float — the lane emits the identical (double) conversion.
-//    ("/" additionally carries pt_div_f's y == 0.0 ZeroDivisionError on the
-//    CONVERTED divisor — pt_nfdiv reproduces it.)
-// Everything else is DECLINED: float "%" (pt_mod raises TypeError on any
+//    converts int64 -> double with a plain C cast (cs_dbl/cs_as_double) and
+//    returns cs_float — the lane emits the identical (double) conversion.
+//    ("/" additionally carries cs_div_f's y == 0.0 ZeroDivisionError on the
+//    CONVERTED divisor — cs_nfdiv reproduces it.)
+// Everything else is DECLINED: float "%" (cs_mod raises TypeError on any
 // non-int operand — the lane stays dynamic and raises identically), mixed
-// int/float COMPARISONS (pt_cmp3 compares exactly via long double; a C
+// int/float COMPARISONS (cs_cmp3 compares exactly via long double; a C
 // double conversion is not bit-exact for int64 near 2^63), "**", bools,
 // calls, and every int-shaped write (so `x = 0; x = x + 0.5` declines —
 // the slot is dynamic, exactly like today). Mirrors Emitter::
@@ -2332,7 +2332,7 @@ static bool float_shape(const Expr& e, const FuncDecl* fn,
       bool a = float_shape(*e.lhs, fn, fg, fl, ig, il, twin, tdecls, int_lists, int_list_reads);
       bool b = float_shape(*e.rhs, fn, fg, fl, ig, il, twin, tdecls, int_lists, int_list_reads);
       if (a && b) return true;
-      // Mixed: the int side must be PROVEN int64 (a dynamic pt_value could
+      // Mixed: the int side must be PROVEN int64 (a dynamic cs_value could
       // hold anything — bool, text — whose runtime behavior differs).
       if (a) return int_shape(*e.rhs, fn, ig, il, twin, /*slot_write=*/false,
                               tdecls, &fg, &fl, int_lists, int_list_reads);
@@ -2341,7 +2341,7 @@ static bool float_shape(const Expr& e, const FuncDecl* fn,
       return false;
     }
     case ExprKind::Call: {
-      // float(<proven int lane>): pt_builtin_float's PT_INT branch is a
+      // float(<proven int lane>): cs_builtin_float's CS_INT branch is a
       // plain (double) cast — the lane emits the identical cast. Anything
       // else (float of text/bool/float, no-arg float, named arg, a shadowed
       // builtin) stays dynamic.
@@ -2404,7 +2404,7 @@ static bool is_bulk_for(const Stmt& s, const std::string& v);
 // analyses — identical to Route-1); non-NULL only for analyze_bulk_lanes'
 // private collection, whose sanctioned `for m in more` bind records the raw
 // int64 int_bind INSTEAD of the iterator poison — the shared walk must keep
-// poisoning it, because the DYNAMIC body binds that slot from pt_iter.
+// poisoning it, because the DYNAMIC body binds that slot from cs_iter.
 static void walk_stmts(const std::vector<Stmt>& body, const FuncDecl* fn,
                        GlobalSlots& gw, LocalSlots& lw,
                        const std::set<const FuncDecl*>* bulk = nullptr);
@@ -2432,7 +2432,7 @@ static void walk_stmt(const Stmt& s, const FuncDecl* fn, GlobalSlots& gw,
       // more` over an ADMITTED bulk callee's own vararg binds a RAW int64
       // (the _b tail element) — an int_bind for analyze_bulk_lanes. The
       // SHARED walk still poisons it: the dynamic body binds the same slot
-      // from pt_iter and must never join a shared lane.
+      // from cs_iter and must never join a shared lane.
       if (s.expr && s.expr->kind == ExprKind::Call && s.expr->is_builtin_range &&
           (s.res == VarRes::Global || (s.res == VarRes::Local && fn))) {
         SlotWrite w{s.expr.get(), fn, true, std::string()};
@@ -2460,7 +2460,7 @@ static void walk_stmt(const Stmt& s, const FuncDecl* fn, GlobalSlots& gw,
       break;
     }
     case StmtKind::Class:
-      poison_slot(s.name, VarRes::Global, fn, gw, lw);  // direct pt_g_ write
+      poison_slot(s.name, VarRes::Global, fn, gw, lw);  // direct cs_g_ write
       walk_stmts(s.body, fn, gw, lw, bulk);  // pass-only today; be thorough
       break;
     case StmtKind::Func:
@@ -2560,7 +2560,7 @@ void Emitter::analyze_native_ints() {
   for (const FuncDecl* f : all_functions()) walk_stmts(f->body, f, gw, lw);
 
   // Cross-scope access (docs/reference/cross-scope-access.md §4): a pinned slot must
-  // live on the ONE storage the qualified path reads — the dynamic pt_value
+  // live on the ONE storage the qualified path reads — the dynamic cs_value
   // slot — so poison it (and any variable.global target) out of the native
   // lane. Conservative by one slot, exactly like every other poison.
   for (const std::string& g : prog_.pin_globals) gw[g].poisoned = true;
@@ -2651,7 +2651,7 @@ void Emitter::analyze_native_ints() {
       }
     }
     // Twin sweep under the (possibly shrunken) lanes: the twin declares NO
-    // pt_value local slots, so every local must still be a lane — re-checked
+    // cs_value local slots, so every local must still be a lane — re-checked
     // every sweep, not just at prefilter time, because the slot sweep above
     // can evict one mid-fixpoint. Returns and param writes must stay
     // int-shaped under the current lanes + twin names.
@@ -2817,7 +2817,7 @@ void Emitter::analyze_native_floats() {
 }
 
 // Promote native globals whose every reference sits in the main block to
-// automatic locals of pt_main_block (see the GlobalRefScan block comment).
+// automatic locals of cs_main_block (see the GlobalRefScan block comment).
 // Runs after the lane fixpoints (only native slots are candidates) and
 // before emission; analyze_definite_assign/guard elimination still see the
 // same names, so noflag/guard facts are unchanged.
@@ -2831,7 +2831,7 @@ void Emitter::analyze_promotable_globals() {
     if (t.kind == TopKind::Stmt) scan_stmt_refs(t.stmt, top);
     else if (t.kind == TopKind::Func && t.func) {
       /* a top-level `def` binds its name (the function value) at module
-       * scope, outside pt_main_block — never promote a read of it */
+       * scope, outside cs_main_block — never promote a read of it */
       top.refs.insert(t.func->name);
       top.writes.insert(t.func->name);
     } else if (t.kind == TopKind::Import) {
@@ -2879,7 +2879,7 @@ void Emitter::analyze_promotable_globals() {
 
 
 // ---- definite assignment for int-list read sites --------------------------
-// The native list-element read uses the bare slot storage (no pt_guard), so
+// The native list-element read uses the bare slot storage (no cs_guard), so
 // the slot must be provably assigned at that exact read. This is a plain
 // forward DA walk over the main block for global name bindings; branches and
 // loops are walked with copies and never propagate assignments outward (the
@@ -3300,7 +3300,7 @@ void Emitter::scan_main_uses() {
 
 // True when a value written by `g = expr` is a freshly allocated flat list
 // (stride 0). Only called after int_list_expr proved the value is an int list,
-// so the element types are already known to be PT_INT.
+// so the element types are already known to be CS_INT.
 bool Emitter::flat_init_expr(const Expr& e) const {
   switch (e.kind) {
     case ExprKind::ListLit:
@@ -3495,11 +3495,11 @@ void Emitter::analyze_ephemeral_slices() {
     if (!local_g_.count(src)) continue;
     if (nativ_g_.count(src) || nativfg_.count(src)) continue;
     // The fast span path assumes a list source; int_lists_ is exactly that
-    // proof and also implies every element is PT_INT for the native reads.
+    // proof and also implies every element is CS_INT for the native reads.
     if (!int_lists_.count(src)) continue;
     if (sl.has_step && sl.fourth &&
         (sl.fourth->kind != ExprKind::IntLit || sl.fourth->ival <= 0))
-      continue;  // negative/dynamic steps keep the general pt_slice path
+      continue;  // negative/dynamic steps keep the general cs_slice path
     auto bound_int = [&](const Expr* b) {
       return b && int_shape(*b, cur_func_, nativ_g_, nativ_l_, nullptr,
                             /*slot_write=*/true, nullptr, &nativfg_, &nativfl_,
@@ -3563,11 +3563,11 @@ void Emitter::analyze_ephemeral_slices() {
     EphemSlice es;
     es.target = target;
     es.src = src;
-    const std::string tag = "pt_ep" + std::to_string(ephem_seq_++);
+    const std::string tag = "cs_ep" + std::to_string(ephem_seq_++);
     // No write to the source may follow the snapshot, and main-only globals
-    // keep their storage in pt_main_block's rooted frame; reads can address
+    // keep their storage in cs_main_block's rooted frame; reads can address
     // that storage directly instead of copying the value per slice.
-    es.psrc = "pt_g_" + src;
+    es.psrc = "cs_g_" + src;
     es.flat = flat_lists_.count(src) != 0;
     es.items = tag + "_items";
     es.stride = tag + "_stride";
@@ -3670,7 +3670,7 @@ void Emitter::emit_ephemeral_slice(const Stmt& s, const EphemSlice& es,
   // The proof forbids source writes after this point, so the view fields are
   // stable for every fused read; snapshot them into raw locals once.
   if (es.own_facts) {
-    line(ind() + "pt_value* " + es.items + " = " + es.psrc +
+    line(ind() + "cs_value* " + es.items + " = " + es.psrc +
          ".as.o->as.seq.items;");
     if (!es.flat)
       line(ind() + "ptrdiff_t " + es.stride + " = " + es.psrc +
@@ -3691,7 +3691,7 @@ void Emitter::emit_ephemeral_slice(const Stmt& s, const EphemSlice& es,
     line(ind() + "int64_t " + es.bstop + " = " + b + ";");
   }
   if (!es.base_span.empty()) {
-    line(ind() + "pt_slice_span " + es.span + ";");
+    line(ind() + "cs_slice_span " + es.span + ";");
     line(ind() + "if (" + es.bstart + " == " + es.base_bs + " && " +
          es.bstop + " == " + es.base_be + ") {");
     line(ind() + "  " + es.span + ".first = " + es.base_span + ".first;");
@@ -3699,11 +3699,11 @@ void Emitter::emit_ephemeral_slice(const Stmt& s, const EphemSlice& es,
          ".count + (uint64_t)" + es.step_lit + " - 1u) / (uint64_t)" +
          es.step_lit + ";");
     line(ind() + "} else {");
-    line(ind() + "  " + es.span + " = pt_slice_span_n(" + es.len + ", " +
+    line(ind() + "  " + es.span + " = cs_slice_span_n(" + es.len + ", " +
          es.bstart + ", 1, " + es.bstop + ", 1, " + es.step_lit + ");");
     line(ind() + "}");
   } else {
-    line(ind() + "pt_slice_span " + es.span + " = pt_slice_span_n(" +
+    line(ind() + "cs_slice_span " + es.span + " = cs_slice_span_n(" +
          es.len + ", " + (present_start ? es.bstart : "0") + ", " +
          (present_start ? "1" : "0") + ", " +
          (present_stop ? es.bstop : "0") + ", " +
@@ -3721,7 +3721,7 @@ void Emitter::emit_ephemeral_slice(const Stmt& s, const EphemSlice& es,
 // but no auto-vectorizer can fuse across separately-called loops. This
 // pass proves which slots only ever hold fvec/ivec values and compiles
 // their elementwise assignments to a SINGLE fused kernel loop over clang
-// vector-extension lanes (PT_VW wide, scalar tail) — Halide/XLA-style
+// vector-extension lanes (CS_VW wide, scalar tail) — Halide/XLA-style
 // intermediate elimination, with vectorization guaranteed by explicit
 // lanes instead of hoped for.
 //
@@ -3740,11 +3740,11 @@ void Emitter::emit_ephemeral_slice(const Stmt& s, const EphemSlice& es,
 //    standard TypeError).
 //  * At EMISSION the same shape is re-checked against the final maps, so
 //    a slot that lost its kind in the fixpoint never fuses — the proof is
-//    the whole type contract. Slots stay dynamic pt_value storage; only
+//    the whole type contract. Slots stay dynamic cs_value storage; only
 //    the expression lowering changes.
 //
 // Semantics: per-element arithmetic is exactly the dynamic operators'
-// (same IEEE ops; int64 lanes wrap like pt_wrap_*), and a length
+// (same IEEE ops; int64 lanes wrap like cs_wrap_*), and a length
 // mismatch between operands raises the same 'fvec/ivec length mismatch'
 // ValueError at the same line — evaluated BEFORE any element is written.
 int Emitter::fvec_shape(const Expr& e, const FuncDecl* fn) const {
@@ -3984,7 +3984,7 @@ void Emitter::analyze_native_fvecs() {
 
 // ---- text-cat in-place growth (perf: text_build's `s = s + chunk`) --------
 //
-// pt_text_cat2(a, b, line, may_grow=1) may append b into a's OWN buffer
+// cs_text_cat2(a, b, line, may_grow=1) may append b into a's OWN buffer
 // (while the block carries spare capacity) — memory is mutated through the
 // destination slot alone. That is unobservable exactly when no other live
 // reference to the block can exist, so a candidate statement (`name =
@@ -4005,7 +4005,7 @@ void Emitter::analyze_native_fvecs() {
 //                 holder still points into it). Immediate NON-text
 //                 literals decline as well: they mark the slot as something
 //                 other than text, keeping dynamic int counters on the
-//                 inline pt_add_f fast path;
+//                 inline cs_add_f fast path;
 //   reads         every read is either the candidate's own concat operand
 //                 (the `s` in `s = s + ...`, evaluated before the append
 //                 and consumed by it — including `s = s + s` and `s += s`)
@@ -4025,13 +4025,13 @@ void Emitter::analyze_native_fvecs() {
 //                 names the slot (declined by name, program-wide).
 //
 // With those holds the buffer has exactly one root (the slot): an in-place
-// append changes bytes no other live value can name, pt_text_cat2 restores
+// append changes bytes no other live value can name, cs_text_cat2 restores
 // the slot's NUL before returning, and every result is byte-identical to
-// pt_concat's — only buffer identity and capacity differ. GC cannot
+// cs_concat's — only buffer identity and capacity differ. GC cannot
 // intervene mid-statement: the slot still roots the old block until the
 // store, the append path does not allocate, and the fresh-block path
-// allocates through pt_gc_new_full, which never collects. Doubt = not in
-// catok_ = the exact pre-existing emission (pt_add_f -> pt_concat).
+// allocates through cs_gc_new_full, which never collects. Doubt = not in
+// catok_ = the exact pre-existing emission (cs_add_f -> cs_concat).
 struct CatInfo {
   std::vector<const Stmt*> cands;  // candidate statements for this slot
   bool text_lit = false;     // an immediate Text/Bytes literal write exists
@@ -4368,8 +4368,8 @@ void Emitter::analyze_text_cats() {
 // state it must respect) plans MethodCall sites whose every dynamic-dispatch
 // premise it can prove program-wide; emit_inline_method then materializes a
 // planned site as the callee's body inlined at the call site over per-site
-// slots `pt_il<id>_<name>`, result slot `pt_ilr<id>`, merge label
-// `pt_ile<id>end`.
+// slots `cs_il<id>_<name>`, result slot `cs_ilr<id>`, merge label
+// `cs_ile<id>end`.
 //
 // SOUNDNESS ARGUMENT. The dynamic path for `o.m(a…)` evaluates `o`, looks
 // `m` up on the receiver's class, binds (receiver, args) positionally to the
@@ -4411,7 +4411,7 @@ void Emitter::analyze_text_cats() {
 //     finallys), nested declarations (closure hoisting lives in
 //     emit_function's prologue), nonlocal/cell/pinned bindings (storage_for's
 //     inline diversion must be the authoritative mapping), or native-lane
-//     locals (their Assign emission writes pt_nl_/pt_nfl_ storage that does
+//     locals (their Assign emission writes cs_nl_/cs_nfl_ storage that does
 //     not exist in the caller's frame) are declined. Every other statement
 //     form emits through the ordinary emitters with cur_func_ set to the
 //     method, so guards, line numbers, raise wording, attribute get/set and
@@ -4419,9 +4419,9 @@ void Emitter::analyze_text_cats() {
 //     try/finally state is deliberately untouched (a callee return/raise
 //     never runs the caller's finallys dynamically either).
 //   * FRAMES/ROOTS: site slots join the current shadow-frame region
-//     (il_register): declared `pt_unset()` at the region top and rooted for
+//     (il_register): declared `cs_unset()` at the region top and rooted for
 //     the whole region — at least as conservative as the callee's frame.
-//     Locals are re-set to pt_unset() at every entry (a dynamic frame starts
+//     Locals are re-set to cs_unset() at every entry (a dynamic frame starts
 //     fresh each call; the region-top initializer runs only once).
 //   * RE-ENTRY: il_stack_ refuses to inline a method already being inlined,
 //     so cyclic plans degrade to the dynamic path.
@@ -4432,7 +4432,7 @@ void Emitter::analyze_text_cats() {
 //   * OBSERVABILITY: the runtime carries no traceback/frame introspection —
 //     every error surface is (message, raising line) — so the disappearance
 //     of a physical call frame is unobservable. FLAGGED DEVIATION CANDIDATE
-//     (contract §1.4): the inlined site carries NO entry `pt_gc_maybe`; the
+//     (contract §1.4): the inlined site carries NO entry `cs_gc_maybe`; the
 //     callee-entry safe point disappears with the call. Body-internal safe
 //     points (loop back-edges, statement boundaries) are untouched — the
 //     body emits through the ordinary path.
@@ -4471,7 +4471,7 @@ void Emitter::analyze_method_inlines() {
     }
   }
   // Builtin exception classes are class-valued module globals written by
-  // pt_init (never by an Assign we could track) — they carry the same
+  // cs_init (never by an Assign we could track) — they carry the same
   // "$class" sentinel as user classes so copies of them can never prove an
   // instance (their dispatch table does not exist in `classes` either).
   for (const std::string& g : prog_.globals)
@@ -4723,7 +4723,7 @@ void Emitter::analyze_method_inlines() {
     return p;
   };
   std::map<SlotKey, Pt> pt;
-  auto pt_at = [&](const SlotKey& k) -> Pt& {
+  auto cs_at = [&](const SlotKey& k) -> Pt& {
     auto it = pt.find(k);
     if (it == pt.end()) it = pt.emplace(k, init_pt(k)).first;
     return it->second;
@@ -4755,11 +4755,11 @@ void Emitter::analyze_method_inlines() {
     if (x.kind == ExprKind::Var &&
         (x.res == VarRes::Global || x.res == VarRes::Local ||
          x.res == VarRes::Param))
-      return pt_at(key_of(w.scope, x.res, x.name));  // copy chain
+      return cs_at(key_of(w.scope, x.res, x.name));  // copy chain
     p.top = true;
     return p;
   };
-  for (const auto& kv : wrs) pt_at(kv.first);  // materialize every write key
+  for (const auto& kv : wrs) cs_at(kv.first);  // materialize every write key
   for (bool change = true; change;) {
     change = false;
     for (const auto& kv : wrs) {
@@ -4769,7 +4769,7 @@ void Emitter::analyze_method_inlines() {
         if (c.top) nv.top = true;
         nv.cls.insert(c.cls.begin(), c.cls.end());
       }
-      Pt& cur = pt_at(kv.first);
+      Pt& cur = cs_at(kv.first);
       if (!cur.same(nv)) {
         cur = nv;
         change = true;
@@ -4851,7 +4851,7 @@ void Emitter::analyze_method_inlines() {
           rec.res != VarRes::Param)
         continue;
       if (rec.res != VarRes::Global && !sc) continue;
-      const Pt& p = pt_at(key_of(sc, rec.res, rec.name));
+      const Pt& p = cs_at(key_of(sc, rec.res, rec.name));
       if (p.top || p.cls.size() != 1u) continue;
       cls = *p.cls.begin();
     } else if (rec.kind == ExprKind::Call) {
@@ -4883,7 +4883,7 @@ void Emitter::analyze_method_inlines() {
 
 // Emission of a planned site (see the soundness comment above the planning
 // pass). Returns the expression text of the call's value: the result slot
-// when the body can return, else `pt_none()` (a body with no `return` falls
+// when the body can return, else `cs_none()` (a body with no `return` falls
 // off its end into None).
 std::string Emitter::emit_inline_method(const Expr& e, const InlineSite& site,
                                          bool in_function) {
@@ -4919,12 +4919,12 @@ std::string Emitter::emit_inline_method(const Expr& e, const InlineSite& site,
   micx_id_ = site.id;
   cur_func_ = &m;
 
-  // Slots join the CURRENT frame region: declared `pt_unset()` at the
+  // Slots join the CURRENT frame region: declared `cs_unset()` at the
   // region top (emit_framed) and rooted in the shadow frame for the whole
   // region — at least as conservative as the callee's own frame would be.
   for (const std::string& p : m.params) il_register(il_name(p));
   for (const std::string& l : m.locals) il_register(il_name(l));
-  if (site.has_return) il_register("pt_ilr" + std::to_string(micx_id_));
+  if (site.has_return) il_register("cs_ilr" + std::to_string(micx_id_));
 
   // Entry binding: receiver → params[0], args left-to-right — the binder's
   // exact positional order (planning guaranteed the counts).
@@ -4934,43 +4934,43 @@ std::string Emitter::emit_inline_method(const Expr& e, const InlineSite& site,
   // A dynamic frame starts every local unset on every call; the region-top
   // initializer runs only once per region, so re-set them per entry.
   for (const std::string& l : m.locals)
-    line(ind() + il_name(l) + " = pt_unset();");
+    line(ind() + il_name(l) + " = cs_unset();");
   if (site.has_return)
-    line(ind() + "pt_ilr" + std::to_string(site.id) + " = pt_none();");
+    line(ind() + "cs_ilr" + std::to_string(site.id) + " = cs_none();");
 
   emit_body(m.body, /*in_function=*/true);
   if (site.has_return)
-    line(ind() + "pt_ile" + std::to_string(site.id) + "end: ;");
+    line(ind() + "cs_ile" + std::to_string(site.id) + "end: ;");
 
   il_stack_.pop_back();
   cur_func_ = saved_fn;
   micx_ = saved_micx;
   micx_id_ = saved_id;
   env_used_ = saved_env;
-  if (site.has_return) return "pt_ilr" + std::to_string(site.id);
-  return "pt_none()";
+  if (site.has_return) return "cs_ilr" + std::to_string(site.id);
+  return "cs_none()";
 }
 
 // Fused elementwise kernel for one assignment statement (see the block
 // comment above analyze_native_fvecs). Emits:
-//   { pt_value t = <guarded leaf reads>;        // once each — no re-eval
-//     const double* d = pt_fvec_data_of(t); ... // hoisted data pointers
+//   { cs_value t = <guarded leaf reads>;        // once each — no re-eval
+//     const double* d = cs_fvec_data_of(t); ... // hoisted data pointers
 //     int64_t s = <int-lane scalar>; ...        // hoisted broadcasts
-//     size_t n = pt_vec_len_of(<first>);        // + expect_len on the rest
-//     pt_obj* r = pt_fvec_new(n, line);
-//     double* pd = pt_fvec_data_of(pt_fvec_val(r));
-//     size_t pt_vix = 0;
-//     for (; pt_vix + PT_VW <= n; pt_vix += PT_VW) {   // guaranteed lanes
-//       pt_vr = <expr over lane loads>; memcpy(pd + pt_vix, &pt_vr, ...); }
-//     for (; pt_vix < n; pt_vix++) pd[pt_vix] = <expr over scalar loads>;
-//     target = pt_fvec_val(r); }
+//     size_t n = cs_vec_len_of(<first>);        // + expect_len on the rest
+//     cs_obj* r = cs_fvec_new(n, line);
+//     double* pd = cs_fvec_data_of(cs_fvec_val(r));
+//     size_t cs_vix = 0;
+//     for (; cs_vix + CS_VW <= n; cs_vix += CS_VW) {   // guaranteed lanes
+//       cs_vr = <expr over lane loads>; memcpy(pd + cs_vix, &cs_vr, ...); }
+//     for (; cs_vix < n; cs_vix++) pd[cs_vix] = <expr over scalar loads>;
+//     target = cs_fvec_val(r); }
 // Per-element arithmetic equals the dynamic operators' exactly; the
 // length check raises before anything is written.
 void Emitter::emit_fvec_assign(const Stmt& s, int kind, bool in_function) {
   const bool fv = (kind == 1);
-  const char* vdn = fv ? "pt_vd" : "pt_vi";
-  const char* accf = fv ? "pt_fvec_data_of" : "pt_ivec_data_of";
-  const char* ctor = fv ? "pt_fvec_val" : "pt_ivec_val";
+  const char* vdn = fv ? "cs_vd" : "cs_vi";
+  const char* accf = fv ? "cs_fvec_data_of" : "cs_ivec_data_of";
+  const char* ctor = fv ? "cs_fvec_val" : "cs_ivec_val";
   const char* nmk = fv ? "fvec" : "ivec";
   const char* ty = fv ? "double" : "int64_t";
   const std::string ln_s = std::to_string(s.loc.line);
@@ -5035,26 +5035,26 @@ void Emitter::emit_fvec_assign(const Stmt& s, int kind, bool in_function) {
           (x.kind == ExprKind::Var && l.e->kind == ExprKind::Var &&
            l.e->name == x.name && l.res == std::to_string((int)x.res))) {
         if (vec)
-          return std::string("(*(const ") + vdn + "*)(" + l.stem + "_d + pt_vix))";
-        return l.stem + "_d[pt_vix]";
+          return std::string("(*(const ") + vdn + "*)(" + l.stem + "_d + cs_vix))";
+        return l.stem + "_d[cs_vix]";
       }
     for (const SLeaf& l : svars)
       if (l.e == &x) {
         if (vec)
-          return fv ? std::string("PT_VD_SPLAT((double)(") + l.stem + "))"
-                    : std::string("PT_VI_SPLAT(") + l.stem + ")";
+          return fv ? std::string("CS_VD_SPLAT((double)(") + l.stem + "))"
+                    : std::string("CS_VI_SPLAT(") + l.stem + ")";
         return fv ? std::string("((double)(") + l.stem + "))"
                   : std::string("(") + l.stem + ")";
       }
-    // Literals: RAW C texts (emit_expr would box them into pt_value).
+    // Literals: RAW C texts (emit_expr would box them into cs_value).
     if (x.kind == ExprKind::FloatLit) {
       std::string lit = float_literal_raw(x.fval);
-      return vec ? std::string("PT_VD_SPLAT(") + lit + ")" : "(" + lit + ")";
+      return vec ? std::string("CS_VD_SPLAT(") + lit + ")" : "(" + lit + ")";
     }
     std::string lit = int_literal_raw(x.ival);  // IntLit
     if (vec)
-      return fv ? std::string("PT_VD_SPLAT((double)(") + lit + "))"
-                : std::string("PT_VI_SPLAT(") + lit + ")";
+      return fv ? std::string("CS_VD_SPLAT((double)(") + lit + "))"
+                : std::string("CS_VI_SPLAT(") + lit + ")";
     return fv ? std::string("((double)(") + lit + "))" : "(" + lit + ")";
   };
   std::function<std::string(const Expr&, bool)> tr =
@@ -5069,8 +5069,8 @@ void Emitter::emit_fvec_assign(const Stmt& s, int kind, bool in_function) {
     if (s.op.empty()) return tr(*s.expr, vec);
     // Compound: the target read is the left operand.
     std::string base = s.op.substr(0, s.op.size() - 1);  // "+=" → "+"
-    std::string t = vec ? std::string("(*(const ") + vdn + "*)(TGT_d + pt_vix))"
-                        : std::string("TGT_d[pt_vix]");
+    std::string t = vec ? std::string("(*(const ") + vdn + "*)(TGT_d + cs_vix))"
+                        : std::string("TGT_d[cs_vix]");
     return "(" + t + " " + base + " " + tr(*s.expr, vec) + ")";
   };
 
@@ -5081,14 +5081,14 @@ void Emitter::emit_fvec_assign(const Stmt& s, int kind, bool in_function) {
   if (!s.op.empty()) {
     std::string storage = storage_for(s.name, s.res, in_function, s.loc.line);
     std::string vt = decl_temp();
-    line(ind() + "pt_value " + vt + " = " +
+    line(ind() + "cs_value " + vt + " = " +
          guard_text(storage, s.name, s.res, s.loc.line) + ";");
     line(ind() + "const " + std::string(ty) + "* TGT_d = " + accf + "(" + vt +
          ");");
     first_op = vt;
   }
   for (const FLeaf& l : fvars) {
-    line(ind() + "pt_value " + l.stem + " = " + emit_expr(*l.e, in_function) +
+    line(ind() + "cs_value " + l.stem + " = " + emit_expr(*l.e, in_function) +
          ";");
     line(ind() + "const " + std::string(ty) + "* " + l.stem + "_d = " + accf +
          "(" + l.stem + ");");
@@ -5101,27 +5101,27 @@ void Emitter::emit_fvec_assign(const Stmt& s, int kind, bool in_function) {
          "operand (line " + ln_s + ")");
 
   std::string nt = decl_temp();
-  line(ind() + "size_t " + nt + " = pt_vec_len_of(" + first_op + ");");
+  line(ind() + "size_t " + nt + " = cs_vec_len_of(" + first_op + ");");
   for (const FLeaf& l : fvars)
     if (l.stem != first_op)
-      line(ind() + std::string("pt_") + nmk + "_expect_len(" + l.stem + ", " +
+      line(ind() + std::string("cs_") + nmk + "_expect_len(" + l.stem + ", " +
            nt + ", " + ln_s + ");");
   std::string ro = decl_temp();
-  line(ind() + "pt_obj* " + ro + " = pt_" + nmk + "_new(" + nt + ", " + ln_s +
+  line(ind() + "cs_obj* " + ro + " = cs_" + nmk + "_new(" + nt + ", " + ln_s +
        ");");
   std::string pd = decl_temp();
   line(ind() + std::string(ty) + "* " + pd + " = " + accf + "(" + ctor + "(" +
        ro + "));");
-  line(ind() + "size_t pt_vix = 0;");
-  line(ind() + "for (; pt_vix + PT_VW <= " + nt + "; pt_vix += PT_VW) {");
+  line(ind() + "size_t cs_vix = 0;");
+  line(ind() + "for (; cs_vix + CS_VW <= " + nt + "; cs_vix += CS_VW) {");
   indent_ += 2;
-  line(ind() + std::string(vdn) + " pt_vr = " + root_text(true) + ";");
-  line(ind() + "memcpy(" + pd + " + pt_vix, &pt_vr, sizeof pt_vr);");
+  line(ind() + std::string(vdn) + " cs_vr = " + root_text(true) + ";");
+  line(ind() + "memcpy(" + pd + " + cs_vix, &cs_vr, sizeof cs_vr);");
   indent_ -= 2;
   line(ind() + "}");
-  line(ind() + "for (; pt_vix < " + nt + "; pt_vix++) {");
+  line(ind() + "for (; cs_vix < " + nt + "; cs_vix++) {");
   indent_ += 2;
-  line(ind() + pd + "[pt_vix] = " + root_text(false) + ";");
+  line(ind() + pd + "[cs_vix] = " + root_text(false) + ";");
   indent_ -= 2;
   line(ind() + "}");
   line(ind() + storage_for(s.name, s.res, in_function, s.loc.line) + " = " +
@@ -5133,21 +5133,21 @@ void Emitter::emit_fvec_assign(const Stmt& s, int kind, bool in_function) {
 // ---- post-2C perf: native int-lane function twins -------------------------
 //
 // WHY: a function call used to cost the whole dynamic machinery per
-// invocation — bound-vector materialization, local pt_value slots, tag
+// invocation — bound-vector materialization, local cs_value slots, tag
 // dispatch on every operator, boxing on every boundary — even when the
 // program is pure int64 arithmetic (fib, collatz, primality loops). The
 // slot-lane analysis above cannot bridge the param/return boundary: a
-// param is a runtime-typed pt_value and a user call returns one, so no
+// param is a runtime-typed cs_value and a user call returns one, so no
 // expression inside such a function ever became int-shaped, and
 // call-heavy int code stayed fully dynamic.
 //
 // A TWIN is a second C entry point emitted beside the (unchanged)
 // dynamic one:
-//     static int64_t pt_fn_fib_i(int64_t n);   // int64 in, int64 out
+//     static int64_t cs_fn_fib_i(int64_t n);   // int64 in, int64 out
 // Its body is the same statement tree emitted with the native lane
 // active for every binding — params and locals are int64_t, operators
 // are raw C through the existing native_int_text lane, and returns stay
-// int64 (the caller boxes only when it needs a pt_value). Call sites
+// int64 (the caller boxes only when it needs a cs_value). Call sites
 // whose arguments are ALL int-shaped call the twin; every other call
 // site keeps the dynamic entry point, so float/string/None behavior is
 // bit-identical — the call-site gate is the entire type contract.
@@ -5157,17 +5157,17 @@ void Emitter::emit_fvec_assign(const Stmt& s, int kind, bool in_function) {
 //  * top-level static function: not nested (nested calls are dynamic),
 //    no captures (env-free), no vararg/kwarg/defaults (call sites pass
 //    exactly params.size() positional args), no cells or pins (no
-//    pt_cell / static-slot storage), no nested declarations (no closure
+//    cs_cell / static-slot storage), no nested declarations (no closure
 //    hoisting), no try (setjmp frames stay dynamic);
-//  * every local is in nativ_l_[f] — the twin declares NO pt_value
+//  * every local is in nativ_l_[f] — the twin declares NO cs_value
 //    local slots at all (dynamic statements inside still root their
-//    pt_value temps through the emit_framed temp frame);
+//    cs_value temps through the emit_framed temp frame);
 //  * every assignment target is a plain Name (Index/Attr/Tuple targets
-//    would materialize pt_l_* storage the twin does not have), every
+//    would materialize cs_l_* storage the twin does not have), every
 //    `for` is a range() loop (its int64 induction variable binds
 //    straight into a lane; the iterator protocol binds arbitrary
 //    values), and locals()/vars()/dir() never appear (their name tables
-//    expose pt_l_* slot addresses; globals() reads file-scope storage
+//    expose cs_l_* slot addresses; globals() reads file-scope storage
 //    only and stays allowed);
 //  * every return carries an expression (bare `return` is None, not an
 //    int), every such expression — and every write to a param — is
@@ -5182,7 +5182,7 @@ void Emitter::emit_fvec_assign(const Stmt& s, int kind, bool in_function) {
 // ever removed, so the check can only shrink to a fixpoint.
 
 // Introspection builtins whose emitted name tables expose the addresses
-// of the dynamic pt_value slots (pt_l_*) — a twin declares none of them.
+// of the dynamic cs_value slots (cs_l_*) — a twin declares none of them.
 static bool twin_banned_expr(const Expr& e) {
   switch (e.kind) {
     case ExprKind::Call: {
@@ -5249,7 +5249,7 @@ static bool twin_banned_expr(const Expr& e) {
 // rule for bulk candidates, and the _b body's emission gates (For binder,
 // len text) — one computation, so admission and emission cannot drift; if
 // they ever did, the drift is a LOUD C compile failure, never a silent
-// miscompile, because the _b entry declares NO pt_l_<vararg> slot and any
+// miscompile, because the _b entry declares NO cs_l_<vararg> slot and any
 // un-sanctioned read spells that missing storage.
 static bool is_vararg_var(const Expr& e, const std::string& v) {
   return e.kind == ExprKind::Var && e.res == VarRes::Param && e.name == v;
@@ -5406,7 +5406,7 @@ void Emitter::twin_scan_stmts(const std::vector<Stmt>& body, const FuncDecl* f,
     switch (s.kind) {
       case StmtKind::Assign:
         if (s.target.kind != AssignTarget::Kind::Name) {
-          sc.ok = false;  // Index/Attr/Tuple targets materialize pt_l_*
+          sc.ok = false;  // Index/Attr/Tuple targets materialize cs_l_*
           break;          // storage the twin does not declare
         }
         if (s.expr) {
@@ -5441,7 +5441,7 @@ void Emitter::twin_scan_stmts(const std::vector<Stmt>& body, const FuncDecl* f,
         // iterator protocol over arbitrary values. C3 bulk (task-5 A): a
         // `for m in more` whose iterable is EXACTLY this function's own
         // vararg is the second sanctioned shape — the _b entry binds the
-        // same slot from a raw int64 tail element instead of pt_iter —
+        // same slot from a raw int64 tail element instead of cs_iter —
         // and admission shares is_bulk_for() with the emission gate.
         bool range_for = s.expr && s.expr->kind == ExprKind::Call &&
                          s.expr->is_builtin_range;
@@ -5505,7 +5505,7 @@ std::map<const FuncDecl*, TwinScan> Emitter::twin_prefilter() {
         // or raise at materialization time — conservative by one shape, §0.3).
         int64_t dv = 0;
         if (!const_int_lit(d.get(), dv)) {
-          bad = true;  // dynamic PT_MISSING slot materialization at entry
+          bad = true;  // dynamic CS_MISSING slot materialization at entry
           break;
         }
       }
@@ -5549,12 +5549,12 @@ std::map<const FuncDecl*, TwinScan> Emitter::twin_prefilter() {
 
 // Post-2C perf: emit the int-lane twin of an int-lane-viable function.
 // Same statement tree as the dynamic body, but every binding is an int64
-// lane: params are the C parameters (named pt_nl_<p>, the lane names the
+// lane: params are the C parameters (named cs_nl_<p>, the lane names the
 // native-read paths already produce; noflag — a param is always
 // assigned), locals declare the same int64+flag pair as the dynamic
 // body, and every return leaves int64 for the caller's lane. There is no
-// bound vector and no local pt_value slot; dynamic statements inside the
-// body (print, dynamic calls) root their pt_value temps through the
+// bound vector and no local cs_value slot; dynamic statements inside the
+// body (print, dynamic calls) root their cs_value temps through the
 // emit_framed temp frame exactly like the dynamic body does. The twin
 // skips the entry safe point: at entry it holds no GC roots (every lane
 // is an int).
@@ -5569,7 +5569,7 @@ void Emitter::emit_function_native(const FuncDecl& f) {
 
   std::string sig;
   for (size_t i = 0; i < f.params.size(); ++i)
-    sig += std::string(i ? ", int64_t " : "int64_t ") + "pt_nl_" + f.params[i];
+    sig += std::string(i ? ", int64_t " : "int64_t ") + "cs_nl_" + f.params[i];
   line("static int64_t " + f.c_name + "_i(" + sig + ") {");
 
   // Local lanes — same pair as the dynamic body (the flag is the
@@ -5578,7 +5578,7 @@ void Emitter::emit_function_native(const FuncDecl& f) {
   auto it = nativ_l_.find(&f);
   if (it != nativ_l_.end())
     for (const std::string& nl : it->second)
-      line(ind() + "int64_t pt_nl_" + nl + " = 0; char pt_nl_ok_" + nl +
+      line(ind() + "int64_t cs_nl_" + nl + " = 0; char cs_nl_ok_" + nl +
            " = 0;");
 
   emit_framed([&] { emit_body(f.body, /*in_function=*/true); },
@@ -5831,34 +5831,34 @@ void Emitter::analyze_definite_assign() {
   }
 }
 
-// ---- Phase 2.1: boxed-slot pt_guard elimination for provably-bound reads ----
+// ---- Phase 2.1: boxed-slot cs_guard elimination for provably-bound reads ----
 //
-// pt_guard(slot, name, scope, line) is static inline and its hit path is a
+// cs_guard(slot, name, scope, line) is static inline and its hit path is a
 // single tag compare, but every guarded read still pays for the compare plus
 // the name/scope/line arguments and the call-shaped setup at THAT site. This
-// pass proves, for some boxed slots, that EVERY pt_guard on that slot can
-// never see PT_UNSET, so the guard is dead and the bare storage lvalue is
+// pass proves, for some boxed slots, that EVERY cs_guard on that slot can
+// never see CS_UNSET, so the guard is dead and the bare storage lvalue is
 // observably identical (byte-for-byte: same value, no NameError reachable).
 //
 // SOUND by construction (conservative — one non-provable read anywhere keeps
 // the slot's guard):
 //   * params/vararg/kwarg: every bound-vector source (exact-VLA paths in
-//     pt_call/pt_call_method/pt_class_call and the §13 binder) fills slots
-//     with real values or pt_missing(), NEVER pt_unset(), and the callee's
+//     cs_call/cs_call_method/cs_class_call and the §13 binder) fills slots
+//     with real values or cs_missing(), NEVER cs_unset(), and the callee's
 //     slot-materialization (emit_function step 4) copies them into the frame
-//     slot/cell and evaluates PT_MISSING defaults — all before the body runs.
-//     So a param read in the BODY can never observe PT_UNSET. In a DEFAULT
+//     slot/cell and evaluates CS_MISSING defaults — all before the body runs.
+//     So a param read in the BODY can never observe CS_UNSET. In a DEFAULT
 //     expression of param i (emitted at materialization index i, fresh per
 //     call), slots for indices < i are already materialized (bound or their
-//     own default applied) and slot i itself holds pt_missing() (pt_guard only
-//     fires on PT_UNSET) — but slots for indices > i (and the vararg/kwarg
-//     slots, which materialize after all params) are still pt_unset() there,
+//     own default applied) and slot i itself holds cs_missing() (cs_guard only
+//     fires on CS_UNSET) — but slots for indices > i (and the vararg/kwarg
+//     slots, which materialize after all params) are still cs_unset() there,
 //     so a read of those MUST keep its guard. A param read that only ever
 //     appears in the body (or in a later param's default) stays no-guard.
 //   * locals/globals: definite-assignment walk with the same conservative
 //     join discipline as analyze_definite_assign() (branches/loops/try bodies
 //     walked isolated — their assignments never escape). Unlike the native
-//     flag pass, this walk models EVERY read form that can emit a pt_guard
+//     flag pass, this walk models EVERY read form that can emit a cs_guard
 //     (bare Var reads, compound-assignment target reads, tuple-target
 //     object/index subexpressions), because the starting assumption is
 //     "needs no guard". A capture read (a name that is not an own
@@ -5869,7 +5869,7 @@ void Emitter::analyze_definite_assign() {
 //     Unresolved reads keep their guard (ge_erase_all): their storage is
 //     program-lifetime pin/static state this walk does not model.
 // The pass is independent of the native lanes (a native slot never reaches a
-// pt_guard site), so it may run after analyze_definite_assign().
+// cs_guard site), so it may run after analyze_definite_assign().
 void Emitter::ge_check_expr(const Expr& e, std::set<std::string>& da_g,
                             std::set<std::string>& da_l, const FuncDecl* fn) {
   switch (e.kind) {
@@ -5882,7 +5882,7 @@ void Emitter::ge_check_expr(const Expr& e, std::set<std::string>& da_g,
         // ge_elide() will report false (guard kept) at its read site.
         if (fn && !da_l.count(e.name)) noguard_l_[fn].erase(e.name);
       } else if (e.res == VarRes::Param) {
-        // Defaults context: keep the guard for slots still pt_unset() here.
+        // Defaults context: keep the guard for slots still cs_unset() here.
         // Body context: params/vararg/kwarg are all materialized → do nothing
         // (they stay no-guard); captures aren't seeded → guard kept anyway.
         if (ge_def_pos_ >= 0 && fn) {
@@ -5892,9 +5892,9 @@ void Emitter::ge_check_expr(const Expr& e, std::set<std::string>& da_g,
           if (idx == (size_t)-1) {
             noguard_l_[fn].erase(e.name);  // vararg/kwarg or capture: unset here
           } else if ((int)idx > ge_def_pos_) {
-            noguard_l_[fn].erase(e.name);  // later param: still pt_unset()
+            noguard_l_[fn].erase(e.name);  // later param: still cs_unset()
           }
-          // idx <= ge_def_pos_: materialized (or pt_missing) → not PT_UNSET.
+          // idx <= ge_def_pos_: materialized (or cs_missing) → not CS_UNSET.
         }
       } else {
         ge_erase_all(e.name);  // Function-value / Unresolved reads keep guard
@@ -6122,12 +6122,12 @@ void Emitter::ge_walk_stmts(const std::vector<Stmt>& body,
 // re-walks exactly the operations emission performs. Two invariants make it
 // sound to judge ONE tree that is emitted twice (dynamic entry + twin):
 //   * a lane-admitted formula's RAISE SURFACE is boxing-independent
-//     (pt_ndiv/nmod/shl/shr/pow and the used-flag reads are the same
+//     (cs_ndiv/nmod/shl/shr/pow and the used-flag reads are the same
 //     conditions in both spellings; boxing itself never raises);
-//   * Param reads are admitted ONLY as bare reads (pt_guard can never fire —
-//     §13 fills slots with values or PT_MISSING, never PT_UNSET — and a
+//   * Param reads are admitted ONLY as bare reads (cs_guard can never fire —
+//     §13 fills slots with values or CS_MISSING, never CS_UNSET — and a
 //     twin param is the raw int64), never UNDER an operator: in the dynamic
-//     entry a param holds an arbitrary pt_value, so pt_lt_f(int, <text>)
+//     entry a param holds an arbitrary cs_value, so cs_lt_f(int, <text>)
 //     could raise there even though the twin's raw compare cannot. That is
 //     the "type-stability" clause: comparisons and arithmetic operands must
 //     be proven-number (lane slots, literals, lane-twin call results), not
@@ -6166,15 +6166,15 @@ static std::map<std::string, const FuncDecl*> decl_map_of(
 
 bool Emitter::native_read_no_raise(const std::string& name, VarRes res,
                                    const FuncDecl* fn) const {
-  // Param: a §13 bound slot never holds PT_UNSET (values or PT_MISSING fill
-  // it before the body runs) so pt_guard can never fire on a body read; a
+  // Param: a §13 bound slot never holds CS_UNSET (values or CS_MISSING fill
+  // it before the body runs) so cs_guard can never fire on a body read; a
   // twin param is the raw int64 (no check at all). Reads inside a param
   // DEFAULT expression live outside every try body (defaults belong to the
   // FuncDecl root), so they are never judged here.
   if (res == VarRes::Param) return fn != nullptr;
   if (res == VarRes::Global) {
     if (!slot_is_int_lane(name, res, fn) && !slot_is_float_lane(name, res, fn))
-      return false;  // boxed read -> pt_guard can fire NameError
+      return false;  // boxed read -> cs_guard can fire NameError
     return noflag_g_.count(name) != 0;
   }
   if (res == VarRes::Local && fn) {
@@ -6206,13 +6206,13 @@ bool Emitter::lane_int_no_raise(const Expr& e, const FuncDecl* fn) const {
     case ExprKind::Var:
       return native_read_no_raise(e.name, e.res, fn);
     case ExprKind::Unary:
-      // "-" / "~" are the wrapping int paths (pt_nwrap_neg / pt_nbnot):
+      // "-" / "~" are the wrapping int paths (cs_nwrap_neg / cs_nbnot):
       // branch-free once the operand read is safe.
       return e.lhs && lane_int_no_raise(*e.lhs, fn);
     case ExprKind::Binary: {
       if (!e.lhs || !e.rhs) return false;
       if (e.op == "/" || e.op == "%") {
-        // pt_ndiv/pt_nmod raise ONLY on a zero divisor (INT64_MIN/-1 wraps
+        // cs_ndiv/cs_nmod raise ONLY on a zero divisor (INT64_MIN/-1 wraps
         // are handled in the helpers themselves) — provable exactly when
         // the divisor is a non-zero literal.
         int64_t v = 0;
@@ -6220,7 +6220,7 @@ bool Emitter::lane_int_no_raise(const Expr& e, const FuncDecl* fn) const {
                lane_int_no_raise(*e.lhs, fn) && lane_int_no_raise(*e.rhs, fn);
       }
       if (e.op == "<<" || e.op == ">>") {
-        // pt_nwrap_shl/shr keep the 0..63 ValueError.
+        // cs_nwrap_shl/shr keep the 0..63 ValueError.
         int64_t v = 0;
         return const_int_lit(e.rhs.get(), v) && v >= 0 && v <= 63 &&
                lane_int_no_raise(*e.lhs, fn) && lane_int_no_raise(*e.rhs, fn);
@@ -6241,17 +6241,17 @@ bool Emitter::lane_int_no_raise(const Expr& e, const FuncDecl* fn) const {
         return true;
       }
       const std::string& n = e.builtin_name;
-      if (n == "abs" || n == "round")  // pt_nabs / identity
+      if (n == "abs" || n == "round")  // cs_nabs / identity
         return e.args.size() == 1u && e.args[0] &&
                lane_int_no_raise(*e.args[0], fn);
-      if (n == "pow") {  // pt_npow raises ValueError on a negative exponent
+      if (n == "pow") {  // cs_npow raises ValueError on a negative exponent
         int64_t v = 0;
         return e.args.size() == 2u && e.args[0] && e.args[1] &&
                lane_int_no_raise(*e.args[0], fn) &&
                lane_int_no_raise(*e.args[1], fn) &&
                const_int_lit(e.args[1].get(), v) && v >= 0;
       }
-      if (n == "min" || n == "max")  // pt_nmin/pt_nmax: branch-free
+      if (n == "min" || n == "max")  // cs_nmin/cs_nmax: branch-free
         return e.args.size() == 2u && e.args[0] && e.args[1] &&
                lane_int_no_raise(*e.args[0], fn) &&
                lane_int_no_raise(*e.args[1], fn);
@@ -6285,7 +6285,7 @@ bool Emitter::lane_float_no_raise(const Expr& e, const FuncDecl* fn) const {
     case ExprKind::Binary: {
       if (!e.lhs || !e.rhs) return false;
       if (e.op == "/") {
-        // pt_nfdiv keeps pt_div_f's y == 0.0 ZeroDivisionError on the
+        // cs_nfdiv keeps cs_div_f's y == 0.0 ZeroDivisionError on the
         // CONVERTED divisor: provable only when the divisor is a non-zero
         // literal (an int literal converts exactly).
         int64_t iv = 0;
@@ -6312,7 +6312,7 @@ bool Emitter::cond_never_raise(const Expr& e, const FuncDecl* fn) const {
     case ExprKind::Var:
       return native_read_no_raise(e.name, e.res, fn);
     case ExprKind::Unary:
-      // `not <cond>`: pt_truthy never raises (only PT_UNSET would, and no
+      // `not <cond>`: cs_truthy never raises (only CS_UNSET would, and no
       // proven operand can carry it).
       return e.op == "not" && e.lhs && cond_never_raise(*e.lhs, fn);
     case ExprKind::Binary: {
@@ -6322,7 +6322,7 @@ bool Emitter::cond_never_raise(const Expr& e, const FuncDecl* fn) const {
         return false;
       // Mirror native_cond_text's branch choice: int compares first, then
       // float-vs-float. Both operands must be TYPE-proven numbers (a Param
-      // or boxed operand would leave pt_lt_f/pt_cmp3 at the mercy of the
+      // or boxed operand would leave cs_lt_f/cs_cmp3 at the mercy of the
       // value's runtime type in the dynamic body — type-stability clause).
       if (lane_int_allowed(*e.lhs, fn) && lane_int_allowed(*e.rhs, fn))
         return lane_int_no_raise(*e.lhs, fn) &&
@@ -6360,16 +6360,16 @@ bool Emitter::expr_never_raise(const Expr& e, const FuncDecl* fn) const {
     case ExprKind::BytesLit:
     case ExprKind::BoolLit:
     case ExprKind::NoneLit:
-      return true;  // literals materialize with no checks (PT_STR static)
+      return true;  // literals materialize with no checks (CS_STR static)
     case ExprKind::Var:
-      // A bare read: param (never PT_UNSET — see native_read_no_raise) or
+      // A bare read: param (never CS_UNSET — see native_read_no_raise) or
       // ... anything else would have been admitted by the lane branches
       // above, and a guarded/boxed read keeps its NameError.
       return e.res == VarRes::Param && fn != nullptr;
     case ExprKind::Unary:
       return e.op == "not" && e.lhs && expr_never_raise(*e.lhs, fn);
     case ExprKind::Logical:
-      // pt_truthy itself never raises; each side still evaluates first.
+      // cs_truthy itself never raises; each side still evaluates first.
       return e.lhs && e.rhs && expr_never_raise(*e.lhs, fn) &&
              expr_never_raise(*e.rhs, fn);
     case ExprKind::Ternary:
@@ -6377,7 +6377,7 @@ bool Emitter::expr_never_raise(const Expr& e, const FuncDecl* fn) const {
              expr_never_raise(*e.rhs, fn) && expr_never_raise(*e.third, fn);
     case ExprKind::ListLit:
     case ExprKind::TupleLit:
-      // pt_list_of/pt_tuple_of only copy already-evaluated values (no
+      // cs_list_of/cs_tuple_of only copy already-evaluated values (no
       // hashing, no type checks) — contra SetLit/MapLit, whose constructors
       // hash their items and can raise TypeError (unhashable).
       for (const auto& el : e.elems)
@@ -6484,7 +6484,7 @@ bool Emitter::stmt_never_raise(const Stmt& s, const FuncDecl* fn) const {
     case StmtKind::For: {
       if (!s.expr) return false;
       int64_t a = 0, b = 0, c = 0;
-      // Only the C1 literal-bounds header (no pt_range3 validation, no
+      // Only the C1 literal-bounds header (no cs_range3 validation, no
       // iterator protocol) is provably free of raises; both emit the same
       // counted latch, same bound checks folded away.
       if (!const_range_bounds(*s.expr, a, b, c)) return false;
@@ -6494,7 +6494,7 @@ bool Emitter::stmt_never_raise(const Stmt& s, const FuncDecl* fn) const {
       if (!s.expr || s.cases.empty()) return false;
       // C1 native switch: proven-int scrutinee + int labels + no arm-level
       // break shaping (native_switch_ok) equals a C switch over plain int64
-      // equality — a ladder/pt_eq_f chain is NOT proven (its TypeError edge
+      // equality — a ladder/cs_eq_f chain is NOT proven (its TypeError edge
       // on an unknown scrutinee type stays live).
       if (!native_switch_ok(s)) return false;
       if (!lane_int_allowed(*s.expr, fn) ||
@@ -6568,7 +6568,7 @@ void Emitter::init_try_elision() {
 bool Emitter::retract_try_failures() {
   bool changed = false;
   static int c2dbg = -1;
-  if (c2dbg < 0) c2dbg = getenv("PT_C2_DEBUG") ? 1 : 0;
+  if (c2dbg < 0) c2dbg = getenv("CS_C2_DEBUG") ? 1 : 0;
   std::vector<const FuncDecl*> fns = all_functions();
   // Rule (a): an elided try stays elided only while its BODY proves
   // non-raising under the current state.
@@ -6609,7 +6609,7 @@ bool Emitter::retract_try_failures() {
 // ---- C3 (task-5 A): vararg bulk-entry admissibility registry --------------
 // Runs AFTER the try-elision fixpoint settles (it consults elided_trys_ like
 // twin_prefilter does) and independently of the lane/twin fixpoint: a bulk
-// callee's result stays a boxed pt_value, so admitting it can never change
+// callee's result stays a boxed cs_value, so admitting it can never change
 // an existing lane/twin fact. Admission = twin_prefilter's structural rules
 // (minus the has_vararg rejection, plus the sanctioned vararg-For position
 // in twin_scan_stmts) + the exhaustiveness of the shared reference walker.
@@ -6670,8 +6670,8 @@ void Emitter::analyze_bulk_varargs() {
 // only ever shrinks and the shipped round is the proven one (§0.3).
 //
 //  * bulk_l_[f] locals: _b-body storage ONLY. The dynamic body of the SAME
-//    function declares the boxed pt_l_* slot and binds the vararg loop by
-//    pt_iter; native_read_text/native_slot_text choose between the two
+//    function declares the boxed cs_l_* slot and binds the vararg loop by
+//    cs_iter; native_read_text/native_slot_text choose between the two
 //    renderings behind bulk_fn_ (exactly how twin_fn_ splits param
 //    rendering today), so these lanes are invisible outside a _b body.
 //    Slot admission mirrors analyze_native_ints' slot sweep but under
@@ -6679,7 +6679,7 @@ void Emitter::analyze_bulk_varargs() {
 //    vararg-For bind is a raw int64 int_bind.
 //  * bulk_int_fns_: _b callees whose every `return` expression is
 //    int-shaped under those facts — then the value boxed into the returned
-//    pt_value is provably PT_INT (4b2 spills the fact into int_shape +
+//    cs_value is provably CS_INT (4b2 spills the fact into int_shape +
 //    native_int_text at the CALL SITE, so `acc = acc + <bulk call>` keeps
 //    acc's accumulation raw).
 //
@@ -6699,7 +6699,7 @@ void Emitter::analyze_bulk_lanes() {
 
   // Private collection: the bulk walk records the sanitized vararg-For bind
   // as an int_bind (the SHARED walk everywhere else poisons it — the
-  // dynamic body binds from pt_iter and must stay declined from shared
+  // dynamic body binds from cs_iter and must stay declined from shared
   // lanes).
   LocalSlots lw;
   for (const FuncDecl* f : bulk_ok_) {
@@ -6809,7 +6809,7 @@ bool Emitter::bulk_int_shape(const Expr& e,
 
 void Emitter::analyze_guard_elim() {
   // Optimistic seed: every boxed slot needs no guard; disqualify on any read
-  // we cannot prove bound. Native lanes never reach a pt_guard site, so they
+  // we cannot prove bound. Native lanes never reach a cs_guard site, so they
   // are irrelevant here (harmless to include a native global in noguard_g_).
   noguard_g_.clear();
   for (const std::string& g : prog_.globals) noguard_g_.insert(g);
@@ -6845,7 +6845,7 @@ void Emitter::analyze_guard_elim() {
     // Defaults evaluate per-call at materialization index i (fresh). Walk each
     // with EMPTY DA (an expression cannot assign, and the call-site global
     // state is unknown) and ge_def_pos_ = i so a read of a param whose slot is
-    // still pt_unset() (index > i, or the vararg/kwarg slots) keeps its guard.
+    // still cs_unset() (index > i, or the vararg/kwarg slots) keeps its guard.
     for (size_t i = 0; i < f->defaults.size(); ++i) {
       if (!f->defaults[i]) continue;
       ge_def_pos_ = (int)i;
@@ -6867,21 +6867,21 @@ std::string Emitter::native_read_text(const std::string& name, VarRes res,
                                       int line) const {
   std::string ln = std::to_string(line);
   // Post-2C twin lane: the twin's own params are raw noflag int64 lanes
-  // (the call-site gate passed real ints; there is no pt_value slot).
-  if (res == VarRes::Param && twin_fn_) return "pt_nl_" + name;
+  // (the call-site gate passed real ints; there is no cs_value slot).
+  if (res == VarRes::Param && twin_fn_) return "cs_nl_" + name;
   if (res == VarRes::Global) {
     if (!nativ_g_.count(name)) return "";
     // Post-2C perf: a definitely-assigned slot never raises NameError on read,
     // so skip the used-flag load+branch and read the raw int64.
-    if (noflag_g_.count(name)) return "pt_ng_" + name;
-    return "pt_nread_g(pt_ng_" + name + ", pt_ng_ok_" + name + ", " + ln +
+    if (noflag_g_.count(name)) return "cs_ng_" + name;
+    return "cs_nread_g(cs_ng_" + name + ", cs_ng_ok_" + name + ", " + ln +
            ", \"" + c_escape(name) + "\")";
   }
   if (res == VarRes::Local && native_is_local(name)) {
     auto it = noflag_l_.find(cur_func_);
     if (it != noflag_l_.end() && it->second.count(name))
-      return "pt_nl_" + name;  // definitely-assigned: raw read, no flag check
-    return "pt_nread_l(pt_nl_" + name + ", pt_nl_ok_" + name + ", " + ln +
+      return "cs_nl_" + name;  // definitely-assigned: raw read, no flag check
+    return "cs_nread_l(cs_nl_" + name + ", cs_nl_ok_" + name + ", " + ln +
            ", \"" + c_escape(name) + "\")";
   }
   return "";
@@ -6893,19 +6893,19 @@ bool Emitter::native_slot_text(const std::string& name, VarRes res,
   // says true, so no flag store is ever emitted and the flag name below
   // — which has no storage in the twin — is never referenced).
   if (res == VarRes::Param && twin_fn_) {
-    slot = "pt_nl_" + name;
-    flag = "pt_nl_ok_" + name;
+    slot = "cs_nl_" + name;
+    flag = "cs_nl_ok_" + name;
     return true;
   }
   if (res == VarRes::Global) {
     if (!nativ_g_.count(name)) return false;
-    slot = "pt_ng_" + name;
-    flag = "pt_ng_ok_" + name;
+    slot = "cs_ng_" + name;
+    flag = "cs_ng_ok_" + name;
     return true;
   }
   if (res == VarRes::Local && native_is_local(name)) {
-    slot = "pt_nl_" + name;
-    flag = "pt_nl_ok_" + name;
+    slot = "cs_nl_" + name;
+    flag = "cs_nl_ok_" + name;
     return true;
   }
   return false;
@@ -6918,22 +6918,22 @@ bool Emitter::native_float_is_local(const std::string& name) const {
 }
 
 // Float-lane twin of native_read_text: the raw double read (guard
-// replicated exactly through pt_nfrd_*, same NameError wording), "" for
+// replicated exactly through cs_nfrd_*, same NameError wording), "" for
 // anything not in the float lane.
 std::string Emitter::native_float_read_text(const std::string& name, VarRes res,
                                             int line) const {
   std::string ln = std::to_string(line);
   if (res == VarRes::Global) {
     if (!nativfg_.count(name)) return "";
-    if (noflag_g_.count(name)) return "pt_nfg_" + name;
-    return "pt_nfrd_g(pt_nfg_" + name + ", pt_nfg_ok_" + name + ", " + ln +
+    if (noflag_g_.count(name)) return "cs_nfg_" + name;
+    return "cs_nfrd_g(cs_nfg_" + name + ", cs_nfg_ok_" + name + ", " + ln +
            ", \"" + c_escape(name) + "\")";
   }
   if (res == VarRes::Local && native_float_is_local(name)) {
     auto it = noflag_l_.find(cur_func_);
     if (it != noflag_l_.end() && it->second.count(name))
-      return "pt_nfl_" + name;  // definitely-assigned: raw read, no flag check
-    return "pt_nfrd_l(pt_nfl_" + name + ", pt_nfl_ok_" + name + ", " + ln +
+      return "cs_nfl_" + name;  // definitely-assigned: raw read, no flag check
+    return "cs_nfrd_l(cs_nfl_" + name + ", cs_nfl_ok_" + name + ", " + ln +
            ", \"" + c_escape(name) + "\")";
   }
   return "";
@@ -6943,13 +6943,13 @@ bool Emitter::native_float_slot_text(const std::string& name, VarRes res,
                                      std::string& slot, std::string& flag) const {
   if (res == VarRes::Global) {
     if (!nativfg_.count(name)) return false;
-    slot = "pt_nfg_" + name;
-    flag = "pt_nfg_ok_" + name;
+    slot = "cs_nfg_" + name;
+    flag = "cs_nfg_ok_" + name;
     return true;
   }
   if (res == VarRes::Local && native_float_is_local(name)) {
-    slot = "pt_nfl_" + name;
-    flag = "pt_nfl_ok_" + name;
+    slot = "cs_nfl_" + name;
+    flag = "cs_nfl_ok_" + name;
     return true;
   }
   return false;
@@ -6961,7 +6961,7 @@ bool Emitter::native_float_slot_text(const std::string& name, VarRes res,
 // the emitted C literal parses to the identical double bits. Operators are
 // emitted as plain scalar IEEE C in SOURCE ORDER — no fast-math, no
 // reassociation, no FMA contraction difference from the runtime's own
-// `pt_dbl(a) op pt_dbl(b)` expressions (clang without -ffast-math keeps
+// `cs_dbl(a) op cs_dbl(b)` expressions (clang without -ffast-math keeps
 // them strict).
 std::string Emitter::native_float_text(const Expr& e) const {
   switch (e.kind) {
@@ -6983,42 +6983,42 @@ std::string Emitter::native_float_text(const Expr& e) const {
       std::string b = native_float_text(*e.rhs);
       std::string ln = std::to_string(e.loc.line);
       if (!a.empty() && !b.empty()) {
-        // "*" goes through pt_nfmul: the dynamic path evaluates the product
+        // "*" goes through cs_nfmul: the dynamic path evaluates the product
         // and a consuming +/- as separate statements (boxed temps), so it
         // never FMA-contracts; a single lane expression would (clang -O3
-        // -march=native → vfmadd, ONE rounding). pt_nfmul's empty-asm
+        // -march=native → vfmadd, ONE rounding). cs_nfmul's empty-asm
         // barrier reproduces the two-rounding behavior bit-for-bit.
-        if (e.op == "*") return "pt_nfmul(" + a + ", " + b + ")";
-        // "/" must keep pt_div's y == 0.0 ZeroDivisionError: a raw C
+        if (e.op == "*") return "cs_nfmul(" + a + ", " + b + ")";
+        // "/" must keep cs_div's y == 0.0 ZeroDivisionError: a raw C
         // division would silently produce inf (both/±0.0 raise dynamic).
-        if (e.op == "/") return "pt_nfdiv(" + a + ", " + b + ", " + ln + ")";
+        if (e.op == "/") return "cs_nfdiv(" + a + ", " + b + ", " + ln + ")";
         return "(" + a + " " + e.op + " " + b + ")";
       }
       // Mixed float/int (the runtime converts int64 -> double with a plain
-      // C cast; pt_div_f's divisor check runs on the CONVERTED value —
-      // pt_nfdiv reproduces it). native_int_text admits exactly the proven
+      // C cast; cs_div_f's divisor check runs on the CONVERTED value —
+      // cs_nfdiv reproduces it). native_int_text admits exactly the proven
       // int64 shapes (incl. int-twin call results).
       if (!a.empty()) {
         std::string ib = native_int_text(*e.rhs);
         if (ib.empty()) return "";
         std::string y = "(double)(" + ib + ")";
-        if (e.op == "*") return "pt_nfmul(" + a + ", " + y + ")";
-        return e.op == "/" ? "pt_nfdiv(" + a + ", " + y + ", " + ln + ")"
+        if (e.op == "*") return "cs_nfmul(" + a + ", " + y + ")";
+        return e.op == "/" ? "cs_nfdiv(" + a + ", " + y + ", " + ln + ")"
                            : "(" + a + " " + e.op + " " + y + ")";
       }
       if (!b.empty()) {
         std::string ia = native_int_text(*e.lhs);
         if (ia.empty()) return "";
         if (e.op == "*")
-          return "pt_nfmul((double)(" + ia + "), " + b + ")";
-        return e.op == "/" ? "pt_nfdiv((double)(" + ia + "), " + b + ", " + ln +
+          return "cs_nfmul((double)(" + ia + "), " + b + ")";
+        return e.op == "/" ? "cs_nfdiv((double)(" + ia + "), " + b + ", " + ln +
                                  ")"
                            : "((double)(" + ia + ") " + e.op + " " + b + ")";
       }
       return "";
     }
     case ExprKind::Call: {
-      // float(<proven int64>): pt_builtin_float's PT_INT path is exactly
+      // float(<proven int64>): cs_builtin_float's CS_INT path is exactly
       // this C cast (the same conversion, the same rounding). Mirrors
       // float_shape's Call admission.
       if (!e.is_builtin || e.builtin_name != "float" || e.args.size() != 1u)
@@ -7038,7 +7038,7 @@ std::string Emitter::scalar_int_operand(const Expr& e, bool in_function) {
                 /*slot_write=*/true, nullptr, &nativfg_, &nativfl_,
                 &int_lists_, &int_list_da_reads_)) {
     std::string t = native_int_text(e);
-    if (!t.empty()) return "pt_int(" + t + ")";
+    if (!t.empty()) return "cs_int(" + t + ")";
   }
   return emit_expr(e, in_function);
 }
@@ -7053,7 +7053,7 @@ std::string Emitter::native_int_text(const Expr& e) const {
       return native_read_text(e.name, e.res, e.loc.line);
     case ExprKind::Index: {
       // Element read of a proven int-only list at a DA read site. The base
-      // is a main-only global (local_g_), so its identifier is pt_g_<name>
+      // is a main-only global (local_g_), so its identifier is cs_g_<name>
       // and the DA proof means no used-before-assignment guard is needed.
       if (!e.lhs || e.lhs->kind != ExprKind::Var ||
           e.lhs->res != VarRes::Global)
@@ -7062,13 +7062,13 @@ std::string Emitter::native_int_text(const Expr& e) const {
         auto ep = ephem_active_.find(e.lhs->name);
         if (ep != ephem_active_.end()) {
           // Lazy slice target in the native int lane: read the source
-          // element directly; the element is proven PT_INT by int_lists_.
+          // element directly; the element is proven CS_INT by int_lists_.
           if (!int_lists_.count(e.lhs->name) || !e.rhs) return "";
           std::string idx = native_int_text(*e.rhs);
           if (idx.empty()) return "";
           const EphemSlice* es = ep->second;
           std::string ln = std::to_string(e.loc.line);
-          return "pt_slice_iget_raw(" + es->items + ", " +
+          return "cs_slice_iget_raw(" + es->items + ", " +
                  (es->flat ? "0" : es->stride) + ", " + es->span + ".first, " +
                  es->step_lit + ", (size_t)" + es->span + ".count, " + idx +
                  ", " + ln + ")";
@@ -7080,7 +7080,7 @@ std::string Emitter::native_int_text(const Expr& e) const {
           std::string idx = native_int_text(*e.rhs);
           if (!idx.empty()) {
             std::string ln2 = std::to_string(e.loc.line);
-            return "pt_il_iget_raw(" + ff->second.items + ", " +
+            return "cs_il_iget_raw(" + ff->second.items + ", " +
                    (ff->second.flat ? "0" : ff->second.stride) + ", " +
                    ff->second.len + ", " + idx + ", " + ln2 + ")";
           }
@@ -7093,16 +7093,16 @@ std::string Emitter::native_int_text(const Expr& e) const {
       if (idx.empty()) return "";
       std::string ln = std::to_string(e.loc.line);
       if (flat_lists_.count(e.lhs->name))
-        return "pt_il_iget_flat(pt_g_" + e.lhs->name + ", " + idx + ", " + ln +
+        return "cs_il_iget_flat(cs_g_" + e.lhs->name + ", " + idx + ", " + ln +
                ")";
-      return "pt_il_iget(pt_g_" + e.lhs->name + ", " + idx + ", " + ln + ")";
+      return "cs_il_iget(cs_g_" + e.lhs->name + ", " + idx + ", " + ln + ")";
     }
     case ExprKind::Unary: {  // "-" / "~" (int_shape guarantees the operand)
       if ((e.op != "-" && e.op != "~") || !e.lhs) return "";
       std::string a = native_int_text(*e.lhs);
       if (a.empty()) return "";
-      if (e.op == "~") return "pt_nbnot(" + a + ")";
-      return "pt_nwrap_neg(" + a + ")";
+      if (e.op == "~") return "cs_nbnot(" + a + ")";
+      return "cs_nwrap_neg(" + a + ")";
     }
     case ExprKind::Binary: {
       if (!e.lhs || !e.rhs) return "";
@@ -7111,24 +7111,24 @@ std::string Emitter::native_int_text(const Expr& e) const {
       std::string b = native_int_text(*e.rhs);
       if (b.empty()) return "";
       std::string ln = std::to_string(e.loc.line);
-      if (e.op == "+") return "pt_nwrap_add(" + a + ", " + b + ")";
-      if (e.op == "-") return "pt_nwrap_sub(" + a + ", " + b + ")";
-      if (e.op == "*") return "pt_nwrap_mul(" + a + ", " + b + ")";
-      if (e.op == "/") return "pt_ndiv(" + a + ", " + b + ", " + ln + ")";
-      if (e.op == "%") return "pt_nmod(" + a + ", " + b + ", " + ln + ")";
-      // Bitwise ops are branch-free; shifts carry the pt_shl/pt_shr range
+      if (e.op == "+") return "cs_nwrap_add(" + a + ", " + b + ")";
+      if (e.op == "-") return "cs_nwrap_sub(" + a + ", " + b + ")";
+      if (e.op == "*") return "cs_nwrap_mul(" + a + ", " + b + ")";
+      if (e.op == "/") return "cs_ndiv(" + a + ", " + b + ", " + ln + ")";
+      if (e.op == "%") return "cs_nmod(" + a + ", " + b + ", " + ln + ")";
+      // Bitwise ops are branch-free; shifts carry the cs_shl/cs_shr range
       // check (same ValueError, same line) — only the operand-type check
       // was proven away, never the count check.
-      if (e.op == "&") return "pt_nwrap_band(" + a + ", " + b + ")";
-      if (e.op == "|") return "pt_nwrap_bor(" + a + ", " + b + ")";
-      if (e.op == "^") return "pt_nwrap_bxor(" + a + ", " + b + ")";
-      if (e.op == "<<") return "pt_nwrap_shl(" + a + ", " + b + ", " + ln + ")";
-      if (e.op == ">>") return "pt_nwrap_shr(" + a + ", " + b + ", " + ln + ")";
+      if (e.op == "&") return "cs_nwrap_band(" + a + ", " + b + ")";
+      if (e.op == "|") return "cs_nwrap_bor(" + a + ", " + b + ")";
+      if (e.op == "^") return "cs_nwrap_bxor(" + a + ", " + b + ")";
+      if (e.op == "<<") return "cs_nwrap_shl(" + a + ", " + b + ", " + ln + ")";
+      if (e.op == ">>") return "cs_nwrap_shr(" + a + ", " + b + ", " + ln + ")";
       return "";
     }
     case ExprKind::Call: {
       // Mirrors int_shape's Call case; the lane helpers are value-identical
-      // to the pt_builtin_* int paths (wrapping neg/modpow, half-even never
+      // to the cs_builtin_* int paths (wrapping neg/modpow, half-even never
       // applies: round(int) with no ndigits is the identity).
       if (!e.is_builtin) {
         // Native twin callee: the call runs in the callee's int64 lane and
@@ -7153,24 +7153,24 @@ std::string Emitter::native_int_text(const Expr& e) const {
           if (i) joined += ", ";
           joined += t;
         }
-        return cf->c_name + "_i(" + joined + ")";  // c_name carries pt_fn_
+        return cf->c_name + "_i(" + joined + ")";  // c_name carries cs_fn_
       }
       if (e.args.empty()) return "";
       const std::string& n = e.builtin_name;
       std::string ln = std::to_string(e.loc.line);
       if (n == "int" && e.args.size() == 1u) {
-        // int(<proven float lane>): pt_nf2i reproduces pt_builtin_int's
-        // PT_FLOAT branch exactly (truncation, range/NaN ValueError at this
+        // int(<proven float lane>): cs_nf2i reproduces cs_builtin_int's
+        // CS_FLOAT branch exactly (truncation, range/NaN ValueError at this
         // line). Mirrors int_shape's Call admission.
         if (!e.arg_names.empty() && !e.arg_names[0].empty()) return "";
         std::string a = native_float_text(*e.args[0]);
         if (a.empty()) return "";
-        return "pt_nf2i(" + a + ", " + ln + ")";
+        return "cs_nf2i(" + a + ", " + ln + ")";
       }
       if (n == "abs" && e.args.size() == 1u) {
         std::string a = native_int_text(*e.args[0]);
         if (a.empty()) return "";
-        return "pt_nabs(" + a + ")";
+        return "cs_nabs(" + a + ")";
       }
       if (n == "round" && e.args.size() == 1u)
         return native_int_text(*e.args[0]); /* int, no ndigits: identity */
@@ -7178,13 +7178,13 @@ std::string Emitter::native_int_text(const Expr& e) const {
         std::string a = native_int_text(*e.args[0]);
         std::string b = native_int_text(*e.args[1]);
         if (a.empty() || b.empty()) return "";
-        return "pt_npow(" + a + ", " + b + ", " + ln + ")";
+        return "cs_npow(" + a + ", " + b + ", " + ln + ")";
       }
       if ((n == "min" || n == "max") && e.args.size() == 2u) {
         std::string a = native_int_text(*e.args[0]);
         std::string b = native_int_text(*e.args[1]);
         if (a.empty() || b.empty()) return "";
-        return (n == "min" ? "pt_nmin(" : "pt_nmax(") + a + ", " + b + ")";
+        return (n == "min" ? "cs_nmin(" : "cs_nmax(") + a + ", " + b + ")";
       }
       return "";
     }
@@ -7194,26 +7194,26 @@ std::string Emitter::native_int_text(const Expr& e) const {
 }
 
 // C condition for a mixed int64/double comparison, exact for every value
-// (see pt_ncmp_i64_d: a plain double compare while |i| <= 2^53, the
+// (see cs_ncmp_i64_d: a plain double compare while |i| <= 2^53, the
 // runtime's long-double rule beyond). `float_left` selects the operand
 // order; the reversed forms swap the operator's direction.
 static std::string mixed_cmp_text(const std::string& is, const std::string& ds,
                                   const std::string& op, bool float_left) {
   if (float_left) {
     // ds OP is  ==  is <reversed> ds
-    if (op == "<") return "pt_ngt_i_d(" + is + ", " + ds + ")";
-    if (op == "<=") return "pt_nge_i_d(" + is + ", " + ds + ")";
-    if (op == ">") return "pt_nlt_i_d(" + is + ", " + ds + ")";
-    if (op == ">=") return "pt_nle_i_d(" + is + ", " + ds + ")";
-    if (op == "==") return "pt_neq_i_d(" + is + ", " + ds + ")";
-    return "pt_nne_i_d(" + is + ", " + ds + ")";
+    if (op == "<") return "cs_ngt_i_d(" + is + ", " + ds + ")";
+    if (op == "<=") return "cs_nge_i_d(" + is + ", " + ds + ")";
+    if (op == ">") return "cs_nlt_i_d(" + is + ", " + ds + ")";
+    if (op == ">=") return "cs_nle_i_d(" + is + ", " + ds + ")";
+    if (op == "==") return "cs_neq_i_d(" + is + ", " + ds + ")";
+    return "cs_nne_i_d(" + is + ", " + ds + ")";
   }
-  if (op == "<") return "pt_nlt_i_d(" + is + ", " + ds + ")";
-  if (op == "<=") return "pt_nle_i_d(" + is + ", " + ds + ")";
-  if (op == ">") return "pt_ngt_i_d(" + is + ", " + ds + ")";
-  if (op == ">=") return "pt_nge_i_d(" + is + ", " + ds + ")";
-  if (op == "==") return "pt_neq_i_d(" + is + ", " + ds + ")";
-  return "pt_nne_i_d(" + is + ", " + ds + ")";
+  if (op == "<") return "cs_nlt_i_d(" + is + ", " + ds + ")";
+  if (op == "<=") return "cs_nle_i_d(" + is + ", " + ds + ")";
+  if (op == ">") return "cs_ngt_i_d(" + is + ", " + ds + ")";
+  if (op == ">=") return "cs_nge_i_d(" + is + ", " + ds + ")";
+  if (op == "==") return "cs_neq_i_d(" + is + ", " + ds + ")";
+  return "cs_nne_i_d(" + is + ", " + ds + ")";
 }
 
 // C bool expression for a condition that is provably int/bool-typed:
@@ -7231,14 +7231,14 @@ bool Emitter::native_cond_text(const Expr& e, std::string& out) const {
     case ExprKind::Var: {
       std::string nr = native_read_text(e.name, e.res, e.loc.line);
       if (nr.empty()) {
-        // Float lane: pt_truthy's PT_FLOAT rule (v.as.d != 0.0 — -0.0 and
+        // Float lane: cs_truthy's CS_FLOAT rule (v.as.d != 0.0 — -0.0 and
         // only -0.0/0.0 falsy, NaN truthy) as a raw C condition.
         std::string fr = native_float_read_text(e.name, e.res, e.loc.line);
         if (fr.empty()) return false;
         out = "(" + fr + " != 0.0)";
         return true;
       }
-      out = "(" + nr + " != 0)";  // pt_truthy's int rule (M1 §4)
+      out = "(" + nr + " != 0)";  // cs_truthy's int rule (M1 §4)
       return true;
     }
     case ExprKind::Unary: {
@@ -7256,12 +7256,12 @@ bool Emitter::native_cond_text(const Expr& e, std::string& out) const {
       std::string a = native_int_text(*e.lhs);
       if (a.empty()) {
         // Float lane: float-vs-float comparisons compile to the same IEEE
-        // compares the _f fast paths inline (pt_lt_f/.../pt_eq_f PT_FLOAT
+        // compares the _f fast paths inline (cs_lt_f/.../cs_eq_f CS_FLOAT
         // branches — NaN unordered, all false; == / != IEEE equality). The
         // int lane's text is tried FIRST, so int comparisons are emitted
         // exactly as before. A mixed float/int pair (exactly one side is a
-        // proven lane int) uses the exact pt_ncmp_i64_d wrappers, matching
-        // pt_cmp3's long-double rule including NaN.
+        // proven lane int) uses the exact cs_ncmp_i64_d wrappers, matching
+        // cs_cmp3's long-double rule including NaN.
         std::string fa = native_float_text(*e.lhs);
         if (fa.empty()) return false;
         std::string ib = native_int_text(*e.rhs);
@@ -7299,7 +7299,7 @@ bool Emitter::native_cond_text(const Expr& e, std::string& out) const {
 }
 
 // True when evaluating `e` cannot grow the GC heap. §7.3: the ONLY
-// collection trigger is pt_gc_maybe() itself (the allocators have no
+// collection trigger is cs_gc_maybe() itself (the allocators have no
 // pressure check), so eliding a safe point is sound exactly when nothing in
 // the body can allocate — then the threshold check would be a no-op
 // anyway, and no collect() result can change. Conservative by design:
@@ -7307,7 +7307,7 @@ bool Emitter::native_cond_text(const Expr& e, std::string& out) const {
 // and non-proven builtins all count as "may allocate".
 // ---- text-chain fusion (perf: formatted-output builder) -----------------
 // A + chain of provably-text parts (string literals and str() calls) builds
-// ONE pt_sb buffer instead of a tree of heap concatenations; the write tail
+// ONE cs_sb buffer instead of a tree of heap concatenations; the write tail
 // goes straight to stdio with one fwrite. See the declaration block above
 // nativ_fvl_ for the full contract.
 
@@ -7379,7 +7379,7 @@ std::string Emitter::emit_text_chain(const Expr& e, bool in_function,
     fail("internal: text-chain fusion on a non-fusable chain (line " +
          std::to_string(src_line) + ")");
   struct Mat {       // per-part materialization, source order
-    char kind;       // 'L' literal text value, 'I' int64, 'V' pt_value
+    char kind;       // 'L' literal text value, 'I' int64, 'V' cs_value
     std::string c;   // the C expression / temp name
   };
   std::vector<Mat> mats;
@@ -7387,13 +7387,13 @@ std::string Emitter::emit_text_chain(const Expr& e, bool in_function,
   const std::string ln = std::to_string(src_line);
   for (const Expr* p : parts) {
     if (p->kind == ExprKind::StrLit) {
-      // A static PT_STR value: no emission, no evaluation.
+      // A static CS_STR value: no emission, no evaluation.
       mats.push_back({'L', emit_expr(*p, in_function)});
     } else if (p->kind == ExprKind::Call) {
       // Provably a str() call (text_part_fusable).
       std::string nt = native_int_text(*p->args[0]);
       if (!nt.empty()) {
-        // Proven int: format straight into the builder (pt_sb_puti shares
+        // Proven int: format straight into the builder (cs_sb_puti shares
         // the display path's digit code — str(int)'s exact spelling) and
         // never build the intermediate heap text. One temp: the argument
         // evaluates exactly once, in source order, raises exactly where
@@ -7405,7 +7405,7 @@ std::string Emitter::emit_text_chain(const Expr& e, bool in_function,
       } else {
         std::string a = emit_expr(*p->args[0], in_function);
         std::string t = decl_temp();
-        line(ind() + t + " = pt_builtin_str(" + a + ", " + ln + ");");
+        line(ind() + t + " = cs_builtin_str(" + a + ", " + ln + ");");
         mats.push_back({'V', t});
       }
     } else {
@@ -7414,21 +7414,21 @@ std::string Emitter::emit_text_chain(const Expr& e, bool in_function,
   }
   std::string t = decl_temp();
   std::string sb = fresh_temp();
-  line(ind() + "{ pt_sb " + sb + ";");
+  line(ind() + "{ cs_sb " + sb + ";");
   indent_ += 2;
-  line(ind() + "pt_sb_init(&" + sb + ");");
+  line(ind() + "cs_sb_init(&" + sb + ");");
   for (const Mat& m : mats) {
     if (m.kind == 'I')
-      line(ind() + "pt_sb_puti(&" + sb + ", " + m.c + ");");
-    else  // 'L' (PT_STR literal value) and 'V' (materialized str() result)
-      line(ind() + "pt_sb_putv(&" + sb + ", " + m.c + ");");
+      line(ind() + "cs_sb_puti(&" + sb + ", " + m.c + ");");
+    else  // 'L' (CS_STR literal value) and 'V' (materialized str() result)
+      line(ind() + "cs_sb_putv(&" + sb + ", " + m.c + ");");
   }
   if (obj.empty())
-    line(ind() + t + " = pt_sb_finish(&" + sb + ", " + ln + ");");
+    line(ind() + t + " = cs_sb_finish(&" + sb + ", " + ln + ");");
   else
-    line(ind() + t + " = pt_file_write_buf(" + obj + ", " + sb + ".p, " + sb +
+    line(ind() + t + " = cs_file_write_buf(" + obj + ", " + sb + ".p, " + sb +
          ".n, " + ln + ");");
-  line(ind() + "pt_sb_free(&" + sb + ");");
+  line(ind() + "cs_sb_free(&" + sb + ");");
   indent_ -= 2;
   line(ind() + "}");
   return t;
@@ -7438,30 +7438,30 @@ bool Emitter::alloc_free_expr(const Expr& e) const {
   switch (e.kind) {
     case ExprKind::IntLit:
     case ExprKind::FloatLit:
-    case ExprKind::StrLit:    // PT_STR literal: static .rodata, never heap
-    case ExprKind::BytesLit:  // PT_BYTES literal: same lifetime rules
+    case ExprKind::StrLit:    // CS_STR literal: static .rodata, never heap
+    case ExprKind::BytesLit:  // CS_BYTES literal: same lifetime rules
     case ExprKind::BoolLit:
     case ExprKind::NoneLit:
     case ExprKind::Var:  // slot / guard / native reads only
       return true;
     case ExprKind::VarQual:  // cross-scope (docs/reference/cross-scope-access.md §5): a
-                             // pt_guard over a pinned static / module global
+                             // cs_guard over a pinned static / module global
                              // — same class as Var: slot + guard, never heap
       return true;
-    case ExprKind::Unary:  // "-", "~", "not" — pt_neg / int ops / pt_truthy
+    case ExprKind::Unary:  // "-", "~", "not" — cs_neg / int ops / cs_truthy
       return e.rhs != nullptr && alloc_free_expr(*e.rhs);
     case ExprKind::Binary: {
       if (!e.lhs || !e.rhs) return false;
       // "+"/"*" may concat/repeat strings and "**" was never audited — the
       // numeric/comparison ops below are heap-free on both paths
-      // (pt_wrap_*, pt_sub, pt_div, pt_mod, pt_cmp3), and so are the
-      // bitwise/shift ops (M2-2A §3.2): pt_band/pt_bor/pt_bxor/pt_shl/
-      // pt_shr box their int result into one immediate struct and never
+      // (cs_wrap_*, cs_sub, cs_div, cs_mod, cs_cmp3), and so are the
+      // bitwise/shift ops (M2-2A §3.2): cs_band/cs_bor/cs_bxor/cs_shl/
+      // cs_shr box their int result into one immediate struct and never
       // touch the GC heap. Their error paths (TypeError on a non-int
       // operand, ValueError on an out-of-range shift count) raise and
       // unwind out of the enclosing loop — no back-edge is crossed, so no
       // safe point can be missed — exactly like "-" / "/" / "%" already
-      // rely on pt_div/pt_mod raising ZeroDivisionError.
+      // rely on cs_div/cs_mod raising ZeroDivisionError.
       const std::string& op = e.op;
       if (op != "==" && op != "!=" && op != "<" && op != "<=" && op != ">" &&
           op != ">=" && op != "-" && op != "/" && op != "%" && op != "&" &&
@@ -7495,14 +7495,14 @@ bool Emitter::alloc_free_expr(const Expr& e) const {
           n == "hash" || n == "id" || n == "isinstance" || n == "ord" ||
           n == "pow" || n == "round")
         return true;
-      // C1: `len` proven from runtime/pentest_rt.c — pt_builtin_len is
-      // `pt_int((int64_t)pt_len(v, line))` and pt_len only READS (tag
-      // switch over length fields, or pt_utf8_count over the bytes and
-      // pt_no_missing/TypeError on the error path): no GC-heap block, no
+      // C1: `len` proven from runtime/cstar_rt.c — cs_builtin_len is
+      // `cs_int((int64_t)cs_len(v, line))` and cs_len only READS (tag
+      // switch over length fields, or cs_utf8_count over the bytes and
+      // cs_no_missing/TypeError on the error path): no GC-heap block, no
       // collection ever reached from it — then the back-edge check would be
       // a no-op for containing loops. NOT admitted: `sum`/`max 1-arg`/
       // `min 1-arg` iterate, and a TEXT iterable allocates one element copy
-      // per step (pt_iter_next PT_ITER_STRING -> pt_text_copy), a FILE
+      // per step (cs_iter_next CS_ITER_STRING -> cs_text_copy), a FILE
       // iterator one line object; `divmod` returns a pair; `int`/`float`
       // parsing was not audited here.
       if (n == "len") return true;
@@ -7551,7 +7551,7 @@ bool Emitter::body_alloc_free(const std::vector<Stmt>& body) const {
           // write into the pinned static / module global — the RHS is the
           // only evaluation, exactly like the Name case below. Compound is
           // left conservative: a dynamic "x += y"/"*=" can concat/repeat
-          // text (pt_add_f falls back to pt_add), and qualified slots are
+          // text (cs_add_f falls back to cs_add), and qualified slots are
           // never native-proven, so the Name path's slot proof is void.
           if (!s.op.empty() || !s.expr) return false;
           if (!alloc_free_expr(*s.expr) && native_int_text(*s.expr).empty())
@@ -7562,12 +7562,12 @@ bool Emitter::body_alloc_free(const std::vector<Stmt>& body) const {
         if (s.res == VarRes::Unresolved || !s.expr) return false;
         if (s.op.empty()) {
           // Plain store: the RHS is the only evaluation. native_int_text
-          // also covers "+"/"*" over proven-int operands (pt_add/pt_mul of
+          // also covers "+"/"*" over proven-int operands (cs_add/cs_mul of
           // two ints cannot take the concat path), and native_float_text
           // covers float-lane arithmetic — emitted through the lane it is
           // raw C, and emitted dynamically the numeric fast path boxes an
-          // immediate pt_float (never the string-concat branch), so both
-          // witnesses are heap-free. Error paths (pt_ndiv / pt_nfdiv
+          // immediate cs_float (never the string-concat branch), so both
+          // witnesses are heap-free. Error paths (cs_ndiv / cs_nfdiv
           // ZeroDivisionError) raise and unwind out of the enclosing loop —
           // no back-edge is crossed, so no safe point can be missed.
           if (!alloc_free_expr(*s.expr) && native_int_text(*s.expr).empty() &&
@@ -7604,7 +7604,7 @@ bool Emitter::body_alloc_free(const std::vector<Stmt>& body) const {
       case StmtKind::While: {
         // C1: a nested loop contributes only if ITS condition is heap-free
         // and ITS body is too — then neither its back edge nor any deeper
-        // one can ever collect (the collector starts only at pt_gc_maybe,
+        // one can ever collect (the collector starts only at cs_gc_maybe,
         // §7.3), so skipping the outer check stays sound. The While emitter
         // applies the same proof to the inner body itself.
         if (!s.expr || !alloc_free_expr(*s.expr)) return false;
@@ -7612,13 +7612,13 @@ bool Emitter::body_alloc_free(const std::vector<Stmt>& body) const {
         continue;
       }
       case StmtKind::For: {
-        // C1: the open-coded range() form only — pt_range3 validates and
+        // C1: the open-coded range() form only — cs_range3 validates and
         // builds a stack value, the bind is a raw store, the latch is plain
         // int64 arithmetic (§7.3 comment at the For emitter), so every part
         // is heap-free; the range ARGUMENTS are ordinary expressions and must
         // each prove heap-free. The generic iterator protocol stays
-        // conservative: pt_iter_next's PT_ITER_STRING arm copies each code
-        // point (pt_text_copy) and PT_ITER_FILE reads one line object per
+        // conservative: cs_iter_next's CS_ITER_STRING arm copies each code
+        // point (cs_text_copy) and CS_ITER_FILE reads one line object per
         // step — both allocate.
         if (!s.expr || s.expr->kind != ExprKind::Call || !s.expr->is_builtin_range)
           return false;
@@ -7632,8 +7632,8 @@ bool Emitter::body_alloc_free(const std::vector<Stmt>& body) const {
         // with no call inside it (native_int_text alone admits a twin call —
         // expr_has_call keeps the "no call anywhere" rule of the comment
         // above alloc_free_expr) and every label is an INT constant: the
-        // ladder's pt_eq_f then compares two immediates and the native
-        // lowering compares two int64s — pt_int() boxes are immediates and
+        // ladder's cs_eq_f then compares two immediates and the native
+        // lowering compares two int64s — cs_int() boxes are immediates and
         // nothing reaches the GC heap. A boxed scrutinee or a text/float/bool
         // label can reach heap-touching comparison operators: the gate stays
         // conservative there (arm BODIES are checked either way).
@@ -7672,13 +7672,13 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
     case ExprKind::FloatLit:
       return float_literal(e.fval);
     case ExprKind::StrLit:
-      return "PT_STR(\"" + c_escape(e.sval) + "\")";
+      return "CS_STR(\"" + c_escape(e.sval) + "\")";
     case ExprKind::BytesLit:  // M2-2B §1/§5
-      return "PT_BYTES(\"" + c_escape(e.sval) + "\")";
+      return "CS_BYTES(\"" + c_escape(e.sval) + "\")";
     case ExprKind::BoolLit:
-      return e.bval ? "pt_bool(true)" : "pt_bool(false)";
+      return e.bval ? "cs_bool(true)" : "cs_bool(false)";
     case ExprKind::NoneLit:
-      return "pt_none()";
+      return "cs_none()";
 
     // ---- M2-2B collection literals (§4) --------------------------------
     // Elements are A-normalized left-to-right (keys before values, pair by
@@ -7697,17 +7697,17 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
       std::string t = decl_temp();
       std::string ctor;
       if (items.empty()) {
-        ctor = e.kind == ExprKind::ListLit ? "pt_list_new()"
-             : e.kind == ExprKind::SetLit  ? "pt_set_new()"
-                                           : "pt_tuple_of(NULL, 0u)";
+        ctor = e.kind == ExprKind::ListLit ? "cs_list_new()"
+             : e.kind == ExprKind::SetLit  ? "cs_set_new()"
+                                           : "cs_tuple_of(NULL, 0u)";
       } else if (e.kind == ExprKind::ListLit) {
-        ctor = "pt_list_of(" + value_array_text(items) + ", " +
+        ctor = "cs_list_of(" + value_array_text(items) + ", " +
                std::to_string(items.size()) + "u)";
       } else if (e.kind == ExprKind::SetLit) {
-        ctor = "pt_set_of(" + value_array_text(items) + ", " +
+        ctor = "cs_set_of(" + value_array_text(items) + ", " +
                std::to_string(items.size()) + "u, " + std::to_string(e.loc.line) + ")";
       } else {
-        ctor = "pt_tuple_of(" + value_array_text(items) + ", " +
+        ctor = "cs_tuple_of(" + value_array_text(items) + ", " +
                std::to_string(items.size()) + "u)";
       }
       line(ind() + t + " = " + ctor + ";");
@@ -7729,9 +7729,9 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
       std::string t = decl_temp();
       std::string ctor;
       if (ks.empty()) {
-        ctor = "pt_map_new()";  // `{}` — the empty map (M2-2B §4)
+        ctor = "cs_map_new()";  // `{}` — the empty map (M2-2B §4)
       } else {
-        ctor = "pt_map_of(" + value_array_text(ks) + ", " + value_array_text(vs) +
+        ctor = "cs_map_of(" + value_array_text(ks) + ", " + value_array_text(vs) +
                ", " + std::to_string(ks.size()) + "u, " +
                std::to_string(e.loc.line) + ")";
       }
@@ -7747,12 +7747,12 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
         auto ep = ephem_active_.find(e.lhs->name);
         if (ep != ephem_active_.end()) {
           // Lazy slice target: index the source through the normalized
-          // bounds. pt_slice_get keeps pt_slice[idx]'s exact type/bounds
+          // bounds. cs_slice_get keeps cs_slice[idx]'s exact type/bounds
           // errors and returns the same element value.
           const EphemSlice* es = ep->second;
           std::string idx = scalar_int_operand(*e.rhs, in_function);
           std::string t = decl_temp();
-          line(ind() + t + " = pt_slice_get(" + es->psrc + ", " + es->span +
+          line(ind() + t + " = cs_slice_get(" + es->psrc + ", " + es->span +
                ".first, " + es->step_lit + ", (size_t)" + es->span + ".count, " +
                idx + ", " + std::to_string(e.loc.line) + ");");
           return t;
@@ -7761,7 +7761,7 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
       std::string obj = emit_expr(*e.lhs, in_function);
       std::string idx = scalar_int_operand(*e.rhs, in_function);
       std::string t = decl_temp();
-      line(ind() + t + " = pt_index_get_f(" + obj + ", " + idx + ", " +
+      line(ind() + t + " = cs_index_get_f(" + obj + ", " + idx + ", " +
            std::to_string(e.loc.line) + ");");
       return t;
     }
@@ -7769,15 +7769,15 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
     case ExprKind::Slice: {
       if (!e.lhs) fail("slice without container (line " + std::to_string(e.loc.line) + ")");
       std::string obj = emit_expr(*e.lhs, in_function);
-      // §4: an open bound arrives as PT_UNSET (pt_slice normalizes).
+      // §4: an open bound arrives as CS_UNSET (cs_slice normalizes).
       std::string start = (e.has_start && e.rhs) ? emit_expr(*e.rhs, in_function)
-                                                 : "pt_unset()";
+                                                 : "cs_unset()";
       std::string stop = (e.has_stop && e.third) ? emit_expr(*e.third, in_function)
-                                                 : "pt_unset()";
+                                                 : "cs_unset()";
       std::string step = (e.has_step && e.fourth) ? emit_expr(*e.fourth, in_function)
-                                                  : "pt_unset()";
+                                                  : "cs_unset()";
       std::string t = decl_temp();
-      line(ind() + t + " = pt_slice(" + obj + ", " + start + ", " +
+      line(ind() + t + " = cs_slice(" + obj + ", " + start + ", " +
            stop + ", " + step + ", " + std::to_string(e.loc.line) + ");");
       return t;
     }
@@ -7845,7 +7845,7 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
           joined += args[i];
         }
         std::string pv = fresh_temp();
-        line(ind() + "{ pt_value " + pv + "[] = { " + joined + " };");
+        line(ind() + "{ cs_value " + pv + "[] = { " + joined + " };");
         indent_ += 2;
         std::string an = fresh_temp();
         std::string names;
@@ -7854,7 +7854,7 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
           names += "\"" + c_escape(e.elem_names[i]) + "\"";
         }
         line(ind() + "const char* const " + an + "[] = { " + names + " };");
-        line(ind() + t + " = pt_call_method(" + obj + ", \"" + c_escape(e.method) +
+        line(ind() + t + " = cs_call_method(" + obj + ", \"" + c_escape(e.method) +
              "\", " + pv + ", " + std::to_string(npos) + "u, " + an + ", " +
              std::to_string(nnamed) + "u, " + ln + ");");
         indent_ -= 2;
@@ -7863,7 +7863,7 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
       }
       // Positional-only (the 2B §13 form — byte-identical to before).
       std::string t = decl_temp();
-      std::string call = "pt_call_method(" + obj + ", \"" + c_escape(e.method) + "\", ";
+      std::string call = "cs_call_method(" + obj + ", \"" + c_escape(e.method) + "\", ";
       call += args.empty() ? "NULL, 0u"
                            : value_array_text(args) + ", " + std::to_string(args.size()) + "u";
       call += ", NULL, 0u, " + ln + ")";
@@ -7876,7 +7876,7 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
         fail("attribute read without object (line " + std::to_string(e.loc.line) + ")");
       std::string obj = emit_expr(*e.lhs, in_function);
       std::string t = decl_temp();
-      line(ind() + t + " = pt_getattr_lit(" + obj + ", \"" + c_escape(e.attr) + "\", " +
+      line(ind() + t + " = cs_getattr_lit(" + obj + ", \"" + c_escape(e.attr) + "\", " +
            std::to_string(e.loc.line) + ");");
       return t;
     }
@@ -7889,23 +7889,23 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
         items.push_back(emit_expr(*el, in_function));
       }
       std::string t = decl_temp();
-      line(ind() + t + " = pt_join(" + value_array_text(items) + ", " +
+      line(ind() + t + " = cs_join(" + value_array_text(items) + ", " +
            std::to_string(items.size()) + "u, " + std::to_string(e.loc.line) + ");");
       return t;
     }
 
     case ExprKind::Var: {
       // Post-2C native slot: inline int64 read (guard replicated exactly),
-      // materialized to a pt_value for the dynamic world. Corner: when TWO
+      // materialized to a cs_value for the dynamic world. Corner: when TWO
       // unset native reads share one expression, which name is reported
       // follows C operand order — same NameError, same message shape.
       std::string nr = native_read_text(e.name, e.res, e.loc.line);
-      if (!nr.empty()) return "pt_int(" + nr + ")";
-      // Native float slot: same discipline — the double boxes to PT_FLOAT
-      // here (pt_float is a bit-copy; no rounding, no signaling), and the
-      // dynamic pt_value slot is never the source of truth.
+      if (!nr.empty()) return "cs_int(" + nr + ")";
+      // Native float slot: same discipline — the double boxes to CS_FLOAT
+      // here (cs_float is a bit-copy; no rounding, no signaling), and the
+      // dynamic cs_value slot is never the source of truth.
       std::string fr = native_float_read_text(e.name, e.res, e.loc.line);
-      if (!fr.empty()) return "pt_float(" + fr + ")";
+      if (!fr.empty()) return "cs_float(" + fr + ")";
       std::string storage = storage_for(e.name, e.res, in_function, e.loc.line);
       std::string t = decl_temp();
       line(ind() + t + " = " +
@@ -7919,7 +7919,7 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
       // that storage, no frame lookup of any kind.
       std::string storage = qual_value_text(e);
       std::string t = decl_temp();
-      line(ind() + t + " = pt_guard(" + storage + ", \"" + c_escape(e.name) +
+      line(ind() + t + " = cs_guard(" + storage + ", \"" + c_escape(e.name) +
            "\", " + scope_name(e.res) + ", " + std::to_string(e.loc.line) + ");");
       return t;
     }
@@ -7931,11 +7931,11 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
       std::string ln = std::to_string(e.loc.line);
       std::string t = decl_temp();
       if (e.op == "-") {
-        line(ind() + t + " = pt_neg_f(" + a + ", " + ln + ");");
+        line(ind() + t + " = cs_neg_f(" + a + ", " + ln + ");");
       } else if (e.op == "~") {  // M2-2A §3.2
-        line(ind() + t + " = pt_bnot(" + a + ", " + ln + ");");
+        line(ind() + t + " = cs_bnot(" + a + ", " + ln + ");");
       } else if (e.op == "not") {  // M2-2A §4
-        line(ind() + t + " = pt_bool(!pt_truthy(" + a + ", " + ln + "));");
+        line(ind() + t + " = cs_bool(!cs_truthy(" + a + ", " + ln + "));");
       } else {
         fail("unknown unary operator '" + e.op + "'");
       }
@@ -7969,11 +7969,11 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
       std::string ln = std::to_string(e.loc.line);
       std::string t = decl_temp();
       if (e.op == "and") {
-        line(ind() + t + " = (pt_truthy(" + l + ", " + ln +
-             ") ? pt_bool(pt_truthy(" + r + ", " + ln + ")) : pt_bool(false));");
+        line(ind() + t + " = (cs_truthy(" + l + ", " + ln +
+             ") ? cs_bool(cs_truthy(" + r + ", " + ln + ")) : cs_bool(false));");
       } else if (e.op == "or") {
-        line(ind() + t + " = (pt_truthy(" + l + ", " + ln +
-             ") ? pt_bool(true) : pt_bool(pt_truthy(" + r + ", " + ln + ")));");
+        line(ind() + t + " = (cs_truthy(" + l + ", " + ln +
+             ") ? cs_bool(true) : cs_bool(cs_truthy(" + r + ", " + ln + ")));");
       } else {
         fail("unknown logical operator '" + e.op + "'");
       }
@@ -7989,7 +7989,7 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
       std::string el = inline_child(*e.third, in_function); // lazy arm
       std::string ln = std::to_string(e.loc.line);
       std::string t = decl_temp();
-      line(ind() + t + " = (pt_truthy(" + c + ", " + ln + ") ? " + th +
+      line(ind() + t + " = (cs_truthy(" + c + ", " + ln + ") ? " + th +
            " : " + el + ");");
       return t;
     }
@@ -7998,7 +7998,7 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
       // ---- C3 (task-5 A): bulk-entry gates ------------------------------
       // (1) CALLEE side, any context: a static call to an admissible bulk
       // callee packs raw int64s and dispatches straight to the _b entry
-      // (no bound vector, no PT_MISSING, no pt_list_of); ANY decline below
+      // (no bound vector, no CS_MISSING, no cs_list_of); ANY decline below
       // falls through to today's exact boxed path (byte-parity by
       // construction).
       if (!e.is_builtin && !e.is_builtin_print && !e.is_builtin_range &&
@@ -8013,7 +8013,7 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
         }
       }
       // (2) ARGUMENT side, ONLY inside a _b body: the sanctioned len(more)
-      // spells its count structurally — the boxed pt_l_<vararg> slot
+      // spells its count structurally — the boxed cs_l_<vararg> slot
       // deliberately does not exist there, so any other vararg reference
       // would fail the C compile loudly (admissibility drift = compile
       // error, never a miscompile; see the is_bulk_* block above
@@ -8021,7 +8021,7 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
       if (bulk_fn_ && cur_func_ == bulk_fn_ && e.is_builtin &&
           is_bulk_len_call(e, cur_func_->vararg)) {
         std::string t = decl_temp();
-        line(ind() + t + " = pt_int(pt_nln_" + cur_func_->vararg + ");");
+        line(ind() + t + " = cs_int(cs_nln_" + cur_func_->vararg + ");");
         return t;
       }
       // Post-2C perf: native int-lane twin call. A static call to an
@@ -8041,7 +8041,7 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
         // temp store — one box, one call.
         if (!nt.empty()) {
           std::string t = decl_temp();
-          line(ind() + t + " = pt_int(" + nt + ");");
+          line(ind() + t + " = cs_int(" + nt + ");");
           return t;
         }
       }
@@ -8054,17 +8054,17 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
       if (e.is_builtin_print) {
         std::string ln = std::to_string(e.loc.line);
         if (args.empty()) {
-          line(ind() + "pt_print(NULL, 0, " + ln + ");");
+          line(ind() + "cs_print(NULL, 0, " + ln + ");");
         } else {
-          std::string s = ind() + "{ pt_value pt_args[] = {";
+          std::string s = ind() + "{ cs_value cs_args[] = {";
           for (size_t i = 0; i < args.size(); ++i) {
             if (i) s += ",";
             s += " " + args[i];
           }
-          s += " }; pt_print(pt_args, " + std::to_string(args.size()) + ", " + ln + "); }";
+          s += " }; cs_print(cs_args, " + std::to_string(args.size()) + ", " + ln + "); }";
           line(s);
         }
-        return "pt_none()";
+        return "cs_none()";
       }
       if (e.is_builtin_range) {  // M2-2A §6: range() outside a for header
         std::string t = decl_temp();
@@ -8078,7 +8078,7 @@ std::string Emitter::emit_expr(const Expr& e, bool in_function) {
         return t;
       }
       // M2-2B §13: the callee expression is authoritative when set (it may
-      // coexist with the bare name) — dynamic pt_call through a function
+      // coexist with the bare name) — dynamic cs_call through a function
       // value. Otherwise a bare name resolving to a top-level function is a
       // static direct call through the bound vector.
       if (e.callee_expr) return emit_dynamic_call(e, in_function);
@@ -8105,13 +8105,13 @@ std::string Emitter::try_inline(const Expr& e, bool in_function) {
     case ExprKind::FloatLit:
       return float_literal(e.fval);
     case ExprKind::StrLit:
-      return "PT_STR(\"" + c_escape(e.sval) + "\")";
+      return "CS_STR(\"" + c_escape(e.sval) + "\")";
     case ExprKind::BytesLit:
-      return "PT_BYTES(\"" + c_escape(e.sval) + "\")";
+      return "CS_BYTES(\"" + c_escape(e.sval) + "\")";
     case ExprKind::BoolLit:
-      return e.bval ? "pt_bool(true)" : "pt_bool(false)";
+      return e.bval ? "cs_bool(true)" : "cs_bool(false)";
     case ExprKind::NoneLit:
-      return "pt_none()";
+      return "cs_none()";
 
     // ---- M2-2B literals: same discipline as call arguments -------------
     // A compound literal's initializers and each argument position are
@@ -8127,12 +8127,12 @@ std::string Emitter::try_inline(const Expr& e, bool in_function) {
       items.reserve(e.elems.size());
       for (const auto& el : e.elems) items.push_back(inline_child(*el, in_function));
       if (e.kind == ExprKind::ListLit) {
-        if (items.empty()) return "pt_list_new()";
-        return "pt_list_of(" + value_array_text(items) + ", " +
+        if (items.empty()) return "cs_list_new()";
+        return "cs_list_of(" + value_array_text(items) + ", " +
                std::to_string(items.size()) + "u)";
       }
-      if (items.empty()) return "pt_tuple_of(NULL, 0u)";
-      return "pt_tuple_of(" + value_array_text(items) + ", " +
+      if (items.empty()) return "cs_tuple_of(NULL, 0u)";
+      return "cs_tuple_of(" + value_array_text(items) + ", " +
              std::to_string(items.size()) + "u)";
     }
 
@@ -8144,8 +8144,8 @@ std::string Emitter::try_inline(const Expr& e, bool in_function) {
       std::vector<std::string> items;
       items.reserve(e.elems.size());
       for (const auto& el : e.elems) items.push_back(inline_child(*el, in_function));
-      if (items.empty()) return "pt_set_new()";
-      return "pt_set_of(" + value_array_text(items) + ", " +
+      if (items.empty()) return "cs_set_new()";
+      return "cs_set_of(" + value_array_text(items) + ", " +
              std::to_string(items.size()) + "u, " + std::to_string(e.loc.line) + ")";
     }
 
@@ -8165,8 +8165,8 @@ std::string Emitter::try_inline(const Expr& e, bool in_function) {
         ks.push_back(inline_child(*e.keys[i], in_function));
         vs.push_back(inline_child(*e.elems[i], in_function));
       }
-      if (ks.empty()) return "pt_map_new()";
-      return "pt_map_of(" + value_array_text(ks) + ", " + value_array_text(vs) +
+      if (ks.empty()) return "cs_map_new()";
+      return "cs_map_of(" + value_array_text(ks) + ", " + value_array_text(vs) +
              ", " + std::to_string(ks.size()) + "u, " +
              std::to_string(e.loc.line) + ")";
     }
@@ -8178,7 +8178,7 @@ std::string Emitter::try_inline(const Expr& e, bool in_function) {
       if (has_effect(*e.lhs) && has_effect(*e.rhs)) return "";
       std::string obj = inline_child(*e.lhs, in_function);
       std::string idx = inline_child(*e.rhs, in_function);
-      return "pt_index_get_f(" + obj + ", " + idx + ", " +
+      return "cs_index_get_f(" + obj + ", " + idx + ", " +
              std::to_string(e.loc.line) + ")";
     }
 
@@ -8193,21 +8193,21 @@ std::string Emitter::try_inline(const Expr& e, bool in_function) {
         if (effectful > 1 && has_effect(*e.rhs)) return "";
         start = inline_child(*e.rhs, in_function);
       } else {
-        start = "pt_unset()";
+        start = "cs_unset()";
       }
       if (e.has_stop && e.third) {
         if (effectful > 1 && has_effect(*e.third)) return "";
         stop = inline_child(*e.third, in_function);
       } else {
-        stop = "pt_unset()";
+        stop = "cs_unset()";
       }
       if (e.has_step && e.fourth) {
         if (effectful > 1 && has_effect(*e.fourth)) return "";
         step = inline_child(*e.fourth, in_function);
       } else {
-        step = "pt_unset()";
+        step = "cs_unset()";
       }
-      return "pt_slice(" + inline_child(*e.lhs, in_function) + ", " + start + ", " +
+      return "cs_slice(" + inline_child(*e.lhs, in_function) + ", " + start + ", " +
              stop + ", " + step + ", " + std::to_string(e.loc.line) + ")";
     }
 
@@ -8243,7 +8243,7 @@ std::string Emitter::try_inline(const Expr& e, bool in_function) {
       std::vector<std::string> args;
       args.reserve(e.elems.size());
       for (const auto& el : e.elems) args.push_back(inline_child(*el, in_function));
-      std::string call = "pt_call_method(" + obj + ", \"" + c_escape(e.method) + "\", ";
+      std::string call = "cs_call_method(" + obj + ", \"" + c_escape(e.method) + "\", ";
       call += args.empty() ? "NULL, 0u"
                            : value_array_text(args) + ", " + std::to_string(args.size()) + "u";
       call += ", NULL, 0u, " + std::to_string(e.loc.line) + ")";
@@ -8254,7 +8254,7 @@ std::string Emitter::try_inline(const Expr& e, bool in_function) {
       if (!e.lhs)
         fail("attribute read without object (line " + std::to_string(e.loc.line) + ")");
       std::string obj = inline_child(*e.lhs, in_function);
-      return "pt_getattr_lit(" + obj + ", \"" + c_escape(e.attr) + "\", " +
+      return "cs_getattr_lit(" + obj + ", \"" + c_escape(e.attr) + "\", " +
              std::to_string(e.loc.line) + ")";
     }
 
@@ -8266,22 +8266,22 @@ std::string Emitter::try_inline(const Expr& e, bool in_function) {
       std::vector<std::string> items;
       items.reserve(e.elems.size());
       for (const auto& el : e.elems) items.push_back(inline_child(*el, in_function));
-      return "pt_join(" + value_array_text(items) + ", " +
+      return "cs_join(" + value_array_text(items) + ", " +
              std::to_string(items.size()) + "u, " + std::to_string(e.loc.line) + ")";
     }
 
     case ExprKind::Var: {
       std::string nr = native_read_text(e.name, e.res, e.loc.line);  // 2C perf
-      if (!nr.empty()) return "pt_int(" + nr + ")";
+      if (!nr.empty()) return "cs_int(" + nr + ")";
       std::string fr = native_float_read_text(e.name, e.res, e.loc.line);
-      if (!fr.empty()) return "pt_float(" + fr + ")";
+      if (!fr.empty()) return "cs_float(" + fr + ")";
       std::string storage = storage_for(e.name, e.res, in_function, e.loc.line);
       return guard_text(storage, e.name, e.res, e.loc.line);
     }
 
     case ExprKind::VarQual: {  // docs/reference/cross-scope-access.md §5
       std::string storage = qual_value_text(e);
-      return "pt_guard(" + storage + ", \"" + c_escape(e.name) + "\", " +
+      return "cs_guard(" + storage + ", \"" + c_escape(e.name) + "\", " +
              scope_name(e.res) + ", " + std::to_string(e.loc.line) + ")";
     }
 
@@ -8291,9 +8291,9 @@ std::string Emitter::try_inline(const Expr& e, bool in_function) {
       std::string a = try_inline(*e.lhs, in_function);  // single child: order forced
       if (a.empty()) return "";
       std::string ln = std::to_string(e.loc.line);
-      if (e.op == "-") return "pt_neg_f(" + a + ", " + ln + ")";
-      if (e.op == "~") return "pt_bnot(" + a + ", " + ln + ")";
-      if (e.op == "not") return "pt_bool(!pt_truthy(" + a + ", " + ln + "))";
+      if (e.op == "-") return "cs_neg_f(" + a + ", " + ln + ")";
+      if (e.op == "~") return "cs_bnot(" + a + ", " + ln + ")";
+      if (e.op == "not") return "cs_bool(!cs_truthy(" + a + ", " + ln + "))";
       fail("unknown unary operator '" + e.op + "'");
     }
 
@@ -8317,10 +8317,10 @@ std::string Emitter::try_inline(const Expr& e, bool in_function) {
       std::string r = inline_child(*e.rhs, in_function);
       std::string ln = std::to_string(e.loc.line);
       if (e.op == "and")
-        return "(pt_truthy(" + l + ", " + ln + ") ? pt_bool(pt_truthy(" + r + ", " +
-               ln + ")) : pt_bool(false))";
+        return "(cs_truthy(" + l + ", " + ln + ") ? cs_bool(cs_truthy(" + r + ", " +
+               ln + ")) : cs_bool(false))";
       if (e.op == "or")
-        return "(pt_truthy(" + l + ", " + ln + ") ? pt_bool(true) : pt_bool(pt_truthy(" +
+        return "(cs_truthy(" + l + ", " + ln + ") ? cs_bool(true) : cs_bool(cs_truthy(" +
                r + ", " + ln + ")))";
       fail("unknown logical operator '" + e.op + "'");
     }
@@ -8333,7 +8333,7 @@ std::string Emitter::try_inline(const Expr& e, bool in_function) {
       std::string th = inline_child(*e.rhs, in_function);
       std::string el = inline_child(*e.third, in_function);
       std::string ln = std::to_string(e.loc.line);
-      return "(pt_truthy(" + c + ", " + ln + ") ? " + th + " : " + el + ")";
+      return "(cs_truthy(" + c + ", " + ln + ") ? " + th + " : " + el + ")";
     }
 
     case ExprKind::Call: {
@@ -8341,7 +8341,7 @@ std::string Emitter::try_inline(const Expr& e, bool in_function) {
       // as its raw count — never through the (absent) boxed slot.
       if (bulk_fn_ && cur_func_ == bulk_fn_ && e.is_builtin &&
           is_bulk_len_call(e, cur_func_->vararg))
-        return "pt_int(pt_nln_" + cur_func_->vararg + ")";
+        return "cs_int(cs_nln_" + cur_func_->vararg + ")";
       // Arguments are eager: at most one may have effects (C arg order), and
       // a hard one goes into its own statement expression.
       size_t effectful = 0;
@@ -8362,7 +8362,7 @@ std::string Emitter::try_inline(const Expr& e, bool in_function) {
         return builtin_call_text(e, args, e.loc.line);
       }
       // M2-2B §13: every user call lowers through the bound vector (static)
-      // or pt_call (dynamic) — both emit statements, never a bare C
+      // or cs_call (dynamic) — both emit statements, never a bare C
       // expression. Fall back to A-normalized emission.
       (void)args;
       return "";
@@ -8415,7 +8415,7 @@ void Emitter::emit_try_exits(int bound_depth, bool in_function) {
     if (bound_depth >= 0 && c.loop_depth != bound_depth) break;
     if (c.entered.empty() && c.finally_src == nullptr) continue;
     for (const std::string& h : c.entered)
-      line(ind() + "pt_try_leave(&" + h + ");");
+      line(ind() + "cs_try_leave(&" + h + ");");
     if (c.finally_src != nullptr) {
       const Stmt* fin = c.finally_src;
       // While this finally runs the try contributes nothing more: the
@@ -8445,9 +8445,9 @@ void Emitter::emit_try(const Stmt& s, bool in_function) {
     // except arms entirely (dead by construction; the dynamic entry and its
     // twin share this flag). try_stack_ keeps finally_src with an EMPTY
     // `entered` list, so break/continue/return still copy this finally once
-    // (§2.6) and emit no pt_try_leave for this scope — the unwind edge the
+    // (§2.6) and emit no cs_try_leave for this scope — the unwind edge the
     // registered pad existed for cannot happen. Statistical visibility is
-    // unchanged (§7.3): the collector only starts at pt_gc_maybe, which this
+    // unchanged (§7.3): the collector only starts at cs_gc_maybe, which this
     // statement adds or removes none of.
     // CORRIDOR: because ALL of a function's own tries take this path
     // before its lane is admitted (has_own_try at the four fixpoint sites),
@@ -8476,13 +8476,13 @@ void Emitter::emit_try(const Stmt& s, bool in_function) {
   }
   const size_t seq = try_seq_++;
   const std::string id = std::to_string(seq);
-  const std::string lbl_done = "pt_done" + id;
-  const std::string lbl_nf = "pt_nf" + id;
+  const std::string lbl_done = "cs_done" + id;
+  const std::string lbl_nf = "cs_nf" + id;
   const bool arms = !s.arms.empty();
   const bool fin = s.has_finally;
   const bool nested = arms && fin;  // §2.5: inner catch, outer finally
-  const std::string h_fin = "pt_hf" + id;
-  const std::string h_catch = "pt_hc" + id;
+  const std::string h_fin = "cs_hf" + id;
+  const std::string h_catch = "cs_hc" + id;
 
   TryCtx ctx;
   ctx.loop_depth = loop_depth_;
@@ -8508,22 +8508,22 @@ void Emitter::emit_try(const Stmt& s, bool in_function) {
   indent_ += 2;
 
   if (fin) {
-    line(ind() + "pt_handler " + h_fin + ";");
+    line(ind() + "cs_handler " + h_fin + ";");
     line(ind() + "if (setjmp(" + h_fin + ".env) == 0) {");
     indent_ += 2;
-    line(ind() + "pt_try_enter(&" + h_fin + ", PT_H_FINALLY);");
+    line(ind() + "cs_try_enter(&" + h_fin + ", CS_H_FINALLY);");
   }
   if (arms) {
-    line(ind() + "pt_handler " + h_catch + ";");
+    line(ind() + "cs_handler " + h_catch + ";");
     line(ind() + "if (setjmp(" + h_catch + ".env) == 0) {");
     indent_ += 2;
-    line(ind() + "pt_try_enter(&" + h_catch + ", PT_H_CATCH);");
+    line(ind() + "cs_try_enter(&" + h_catch + ", CS_H_CATCH);");
   }
 
   // ---- try body (normal edge) ----
   emit_body(s.body, in_function);
   if (arms) {
-    line(ind() + "pt_try_leave(&" + h_catch + ");");
+    line(ind() + "cs_try_leave(&" + h_catch + ");");
     line(ind() + "goto " + (nested ? lbl_nf : lbl_done) + ";");
     indent_ -= 2;
     line(ind() + "} else {");
@@ -8546,19 +8546,19 @@ void Emitter::emit_try(const Stmt& s, bool in_function) {
         line(ind() + (i == 0 ? "if (1) {" : "} else {"));
       } else if (i == 0) {
         std::string cond = emit_expr(*arm.cond, in_function);
-        line(ind() + "if (pt_exc_matches(" + e + ", " + cond + ", " +
+        line(ind() + "if (cs_exc_matches(" + e + ", " + cond + ", " +
              std::to_string(arm.loc.line) + ")) {");
       } else {
         std::string inl = try_inline(*arm.cond, in_function);
         if (!inl.empty()) {
-          line(ind() + "} else if (pt_exc_matches(" + e + ", " + inl + ", " +
+          line(ind() + "} else if (cs_exc_matches(" + e + ", " + inl + ", " +
                std::to_string(arm.loc.line) + ")) {");
         } else {
           line(ind() + "} else {");
           indent_ += 2;
           open_else++;
           std::string cond = emit_expr(*arm.cond, in_function);
-          line(ind() + "if (pt_exc_matches(" + e + ", " + cond + ", " +
+          line(ind() + "if (cs_exc_matches(" + e + ", " + cond + ", " +
                std::to_string(arm.loc.line) + ")) {");
         }
       }
@@ -8568,7 +8568,7 @@ void Emitter::emit_try(const Stmt& s, bool in_function) {
             storage_for(arm.name, arm.res, in_function, arm.loc.line);
         line(ind() + st + " = " + e + ";");
       }
-      // Arm bodies run after this catch handler was popped by pt_throw:
+      // Arm bodies run after this catch handler was popped by cs_throw:
       // only a still-entered finally handler may appear on their exit
       // edges (§2.6).
       std::vector<std::string> saved_entered = try_stack_[idx].entered;
@@ -8583,7 +8583,7 @@ void Emitter::emit_try(const Stmt& s, bool in_function) {
         break;  // later arms are unreachable (the catch-all matched)
       }
     }
-    if (!bare_done) line(ind() + "} else pt_throw(" + e + ");");
+    if (!bare_done) line(ind() + "} else cs_throw(" + e + ");");
     for (; open_else > 0; --open_else) {  // close setup else-blocks, innermost first
       indent_ -= 2;
       line(ind() + "}");
@@ -8595,18 +8595,18 @@ void Emitter::emit_try(const Stmt& s, bool in_function) {
 
   if (fin) {
     // Normal edge: leave the finally handler, run the body once, done.
-    line(ind() + "pt_try_leave(&" + h_fin + ");");
+    line(ind() + "cs_try_leave(&" + h_fin + ");");
     emit_fin_copy(s);
     line(ind() + "goto " + lbl_done + ";");
     indent_ -= 2;
     line(ind() + "} else {");
     indent_ += 2;
-    // Unwind edge: pt_throw already popped the handler and restored the
+    // Unwind edge: cs_throw already popped the handler and restored the
     // depths; run the body, then continue unwinding (§2.5/§2.6).
     std::string e2 = decl_temp();
     line(ind() + e2 + " = " + h_fin + ".exc;");
     emit_fin_copy(s);
-    line(ind() + "pt_throw(" + e2 + ");");
+    line(ind() + "cs_throw(" + e2 + ");");
     indent_ -= 2;
     line(ind() + "}");
   }
@@ -8626,7 +8626,7 @@ void Emitter::emit_else_tail(size_t after, const Stmt& s, bool in_function) {
     const Expr& cond = *s.conds[j];
     std::string c = try_inline(cond, in_function);
     if (!c.empty()) {
-      line(ind() + "} else if (pt_truthy(" + c + ", " + std::to_string(cond.loc.line) +
+      line(ind() + "} else if (cs_truthy(" + c + ", " + std::to_string(cond.loc.line) +
            ")) {");
       indent_ += 2;
       emit_body(s.bodies[j], in_function);
@@ -8662,7 +8662,7 @@ void Emitter::emit_if_from(size_t idx, const Stmt& s, bool in_function) {
   } else {
     std::string c = try_inline(cond, in_function);
     if (c.empty()) c = emit_expr(cond, in_function);  // statements before the if
-    line(ind() + "if (pt_truthy(" + c + ", " + std::to_string(cond.loc.line) + ")) {");
+    line(ind() + "if (cs_truthy(" + c + ", " + std::to_string(cond.loc.line) + ")) {");
   }
   indent_ += 2;
   emit_body(s.bodies[idx], in_function);
@@ -8675,7 +8675,7 @@ void Emitter::emit_switch_tail(size_t after, const Stmt& s, const std::string& s
   if (after + 1 < s.cases.size()) {
     const CaseArm& arm = s.cases[after + 1];
     if (!arm.is_wildcard) {
-      line(ind() + "} else if (pt_truthy(pt_eq_f(" + scrut + ", " + case_label_text(arm) +
+      line(ind() + "} else if (cs_truthy(cs_eq_f(" + scrut + ", " + case_label_text(arm) +
            "), " + std::to_string(arm.loc.line) + ")) {");
       indent_ += 2;
       emit_body(arm.body, in_function);
@@ -8707,9 +8707,9 @@ void Emitter::emit_switch_from(size_t idx, const Stmt& s, const std::string& scr
     return;
   }
   // First match wins; each arm is its own block, so control leaves the chain
-  // automatically (§5: no fall-through, no break). pt_eq_f is total (no line);
-  // pt_truthy converts its bool value to a C condition (arm's line).
-  line(ind() + "if (pt_truthy(pt_eq_f(" + scrut + ", " + case_label_text(arm) + "), " +
+  // automatically (§5: no fall-through, no break). cs_eq_f is total (no line);
+  // cs_truthy converts its bool value to a C condition (arm's line).
+  line(ind() + "if (cs_truthy(cs_eq_f(" + scrut + ", " + case_label_text(arm) + "), " +
        std::to_string(arm.loc.line) + ")) {");
   indent_ += 2;
   emit_body(arm.body, in_function);
@@ -8848,7 +8848,7 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
         if (s.res == VarRes::Unresolved)
           fail("unresolved assignment target '" + s.name + "' (line " +
                std::to_string(s.loc.line) + ")");
-        // Post-2C native slot: store into the native pair — no pt_value
+        // Post-2C native slot: store into the native pair — no cs_value
         // touch, no guard temp. The analysis guarantees every write of a
         // native slot is int-shaped, so a "" here is an internal drift bug.
         {
@@ -8872,18 +8872,18 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
                 fail("internal: native compound slot '" + s.name + "' (line " +
                      ln + ")");
               std::string call;
-              if (s.op == "+=") call = "pt_nwrap_add(" + cur + ", " + v + ")";
-              else if (s.op == "-=") call = "pt_nwrap_sub(" + cur + ", " + v + ")";
-              else if (s.op == "*=") call = "pt_nwrap_mul(" + cur + ", " + v + ")";
-              else if (s.op == "/=") call = "pt_ndiv(" + cur + ", " + v + ", " + ln + ")";
-              else if (s.op == "%=") call = "pt_nmod(" + cur + ", " + v + ", " + ln + ")";
-              else if (s.op == "&=") call = "pt_nwrap_band(" + cur + ", " + v + ")";
-              else if (s.op == "|=") call = "pt_nwrap_bor(" + cur + ", " + v + ")";
-              else if (s.op == "^=") call = "pt_nwrap_bxor(" + cur + ", " + v + ")";
+              if (s.op == "+=") call = "cs_nwrap_add(" + cur + ", " + v + ")";
+              else if (s.op == "-=") call = "cs_nwrap_sub(" + cur + ", " + v + ")";
+              else if (s.op == "*=") call = "cs_nwrap_mul(" + cur + ", " + v + ")";
+              else if (s.op == "/=") call = "cs_ndiv(" + cur + ", " + v + ", " + ln + ")";
+              else if (s.op == "%=") call = "cs_nmod(" + cur + ", " + v + ", " + ln + ")";
+              else if (s.op == "&=") call = "cs_nwrap_band(" + cur + ", " + v + ")";
+              else if (s.op == "|=") call = "cs_nwrap_bor(" + cur + ", " + v + ")";
+              else if (s.op == "^=") call = "cs_nwrap_bxor(" + cur + ", " + v + ")";
               else if (s.op == "<<=")
-                call = "pt_nwrap_shl(" + cur + ", " + v + ", " + ln + ")";
+                call = "cs_nwrap_shl(" + cur + ", " + v + ", " + ln + ")";
               else if (s.op == ">>=")
-                call = "pt_nwrap_shr(" + cur + ", " + v + ", " + ln + ")";
+                call = "cs_nwrap_shr(" + cur + ", " + v + ", " + ln + ")";
               else
                 fail("internal: native slot '" + s.name + "' non-native op '" +
                      s.op + "' (line " + ln + ")");
@@ -8893,7 +8893,7 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
           }
         }
         // Post-2C native float slot: store into the native double pair —
-        // no pt_value touch, no guard temp. The analysis guarantees every
+        // no cs_value touch, no guard temp. The analysis guarantees every
         // write of a float slot is float-shaped, so a "" here is an
         // internal drift bug. Same flag discipline as the int lane.
         {
@@ -8916,14 +8916,14 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
                      "' (line " + ln + ")");
               std::string call;
               // Plain IEEE ops in source order (the fixpoint only admits
-              // +=, -=, *=, /=; "%" declines the slot — pt_mod raises
+              // +=, -=, *=, /=; "%" declines the slot — cs_mod raises
               // TypeError on floats, identically dynamic).
               if (s.op == "+=") call = "(" + cur + " + " + v + ")";
               else if (s.op == "-=") call = "(" + cur + " - " + v + ")";
               else if (s.op == "*=")
-                call = "pt_nfmul(" + cur + ", " + v + ")";
+                call = "cs_nfmul(" + cur + ", " + v + ")";
               else if (s.op == "/=")
-                call = "pt_nfdiv(" + cur + ", " + v + ", " + ln + ")";
+                call = "cs_nfdiv(" + cur + ", " + v + ", " + ln + ")";
               else
                 fail("internal: native float slot '" + s.name +
                      "' non-float op '" + s.op + "' (line " + ln + ")");
@@ -8962,7 +8962,7 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
         std::string target = storage_for(s.name, s.res, in_function, s.loc.line);
         // Text-cat in-place growth (analyze_text_cats): a proven
         // `s = s + expr` / `s += expr` appends into the buffer the slot
-        // uniquely owns — pt_text_cat2(..., may_grow=1), O(total) copy
+        // uniquely owns — cs_text_cat2(..., may_grow=1), O(total) copy
         // volume — instead of rebuilding an exact-size block each time.
         const bool catgrow = catok_.count(&s) != 0;
         if (s.op.empty()) {
@@ -8974,7 +8974,7 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
             std::string l = emit_expr(*be.lhs, in_function);
             std::string r = emit_expr(*be.rhs, in_function);
             std::string t = decl_temp();
-            line(ind() + t + " = pt_text_cat2(" + l + ", " + r + ", " +
+            line(ind() + t + " = cs_text_cat2(" + l + ", " + r + ", " +
                  std::to_string(be.loc.line) + ", 1);");
             line(ind() + target + " = " + t + ";");
           } else {
@@ -8996,7 +8996,7 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
           std::string v = emit_expr(*s.expr, in_function);
           std::string t = decl_temp();
           if (catgrow)  // only `+=` candidates are ever registered in catok_
-            line(ind() + t + " = pt_text_cat2(" + cur + ", " + v + ", " + ln +
+            line(ind() + t + " = cs_text_cat2(" + cur + ", " + v + ", " + ln +
                  ", 1);");
           else
             line(ind() + t + " = " + fn + "(" + cur + ", " + v + ", " + ln + ");");
@@ -9011,7 +9011,7 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
         std::string ln = std::to_string(s.loc.line);
         if (s.op.empty()) {
           std::string v = emit_expr(*s.expr, in_function);
-          line(ind() + "pt_index_set(" + obj + ", " + idx + ", " + v + ", " + ln + ");");
+          line(ind() + "cs_index_set(" + obj + ", " + idx + ", " + v + ", " + ln + ");");
         } else {
           const char* fn = compound_fn(s.op);
           if (!fn)
@@ -9021,12 +9021,12 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
           // element is read (line of the statement) before the RHS, matching
           // the expanded form's left operand.
           std::string cur = decl_temp();
-          line(ind() + cur + " = pt_index_get_f(" + obj + ", " + idx +
+          line(ind() + cur + " = cs_index_get_f(" + obj + ", " + idx +
                ", " + ln + ");");
           std::string v = emit_expr(*s.expr, in_function);
           std::string t = decl_temp();
           line(ind() + t + " = " + fn + "(" + cur + ", " + v + ", " + ln + ");");
-          line(ind() + "pt_index_set(" + obj + ", " + idx + ", " + t + ", " + ln + ");");
+          line(ind() + "cs_index_set(" + obj + ", " + idx + ", " + t + ", " + ln + ");");
         }
       } else if (s.target.kind == AssignTarget::Kind::Attr) {
         // M2-2C §3.2: attribute assignment. The object is evaluated once,
@@ -9040,17 +9040,17 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
         std::string key = "\"" + c_escape(s.target.attr) + "\"";
         if (s.op.empty()) {
           std::string v = emit_expr(*s.expr, in_function);
-          line(ind() + "pt_setattr_lit(" + obj + ", " + key + ", " + v + ", " + ln + ");");
+          line(ind() + "cs_setattr_lit(" + obj + ", " + key + ", " + v + ", " + ln + ");");
         } else {
           const char* fn = compound_fn(s.op);
           if (!fn)
             fail("unknown compound assignment operator '" + s.op + "' (line " + ln + ")");
           std::string cur = decl_temp();
-          line(ind() + cur + " = pt_getattr_lit(" + obj + ", " + key + ", " + ln + ");");
+          line(ind() + cur + " = cs_getattr_lit(" + obj + ", " + key + ", " + ln + ");");
           std::string v = emit_expr(*s.expr, in_function);
           std::string t = decl_temp();
           line(ind() + t + " = " + fn + "(" + cur + ", " + v + ", " + ln + ");");
-          line(ind() + "pt_setattr_lit(" + obj + ", " + key + ", " + t + ", " + ln + ");");
+          line(ind() + "cs_setattr_lit(" + obj + ", " + key + ", " + t + ", " + ln + ");");
         }
       } else if (s.target.kind == AssignTarget::Kind::VarQual) {
         // docs/reference/cross-scope-access.md §5: store into the pinned static (or the
@@ -9067,7 +9067,7 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
                  std::to_string(s.loc.line) + ")");
           std::string ln = std::to_string(s.loc.line);
           std::string cur = decl_temp();
-          line(ind() + cur + " = pt_guard(" + target + ", \"" +
+          line(ind() + cur + " = cs_guard(" + target + ", \"" +
                c_escape(s.target.name) + "\", " + scope_name(s.target.res) +
                ", " + ln + ");");
           std::string v = emit_expr(*s.expr, in_function);
@@ -9103,23 +9103,23 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
       // region's text is assigned into the outer region's result, which then
       // goto's the outer end label.
       if (!micx_.empty()) {
-        std::string v = s.expr ? emit_expr(*s.expr, in_function) : "pt_none()";
-        line(ind() + "pt_ilr" + std::to_string(micx_id_) + " = " + v + ";");
-        line(ind() + "goto pt_ile" + std::to_string(micx_id_) + "end;");
+        std::string v = s.expr ? emit_expr(*s.expr, in_function) : "cs_none()";
+        line(ind() + "cs_ilr" + std::to_string(micx_id_) + " = " + v + ";");
+        line(ind() + "goto cs_ile" + std::to_string(micx_id_) + "end;");
         fell_through = false;
         break;
       }
       if (s.expr) {
         // Post-2C twin lane: every twin return expression is int-shaped
         // (the joint lane fixpoint proved it) — emit the raw int64. The caller
-        // boxes the result only when it needs a pt_value.
+        // boxes the result only when it needs a cs_value.
         if (twin_fn_) {
           std::string v = native_int_text(*s.expr);
           if (v.empty())
             fail("internal: twin return of a non-int expression (line " +
                  std::to_string(s.loc.line) + ")");
           emit_try_exits(-1, in_function);  // no-op: twins carry no try
-          if (framed_) line(ind() + "pt_frame_end(&pt_fr);");
+          if (framed_) line(ind() + "cs_frame_end(&cs_fr);");
           line(ind() + "return " + v + ";");
           fell_through = false;
           break;
@@ -9130,12 +9130,12 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
         emit_try_exits(-1, in_function);
         // Unlink the shadow frame last: the returned expression may call
         // functions (entry safe points) that need this frame rooted (2C §1.5).
-        if (framed_) line(ind() + "pt_frame_end(&pt_fr);");
+        if (framed_) line(ind() + "cs_frame_end(&cs_fr);");
         line(ind() + "return " + v + ";");
       } else {
         emit_try_exits(-1, in_function);
-        if (framed_) line(ind() + "pt_frame_end(&pt_fr);");
-        line(ind() + "return pt_none();");  // bare `return` = None
+        if (framed_) line(ind() + "cs_frame_end(&cs_fr);");
+        line(ind() + "return cs_none();");  // bare `return` = None
       }
       fell_through = false;
       break;
@@ -9163,7 +9163,7 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
         loop_depth_++;
         emit_body(s.body, in_function);
         if (!body_alloc_free(s.body))
-          line(ind() + "pt_gc_maybe();");  // loop back-edge safe point (2C §1.4)
+          line(ind() + "cs_gc_maybe();");  // loop back-edge safe point (2C §1.4)
         loop_depth_--;
         indent_ -= 2;
         line(ind() + "}");
@@ -9171,12 +9171,12 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
       }
       std::string c = try_inline(*s.expr, in_function);
       if (!c.empty()) {
-        line(ind() + "while (pt_truthy(" + c + ", " + std::to_string(ln) + ")) {");
+        line(ind() + "while (cs_truthy(" + c + ", " + std::to_string(ln) + ")) {");
         indent_ += 2;
         loop_depth_++;
         emit_body(s.body, in_function);
         if (!(alloc_free_expr(*s.expr) && body_alloc_free(s.body)))
-          line(ind() + "pt_gc_maybe();");  // loop back-edge safe point (2C §1.4)
+          line(ind() + "cs_gc_maybe();");  // loop back-edge safe point (2C §1.4)
         loop_depth_--;
         indent_ -= 2;
         line(ind() + "}");
@@ -9187,11 +9187,11 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
         line(ind() + "for (;;) {");
         indent_ += 2;
         std::string t = emit_expr(*s.expr, in_function);
-        line(ind() + "if (!pt_truthy(" + t + ", " + std::to_string(ln) + ")) break;");
+        line(ind() + "if (!cs_truthy(" + t + ", " + std::to_string(ln) + ")) break;");
         loop_depth_++;
         emit_body(s.body, in_function);
         if (!(alloc_free_expr(*s.expr) && body_alloc_free(s.body)))
-          line(ind() + "pt_gc_maybe();");  // loop back-edge safe point (2C §1.4)
+          line(ind() + "cs_gc_maybe();");  // loop back-edge safe point (2C §1.4)
         loop_depth_--;
         indent_ -= 2;
         line(ind() + "}");
@@ -9209,7 +9209,7 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
       if (it.kind == ExprKind::Call && it.is_builtin_range) {
         // C1: literal bounds fold to a CANONICAL header. const_range_bounds
         // proved every effective bound a compile-time int literal with a
-        // non-zero step, so nothing pt_range3 validated can fire (§6.9: all
+        // non-zero step, so nothing cs_range3 validated can fire (§6.9: all
         // int -> no TypeError; step != 0 -> no ValueError) and the call only
         // built a stack value worth no evaluation — skipping it is
         // behavior-preserving and hands clang constants, so the sign test
@@ -9248,7 +9248,7 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
           line(ind() + "int64_t " + iv + " = " + cint64(kst) + ";");
           line(ind() + "for (; " + cond + "; " + iv + " = " + latch + ") {");
         } else {
-        // Dynamic bounds: validate via pt_range3, then iterate an int64
+        // Dynamic bounds: validate via cs_range3, then iterate an int64
         // induction variable with an overflow-safe post step.
         std::vector<std::string> args;
         args.reserve(it.args.size());
@@ -9279,7 +9279,7 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
             ") ? INT64_MAX : " + iv + " + " + rp + ") : ((" + iv + " < INT64_MIN - " + rp +
             ") ? INT64_MIN : " + iv + " + " + rp + "))";
         line(ind() + hdr + " {");
-        }  // end non-constant bounds (validated pt_range3 path)
+        }  // end non-constant bounds (validated cs_range3 path)
         indent_ += 2;
         loop_depth_++;
         // Native range-loop target: bind the int64 induction variable
@@ -9297,21 +9297,21 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
           if (!native_noflag(s.name, s.res))
             line(ind() + nflag + " = 1;");
         } else {
-          line(ind() + target + " = pt_int(" + iv + ");");  // bind before body (§5)
+          line(ind() + target + " = cs_int(" + iv + ");");  // bind before body (§5)
         }
         emit_body(s.body, in_function);
-        // range3 + pt_int bind never allocate (§7.3): body decides alone.
+        // range3 + cs_int bind never allocate (§7.3): body decides alone.
         if (!body_alloc_free(s.body))
-          line(ind() + "pt_gc_maybe();");  // loop back-edge safe point (2C §1.4)
+          line(ind() + "cs_gc_maybe();");  // loop back-edge safe point (2C §1.4)
         loop_depth_--;
         indent_ -= 2;
         line(ind() + "}");
       } else if (bulk_fn_ && cur_func_ && is_bulk_for(s, cur_func_->vararg) &&
                  it.kind == ExprKind::Var) {
         // C3 (task-5 A): the SANCTIONED bulk iteration. The _b entry holds
-        // the raw int64 tail in pt_nlb_<vararg>/pt_nln_<vararg>; each
+        // the raw int64 tail in cs_nlb_<vararg>/cs_nln_<vararg>; each
         // element boxes into the SAME slot the dynamic binder fills (bind
-        // before body, §5, source order) instead of the pt_iter protocol
+        // before body, §5, source order) instead of the cs_iter protocol
         // over a heap list. Admission (analyze_bulk_varargs) and this gate
         // share is_bulk_for(), so an inadmissible shape never reaches a _b
         // body; a lane-spelling target would be drift — fail loudly.
@@ -9321,15 +9321,15 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
                "' resolved to a native lane slot (line " +
                std::to_string(s.loc.line) + ")");
         std::string k = fresh_ivar();
-        std::string cnt = "pt_nln_" + cur_func_->vararg;
-        std::string elems = "pt_nlb_" + cur_func_->vararg;
+        std::string cnt = "cs_nln_" + cur_func_->vararg;
+        std::string elems = "cs_nlb_" + cur_func_->vararg;
         line(ind() + "for (int64_t " + k + " = 0; " + k + " < " + cnt + "; " +
              k + "++) {");
         indent_ += 2;
         loop_depth_++;
-        line(ind() + target + " = pt_int(" + elems + "[" + k + "]);");  // bind
+        line(ind() + target + " = cs_int(" + elems + "[" + k + "]);");  // bind
         emit_body(s.body, in_function);
-        line(ind() + "pt_gc_maybe();");  // loop back-edge safe point (2C §1.4)
+        line(ind() + "cs_gc_maybe();");  // loop back-edge safe point (2C §1.4)
         loop_depth_--;
         indent_ -= 2;
         line(ind() + "}");
@@ -9339,15 +9339,15 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
         int ln = it.loc.line;
         std::string iter = fresh_temp();
         std::string cur = decl_temp();
-        line(ind() + "pt_iter " + iter + " = pt_iter_open(" + itex + ", " +
+        line(ind() + "cs_iter " + iter + " = cs_iter_open(" + itex + ", " +
              std::to_string(ln) + ");");
-        line(ind() + cur + " = pt_unset();");
-        line(ind() + "while (pt_iter_next(&" + iter + ", &" + cur + ")) {");
+        line(ind() + cur + " = cs_unset();");
+        line(ind() + "while (cs_iter_next(&" + iter + ", &" + cur + ")) {");
         indent_ += 2;
         loop_depth_++;
         line(ind() + target + " = " + cur + ";");  // bind before body (§5)
         emit_body(s.body, in_function);
-        line(ind() + "pt_gc_maybe();");  // loop back-edge safe point (2C §1.4)
+        line(ind() + "cs_gc_maybe();");  // loop back-edge safe point (2C §1.4)
         loop_depth_--;
         indent_ -= 2;
         line(ind() + "}");
@@ -9386,7 +9386,7 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
       // The scrutinee is evaluated exactly once, before any arm runs.
       // C1: a PROVEN int64 scrutinee plus compile-time int labels lowers to
       // a native C `switch` (one jump table) instead of the boxed
-      // pt_truthy(pt_eq_f(...)) ladder — one evaluation either way (native
+      // cs_truthy(cs_eq_f(...)) ladder — one evaluation either way (native
       // int text never needs pre-statements; every shape it admits folds to a
       // pure expression), same first-match-wins, same total `==`.
       std::string nat = native_int_text(*s.expr);
@@ -9401,7 +9401,7 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
 
     case StmtKind::GlobalDecl: {
       // No runtime effect: the semantic pass resolved every write to a name
-      // declared `global` to global storage (pt_g_…), so the declaration
+      // declared `global` to global storage (cs_g_…), so the declaration
       // itself needs no code. Kept as a comment for readability.
       std::string cmt = "/* global";
       for (const std::string& n : s.names) cmt += " " + n;
@@ -9430,8 +9430,8 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
       if (!s.expr)
         fail("raise without expression (line " + std::to_string(s.loc.line) + ")");
       std::string v = emit_expr(*s.expr, in_function);
-      line(ind() + "pt_raise(" + v + ", " + std::to_string(s.loc.line) + ");");
-      fell_through = false;  // pt_raise never returns (throw or exit)
+      line(ind() + "cs_raise(" + v + ", " + std::to_string(s.loc.line) + ");");
+      fell_through = false;  // cs_raise never returns (throw or exit)
       break;
     }
 
@@ -9440,17 +9440,17 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
         fail("class declaration inside a function (line " +
              std::to_string(s.loc.line) + ")");
       const std::string ln = std::to_string(s.loc.line);
-      const std::string slot = "pt_g_" + s.name;  // a plain module global
-      // Imported classes carry an internal name (__ptmN_Class); user-visible
+      const std::string slot = "cs_g_" + s.name;  // a plain module global
+      // Imported classes carry an internal name (__csmN_Class); user-visible
       // type names and method displays use the original spelling.
-      line(ind() + slot + " = pt_class_new(\"" + c_escape(display_ident(s.name)) +
+      line(ind() + slot + " = cs_class_new(\"" + c_escape(display_ident(s.name)) +
            "\", " + ln + ");");
       for (const FuncDecl& m : s.class_methods) {
         // Methods are env-less global functions (classes are top-level
         // only) with a qualified c_name; the meta keeps the source name,
         // which is what bound-method displays show (§3.3).
-        line(ind() + slot + " = pt_class_add_method(" + slot + ", \"" +
-             c_escape(m.name) + "\", pt_fun_value(&" + meta_name(m) +
+        line(ind() + slot + " = cs_class_add_method(" + slot + ", \"" +
+             c_escape(m.name) + "\", cs_fun_value(&" + meta_name(m) +
              ", NULL, 0u), " + ln + ");");
       }
       break;
@@ -9465,7 +9465,7 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
   // from pending_temps_ (temps created during THIS statement that a nested
   // statement did not already clear) and then truncate, so each temp is
   // cleared exactly once — by the statement that created it — instead of
-  // being re-cleared by every enclosing statement (a redundant `pt_unset()`
+  // being re-cleared by every enclosing statement (a redundant `cs_unset()`
   // store on the hot path of loop bodies). A nested statement that does NOT
   // fall through (ends in `return`) leaves its temps pending, so we clear
   // them here (still a single clear); `return` at this level unregisters
@@ -9477,12 +9477,12 @@ void Emitter::emit_stmt(const Stmt& s, bool in_function) {
   // and a shadow-frame slot holding a stale pointer is only ever MARKED at
   // a collection (never swept-then-read): skipping the store pins at most
   // one extra iteration of garbage, and §7.3 collection TIMING is
-  // unchanged. Six pt_unset calls per loop iteration (a cross-object call
+  // unchanged. Six cs_unset calls per loop iteration (a cross-object call
   // each) drop out of every hot loop in the language.
   if (fell_through) {
     if (loop_depth_ == 0) {
       for (size_t i = temp_mark; i < pending_temps_.size(); ++i)
-        line(ind() + pending_temps_[i] + " = pt_unset();");
+        line(ind() + pending_temps_[i] + " = cs_unset();");
     }
     pending_temps_.resize(temp_mark);
   }
@@ -9502,49 +9502,49 @@ void Emitter::emit_function(const FuncDecl& f) {
   const size_t nslots = n_slots(f);
   env_used_ = false;
   // C3 (task-5 A): bulk entry emission — same body, different ABI: raw
-  // int64 params unboxed into their ordinary pt_l_* slots at entry, the
-  // raw tail in pt_nlb_*/pt_nln_*, NO bound vector / PT_MISSING defaults /
-  // pt_list_of vararg / gc_protect(bound) block, no env (top-level only —
+  // int64 params unboxed into their ordinary cs_l_* slots at entry, the
+  // raw tail in cs_nlb_*/cs_nln_*, NO bound vector / CS_MISSING defaults /
+  // cs_list_of vararg / gc_protect(bound) block, no env (top-level only —
   // analyze_bulk_varargs admitted no captures/cells/pins/kwargs).
   const bool bulk = (bulk_fn_ == &f);
 
   // M2-2B §13 uniform ABI: `bound` is the parameter slot vector (values or
-  // PT_MISSING), `env` the captured-cell vector handed down from the
+  // CS_MISSING), `env` the captured-cell vector handed down from the
   // enclosing frame (NULL for top-level, env-less functions). C3: the bulk
   // entry swaps both for raw int64s.
   if (bulk) {
     std::string sig;
     for (size_t i = 0; i < f.params.size(); ++i)
-      sig += std::string(i ? ", int64_t " : "int64_t ") + "pt_nl_" + f.params[i];
+      sig += std::string(i ? ", int64_t " : "int64_t ") + "cs_nl_" + f.params[i];
     if (f.params.size()) sig += ", ";
-    sig += "const int64_t* pt_nlb_" + f.vararg + ", int64_t pt_nln_" +
+    sig += "const int64_t* cs_nlb_" + f.vararg + ", int64_t cs_nln_" +
            f.vararg;
-    line("static pt_value " + f.c_name + "_b(" + sig + ") {");
+    line("static cs_value " + f.c_name + "_b(" + sig + ") {");
   } else {
-    line("static pt_value " + f.c_name + "(pt_value* bound, pt_cell** env) {");
+    line("static cs_value " + f.c_name + "(cs_value* bound, cs_cell** env) {");
   }
 
   if (nslots == 0 && !bulk) line(ind() + "(void)bound;");
 
   // (1) Non-boxed locals AND non-boxed params, declared unset at entry
-  // (§10; 2C §1.3(2): every pt_value slot must exist before the shadow
+  // (§10; 2C §1.3(2): every cs_value slot must exist before the shadow
   // frame is built — params materialize into these at (4)). Pinned
   // bindings (docs/reference/cross-scope-access.md §4) declare NO frame slot: their
   // storage is the program-lifetime static, declared at file scope.
   for (size_t j = 0; j < f.locals.size(); ++j) {
     if (j < f.local_is_cell.size() && f.local_is_cell[j]) continue;
     if (pinned_binding(f, f.locals[j])) continue;
-    line(ind() + "pt_value pt_l_" + f.locals[j] + " = pt_unset();");
+    line(ind() + "cs_value cs_l_" + f.locals[j] + " = cs_unset();");
   }
   for (size_t i = 0; i < f.params.size(); ++i) {
     if (i < f.param_is_cell.size() && f.param_is_cell[i]) continue;
     if (pinned_binding(f, f.params[i])) continue;
-    line(ind() + "pt_value pt_l_" + f.params[i] + " = pt_unset();");
+    line(ind() + "cs_value cs_l_" + f.params[i] + " = cs_unset();");
   }
   if (f.has_vararg && !bulk && !f.vararg_is_cell && !pinned_binding(f, f.vararg))
-    line(ind() + "pt_value pt_l_" + f.vararg + " = pt_unset();");
+    line(ind() + "cs_value cs_l_" + f.vararg + " = cs_unset();");
   if (f.has_kwarg && !f.kwarg_is_cell && !pinned_binding(f, f.kwarg))
-    line(ind() + "pt_value pt_l_" + f.kwarg + " = pt_unset();");
+    line(ind() + "cs_value cs_l_" + f.kwarg + " = cs_unset();");
   // (2) Heap cells for every boxed binding: captured params (incl. the
   // vararg/kwarg slots) and captured locals. All cells exist before any
   // closure below captures them; unset init keeps the M1 guard (§6.3.4).
@@ -9555,43 +9555,43 @@ void Emitter::emit_function(const FuncDecl& f) {
   for (size_t i = 0; i < f.params.size(); ++i) {
     if (i < f.param_is_cell.size() && f.param_is_cell[i]) {
       if (pinned_binding(f, f.params[i]))
-        line(ind() + "pt_cell* pt_cell_" + f.params[i] + " = " +
+        line(ind() + "cs_cell* cs_cell_" + f.params[i] + " = " +
              pin_cvar(f, f.params[i], true) + ";");
       else
-        line(ind() + "pt_cell* pt_cell_" + f.params[i] + " = pt_cell_alloc();");
+        line(ind() + "cs_cell* cs_cell_" + f.params[i] + " = cs_cell_alloc();");
     }
   }
   if (f.has_vararg && f.vararg_is_cell) {
     if (pinned_binding(f, f.vararg))
-      line(ind() + "pt_cell* pt_cell_" + f.vararg + " = " +
+      line(ind() + "cs_cell* cs_cell_" + f.vararg + " = " +
            pin_cvar(f, f.vararg, true) + ";");
     else
-      line(ind() + "pt_cell* pt_cell_" + f.vararg + " = pt_cell_alloc();");
+      line(ind() + "cs_cell* cs_cell_" + f.vararg + " = cs_cell_alloc();");
   }
   if (f.has_kwarg && f.kwarg_is_cell) {
     if (pinned_binding(f, f.kwarg))
-      line(ind() + "pt_cell* pt_cell_" + f.kwarg + " = " +
+      line(ind() + "cs_cell* cs_cell_" + f.kwarg + " = " +
            pin_cvar(f, f.kwarg, true) + ";");
     else
-      line(ind() + "pt_cell* pt_cell_" + f.kwarg + " = pt_cell_alloc();");
+      line(ind() + "cs_cell* cs_cell_" + f.kwarg + " = cs_cell_alloc();");
   }
   for (size_t j = 0; j < f.locals.size(); ++j) {
     if (j < f.local_is_cell.size() && f.local_is_cell[j]) {
       if (pinned_binding(f, f.locals[j]))
-        line(ind() + "pt_cell* pt_cell_" + f.locals[j] + " = " +
+        line(ind() + "cs_cell* cs_cell_" + f.locals[j] + " = " +
              pin_cvar(f, f.locals[j], true) + ";");
       else
-        line(ind() + "pt_cell* pt_cell_" + f.locals[j] + " = pt_cell_alloc();");
+        line(ind() + "cs_cell* cs_cell_" + f.locals[j] + " = cs_cell_alloc();");
     }
   }
   // Post-2C native int64 slots: parallel native storage for the locals the
-  // analysis proved int-only (the pt_value slots above stay untouched —
+  // analysis proved int-only (the cs_value slots above stay untouched —
   // they carry the shadow frame / GC roots).
   {
     auto it = nativ_l_.find(&f);
     if (it != nativ_l_.end()) {
       for (const std::string& nl : it->second)
-        line(ind() + "int64_t pt_nl_" + nl + " = 0; char pt_nl_ok_" + nl +
+        line(ind() + "int64_t cs_nl_" + nl + " = 0; char cs_nl_ok_" + nl +
              " = 0;");
     }
   }
@@ -9600,7 +9600,7 @@ void Emitter::emit_function(const FuncDecl& f) {
     auto it = nativfl_.find(&f);
     if (it != nativfl_.end()) {
       for (const std::string& nl : it->second)
-        line(ind() + "double pt_nfl_" + nl + " = 0.0; char pt_nfl_ok_" + nl +
+        line(ind() + "double cs_nfl_" + nl + " = 0.0; char cs_nfl_ok_" + nl +
              " = 0;");
     }
   }
@@ -9615,21 +9615,21 @@ void Emitter::emit_function(const FuncDecl& f) {
   for (size_t j = 0; j < f.locals.size(); ++j) {
     if (pinned_binding(f, f.locals[j])) continue;
     base_slots.push_back((j < f.local_is_cell.size() && f.local_is_cell[j])
-                             ? "pt_cell_" + f.locals[j] + "->v"
-                             : "pt_l_" + f.locals[j]);
+                             ? "cs_cell_" + f.locals[j] + "->v"
+                             : "cs_l_" + f.locals[j]);
   }
   for (size_t i = 0; i < f.params.size(); ++i) {
     if (pinned_binding(f, f.params[i])) continue;
     base_slots.push_back((i < f.param_is_cell.size() && f.param_is_cell[i])
-                             ? "pt_cell_" + f.params[i] + "->v"
-                             : "pt_l_" + f.params[i]);
+                             ? "cs_cell_" + f.params[i] + "->v"
+                             : "cs_l_" + f.params[i]);
   }
   if (f.has_vararg && !bulk && !pinned_binding(f, f.vararg))
-    base_slots.push_back(f.vararg_is_cell ? "pt_cell_" + f.vararg + "->v"
-                                          : "pt_l_" + f.vararg);
+    base_slots.push_back(f.vararg_is_cell ? "cs_cell_" + f.vararg + "->v"
+                                          : "cs_l_" + f.vararg);
   if (f.has_kwarg && !pinned_binding(f, f.kwarg))
-    base_slots.push_back(f.kwarg_is_cell ? "pt_cell_" + f.kwarg + "->v"
-                                         : "pt_l_" + f.kwarg);
+    base_slots.push_back(f.kwarg_is_cell ? "cs_cell_" + f.kwarg + "->v"
+                                         : "cs_l_" + f.kwarg);
   emit_framed(
       [&] {
         // Entry safe point (2C §1.3(4)/§1.4): `bound` holds the binder's
@@ -9637,13 +9637,13 @@ void Emitter::emit_function(const FuncDecl& f) {
         // value only until slot materialization below copies them into
         // registered slots — protect across this region's collections.
         if (nslots > 0u && !bulk)
-          line(ind() + "pt_gc_protect(bound, " + std::to_string(nslots) + "u);");
-        line(ind() + "pt_gc_maybe();");
+          line(ind() + "cs_gc_protect(bound, " + std::to_string(nslots) + "u);");
+        line(ind() + "cs_gc_maybe();");
   // (3) Closure hoisting (§6.3.3): every nested declaration becomes a
-  // closure at entry — the function object first (pt_fun_new allocates
+  // closure at entry — the function object first (cs_fun_new allocates
   // its env storage, inlined in the object block for ≤ 4 captures — the
   // runtime's closure constructor), then the capture cells are written
-  // straight into pt_fun_env(fn)[j] (referencing the cells above or our
+  // straight into cs_fun_env(fn)[j] (referencing the cells above or our
   // own env slots, transitively, §6.4), then the value is stored into
   // the named local. Forward references therefore work; a declaration's
   // body never runs at its source position. Nothing between the object's
@@ -9657,12 +9657,12 @@ void Emitter::emit_function(const FuncDecl& f) {
            "' has no owning local (line " + std::to_string(nd->loc.line) + ")");
     bool boxed = (li < f.local_is_cell.size() && f.local_is_cell[li]);
     std::string target =
-        boxed ? ("pt_cell_" + nd->name + "->v") : ("pt_l_" + nd->name);
+        boxed ? ("cs_cell_" + nd->name + "->v") : ("cs_l_" + nd->name);
     if (nd->captures.empty()) {
-      line(ind() + target + " = pt_fun_value(&" + meta_name(*nd) +
+      line(ind() + target + " = cs_fun_value(&" + meta_name(*nd) +
            ", NULL, 0u);");
     } else {
-      line(ind() + target + " = pt_fun_new(&" + meta_name(*nd) + ", " +
+      line(ind() + target + " = cs_fun_new(&" + meta_name(*nd) + ", " +
            std::to_string(nd->captures.size()) + "u);");
       for (size_t j = 0; j < nd->captures.size(); ++j) {
         const std::string& c = nd->captures[j];
@@ -9673,12 +9673,12 @@ void Emitter::emit_function(const FuncDecl& f) {
           if (!slot_is_cell(f, pi))
             fail("internal: captured param '" + c + "' of '" + f.name +
                  "' is not boxed (line " + std::to_string(nd->loc.line) + ")");
-          cell = "pt_cell_" + c;
+          cell = "cs_cell_" + c;
         } else if (own_local_index(c, lci)) {
           if (!(lci < f.local_is_cell.size() && f.local_is_cell[lci]))
             fail("internal: captured local '" + c + "' of '" + f.name +
                  "' is not boxed (line " + std::to_string(nd->loc.line) + ")");
-          cell = "pt_cell_" + c;
+          cell = "cs_cell_" + c;
         } else if ((ci = capture_index(c)) >= 0) {
           cell = "env[" + std::to_string(ci) + "]";  // handed down (§6.4)
           env_used_ = true;
@@ -9687,13 +9687,13 @@ void Emitter::emit_function(const FuncDecl& f) {
                nd->name + "' unresolvable in '" + f.name + "' (line " +
                std::to_string(nd->loc.line) + ")");
         }
-        line(ind() + "pt_fun_env(" + target + ")[" + std::to_string(j) +
+        line(ind() + "cs_fun_env(" + target + ")[" + std::to_string(j) +
              "] = " + cell + ";");
       }
     }
   }
   // (4) Slot materialization: each bound slot is copied into the
-  // parameter's local storage (or its cell). PT_MISSING defaults are
+  // parameter's local storage (or its cell). CS_MISSING defaults are
   // evaluated HERE, in parameter order, fresh per call — a default may
   // reference globals, earlier params and locals, including hoisted
   // closures (§6/§13). The vararg/kwarg slots default to a fresh empty
@@ -9704,19 +9704,19 @@ void Emitter::emit_function(const FuncDecl& f) {
     // A pinned unboxed param materializes into its static slot; everything
     // else keeps the frame slot / cell (docs/reference/cross-scope-access.md §4).
     std::string val =
-        boxed ? "pt_cell_" + p + "->v"
+        boxed ? "cs_cell_" + p + "->v"
               : (pinned_binding(f, p) ? pin_value_text(f, p, false)
-                                      : "pt_l_" + p);
+                                      : "cs_l_" + p);
     if (bulk) {
       // C3 bulk ABI: a raw int64 from the caller's pack — box ONCE into
       // the registered slot. Omitted params were folded at the call site
-      // as int literals (bind_bulk_call_args), so no PT_MISSING path here.
-      line(ind() + val + " = pt_int(pt_nl_" + p + ");");
+      // as int literals (bind_bulk_call_args), so no CS_MISSING path here.
+      line(ind() + val + " = cs_int(cs_nl_" + p + ");");
       continue;
     }
     line(ind() + val + " = bound[" + std::to_string(i) + "];");
     if (i < f.defaults.size() && f.defaults[i]) {
-      line(ind() + "if (" + val + ".tag == PT_MISSING) {");
+      line(ind() + "if (" + val + ".tag == CS_MISSING) {");
       indent_ += 2;
       std::string dv = emit_expr(*f.defaults[i], /*in_function=*/true);
       line(ind() + val + " = " + dv + ";");
@@ -9727,26 +9727,26 @@ void Emitter::emit_function(const FuncDecl& f) {
   if (f.has_vararg && !bulk) {
     bool boxed = f.vararg_is_cell;
     std::string val =
-        boxed ? "pt_cell_" + f.vararg + "->v"
+        boxed ? "cs_cell_" + f.vararg + "->v"
               : (pinned_binding(f, f.vararg)
                      ? pin_value_text(f, f.vararg, false)
-                     : "pt_l_" + f.vararg);
+                     : "cs_l_" + f.vararg);
     line(ind() + val + " = bound[" + std::to_string(f.params.size()) + "];");
-    line(ind() + "if (" + val + ".tag == PT_MISSING) " + val + " = pt_list_new();");
+    line(ind() + "if (" + val + ".tag == CS_MISSING) " + val + " = cs_list_new();");
   }
   if (f.has_kwarg) {
     bool boxed = f.kwarg_is_cell;
     std::string val =
-        boxed ? "pt_cell_" + f.kwarg + "->v"
+        boxed ? "cs_cell_" + f.kwarg + "->v"
               : (pinned_binding(f, f.kwarg) ? pin_value_text(f, f.kwarg, false)
-                                            : "pt_l_" + f.kwarg);
+                                            : "cs_l_" + f.kwarg);
     line(ind() + val + " = bound[" +
          std::to_string(f.params.size() + (f.has_vararg ? 1u : 0u)) + "];");
-    line(ind() + "if (" + val + ".tag == PT_MISSING) " + val + " = pt_map_new();");
+    line(ind() + "if (" + val + ".tag == CS_MISSING) " + val + " = cs_map_new();");
   }
         // Everything in `bound` is now reachable from frame slots.
         if (nslots > 0u && !bulk)
-          line(ind() + "pt_gc_unprotect(" + std::to_string(nslots) + "u);");
+          line(ind() + "cs_gc_unprotect(" + std::to_string(nslots) + "u);");
 
   // `((void)x);` for params/locals that are never read: keeps the generated
   // file warning-clean under -Wall -Wextra without changing §10 lines.
@@ -9760,27 +9760,27 @@ void Emitter::emit_function(const FuncDecl& f) {
     if (i < f.param_is_cell.size() && f.param_is_cell[i]) continue;
     if (pinned_binding(f, f.params[i])) continue;  // no frame slot to suppress
     if (!reads.count(std::make_pair(VarRes::Param, f.params[i])))
-      line(ind() + "((void)pt_l_" + f.params[i] + ");");
+      line(ind() + "((void)cs_l_" + f.params[i] + ");");
   }
   if (f.has_vararg && !bulk && !f.vararg_is_cell && !pinned_binding(f, f.vararg) &&
       !reads.count(std::make_pair(VarRes::Param, f.vararg)))
-    line(ind() + "((void)pt_l_" + f.vararg + ");");
+    line(ind() + "((void)cs_l_" + f.vararg + ");");
   if (f.has_kwarg && !f.kwarg_is_cell && !pinned_binding(f, f.kwarg) &&
       !reads.count(std::make_pair(VarRes::Param, f.kwarg)))
-    line(ind() + "((void)pt_l_" + f.kwarg + ");");
+    line(ind() + "((void)cs_l_" + f.kwarg + ");");
   for (size_t j = 0; j < f.locals.size(); ++j) {
     if (j < f.local_is_cell.size() && f.local_is_cell[j]) continue;
     if (pinned_binding(f, f.locals[j])) continue;  // no frame slot to suppress
     if (!reads.count(std::make_pair(VarRes::Local, f.locals[j])))
-      line(ind() + "((void)pt_l_" + f.locals[j] + ");");
+      line(ind() + "((void)cs_l_" + f.locals[j] + ");");
   }
 
         emit_body(f.body, /*in_function=*/true);
       },
       /*frame_end=*/false, base_slots);
   if (!env_used_ && !bulk) line(ind() + "(void)env;");
-  line(ind() + "pt_frame_end(&pt_fr);");  // implicit `return None` path (2C §2.5)
-  line(ind() + "return pt_none();");  // implicit `return None` at end of body
+  line(ind() + "cs_frame_end(&cs_fr);");  // implicit `return None` path (2C §2.5)
+  line(ind() + "return cs_none();");  // implicit `return None` at end of body
   indent_ = 0;
   line("}");
   line("");
@@ -9805,7 +9805,7 @@ std::string Emitter::emit_static_call(const FuncDecl& f, const Expr& e,
     joined += slots[i];
   }
   std::string barr = fresh_temp();
-  line(ind() + "{ pt_value " + barr + "[] = { " + joined + " };");
+  line(ind() + "{ cs_value " + barr + "[] = { " + joined + " };");
   indent_ += 2;
   line(ind() + t + " = " + f.c_name + "(" + barr + ", NULL);");
   indent_ -= 2;
@@ -9821,8 +9821,8 @@ std::string Emitter::emit_static_call(const FuncDecl& f, const Expr& e,
 // binder's increasing-param-index rule makes fixed-param order == source
 // order, and the tail sits strictly after every fixed bind), the tail
 // becomes one stack int64 array, and the call goes straight to the _b
-// entry — no pt_value bound vector, no PT_MISSING slots, no pt_list_of,
-// no call-side pt_values at all. Returns "" on ANY decline, so the caller
+// entry — no cs_value bound vector, no CS_MISSING slots, no cs_list_of,
+// no call-side cs_values at all. Returns "" on ANY decline, so the caller
 // falls through to today's boxed path byte-identically.
 std::string Emitter::emit_bulk_call(const std::vector<const Expr*>& fixed,
                                     const std::vector<const Expr*>& tail,
@@ -9874,7 +9874,7 @@ std::string Emitter::emit_bulk_call(const std::vector<const Expr*>& fixed,
 }
 
 // M2-2B §13 dynamic call: the callee expression (annotated by semantic)
-// loads the function value first, then every argument value, then pt_call
+// loads the function value first, then every argument value, then cs_call
 // binds them at runtime — the binder raises the §11 residue (unexpected
 // name, duplicate binding, missing required, too many positionals) with
 // runtime wording. Named argument i has name argnames[i] and value
@@ -9903,7 +9903,7 @@ std::string Emitter::emit_dynamic_call(const Expr& e, bool in_function) {
   std::string ln = std::to_string(e.loc.line);
   std::string t = decl_temp();
   if (args.empty()) {
-    line(ind() + t + " = pt_call(" + fv +
+    line(ind() + t + " = cs_call(" + fv +
          ", NULL, 0u, NULL, 0u, " + ln + ");");
     return t;
   }
@@ -9913,10 +9913,10 @@ std::string Emitter::emit_dynamic_call(const Expr& e, bool in_function) {
     joined += args[i];
   }
   std::string pv = fresh_temp();
-  line(ind() + "{ pt_value " + pv + "[] = { " + joined + " };");
+  line(ind() + "{ cs_value " + pv + "[] = { " + joined + " };");
   indent_ += 2;
   if (nnamed == 0) {
-    line(ind() + t + " = pt_call(" + fv + ", " + pv + ", " +
+    line(ind() + t + " = cs_call(" + fv + ", " + pv + ", " +
          std::to_string(npos) + "u, NULL, 0u, " + ln + ");");
   } else {
     std::string an = fresh_temp();
@@ -9926,7 +9926,7 @@ std::string Emitter::emit_dynamic_call(const Expr& e, bool in_function) {
       names += "\"" + c_escape(e.arg_names[i]) + "\"";
     }
     line(ind() + "const char* const " + an + "[] = { " + names + " };");
-    line(ind() + t + " = pt_call(" + fv + ", " + pv + ", " +
+    line(ind() + t + " = cs_call(" + fv + ", " + pv + ", " +
          std::to_string(npos) + "u, " + an + ", " + std::to_string(nnamed) +
          "u, " + ln + ");");
   }
@@ -9940,7 +9940,7 @@ void Emitter::emit_main_block(const MainDecl& m) {
   indent_ = 2;
   loop_depth_ = 0;
   try_stack_.clear();
-  line("static void pt_main_block(void) {");
+  line("static void cs_main_block(void) {");
   // Main-only native globals are automatic locals here: same identifiers as
   // the file-scope pair would have used, so every read/write/name-table
   // spelling is unchanged; the static declaration is skipped above. Globals
@@ -9948,25 +9948,25 @@ void Emitter::emit_main_block(const MainDecl& m) {
   // used-before-assignment flag still reports unassigned reads identically).
   for (const std::string& g : nativ_g_) {
     if (!local_g_.count(g)) continue;
-    line(ind() + "int64_t pt_ng_" + g + " = 0;");
-    if (!noflag_g_.count(g)) line(ind() + "char pt_ng_ok_" + g + " = 0;");
+    line(ind() + "int64_t cs_ng_" + g + " = 0;");
+    if (!noflag_g_.count(g)) line(ind() + "char cs_ng_ok_" + g + " = 0;");
   }
   for (const std::string& g : nativfg_) {
     if (!local_g_.count(g)) continue;
-    line(ind() + "double pt_nfg_" + g + " = 0.0;");
-    if (!noflag_g_.count(g)) line(ind() + "char pt_nfg_ok_" + g + " = 0;");
+    line(ind() + "double cs_nfg_" + g + " = 0.0;");
+    if (!noflag_g_.count(g)) line(ind() + "char cs_nfg_ok_" + g + " = 0;");
   }
   std::vector<std::string> main_base;
   for (const std::string& g : prog_.globals) {
     if (!local_g_.count(g) || nativ_g_.count(g) || nativfg_.count(g))
       continue;
     if (is_builtin_exception_class(g)) continue;
-    line(ind() + "pt_value pt_g_" + g + " = pt_unset();");
-    main_base.push_back("pt_g_" + g);
+    line(ind() + "cs_value cs_g_" + g + " = cs_unset();");
+    main_base.push_back("cs_g_" + g);
   }
   emit_framed(
       [&] {
-        line(ind() + "pt_gc_maybe();");
+        line(ind() + "cs_gc_maybe();");
         emit_body(m.body, /*in_function=*/false);
       },
       /*frame_end=*/true, main_base);
@@ -9979,12 +9979,12 @@ void Emitter::emit_main_block(const MainDecl& m) {
 // already-evaluated RHS value (evaluated exactly once by the caller).
 //
 // Count rule (§12 wording): a pattern without a rest leaf needs exactly as
-// many elements as leaves (pt_unpack_check raises
+// many elements as leaves (cs_unpack_check raises
 // `not enough values to unpack (expected N, got M)` for both directions).
 // A rest leaf `*name` at position p of an L-leaf pattern needs at least
 // L-1 elements (the rest may be empty) and never errors on extra elements;
 // the too-few check reports "expected L" (the pattern's leaf count), which
-// keeps N = number of targets uniformly, while pt_unpack_rest takes the
+// keeps N = number of targets uniformly, while cs_unpack_rest takes the
 // elements between the fixed leaves around it.
 void Emitter::emit_destructure(const AssignTarget& pat, const std::string& src,
                                bool in_function) {
@@ -10009,8 +10009,8 @@ void Emitter::emit_destructure(const AssignTarget& pat, const std::string& src,
       std::string storage = storage_for(pat.name, pat.res, in_function, pat.loc.line);
       std::string ln = std::to_string(pat.loc.line);
       std::string n = fresh_temp();
-      line(ind() + "size_t " + n + " = pt_unpack_len(" + src + ", " + ln + ");");
-      line(ind() + storage + " = pt_unpack_rest(" + src + ", 0u, " + n + ", " +
+      line(ind() + "size_t " + n + " = cs_unpack_len(" + src + ", " + ln + ");");
+      line(ind() + storage + " = cs_unpack_rest(" + src + ", 0u, " + n + ", " +
            ln + ");");
       break;
     }
@@ -10027,7 +10027,7 @@ void Emitter::emit_destructure(const AssignTarget& pat, const std::string& src,
       // container/index expressions are evaluated here (each exactly once).
       std::string obj = emit_expr(*pat.object, in_function);
       std::string idx = emit_expr(*pat.index, in_function);
-      line(ind() + "pt_index_set(" + obj + ", " + idx + ", " + src + ", " +
+      line(ind() + "cs_index_set(" + obj + ", " + idx + ", " + src + ", " +
            std::to_string(pat.loc.line) + ");");
       break;
     }
@@ -10037,7 +10037,7 @@ void Emitter::emit_destructure(const AssignTarget& pat, const std::string& src,
         fail("attribute target without object (line " +
              std::to_string(pat.loc.line) + ")");
       std::string obj = emit_expr(*pat.object, in_function);
-      line(ind() + "pt_setattr_lit(" + obj + ", \"" + c_escape(pat.attr) + "\", " +
+      line(ind() + "cs_setattr_lit(" + obj + ", \"" + c_escape(pat.attr) + "\", " +
            src + ", " + std::to_string(pat.loc.line) + ");");
       break;
     }
@@ -10056,14 +10056,14 @@ void Emitter::emit_destructure(const AssignTarget& pat, const std::string& src,
         }
       }
       std::string n = fresh_temp();
-      line(ind() + "size_t " + n + " = pt_unpack_len(" + src + ", " + ln + ");");
+      line(ind() + "size_t " + n + " = cs_unpack_len(" + src + ", " + ln + ");");
       if (rest_pos < 0) {
-        line(ind() + "pt_unpack_check(" + n + ", " + std::to_string(L) + "u, " +
+        line(ind() + "cs_unpack_check(" + n + ", " + std::to_string(L) + "u, " +
              ln + ");");
       } else if (L > 1) {
         // minimum fill: leaves before + leaves after the rest (rest ≥ empty)
         line(ind() + "if (" + n + " < " + std::to_string(L - 1) +
-             "u) pt_unpack_check(" + n + ", " + std::to_string(L) + "u, " + ln +
+             "u) cs_unpack_check(" + n + ", " + std::to_string(L) + "u, " + ln +
              ");");
       }
       // Leaf j reads element j before the rest and elements n-(L-j) after it
@@ -10073,12 +10073,12 @@ void Emitter::emit_destructure(const AssignTarget& pat, const std::string& src,
         if (rest_pos >= 0 && static_cast<long>(j) == rest_pos) {
           // The rest spans [j, stop) where stop leaves room for the fixed
           // leaves after it: stop = n - (L-1-j) (== n for a trailing rest,
-          // == n for the lone `*name` pattern). pt_unpack_rest clamps.
+          // == n for the lone `*name` pattern). cs_unpack_rest clamps.
           std::string stop_expr;
           size_t after = L - 1 - static_cast<size_t>(rest_pos);
           stop_expr = (after == 0) ? n : n + " - " + std::to_string(after) + "u";
           std::string elem = decl_temp();
-          line(ind() + elem + " = pt_unpack_rest(" + src + ", " +
+          line(ind() + elem + " = cs_unpack_rest(" + src + ", " +
                std::to_string(j) + "u, " + stop_expr + ", " + ln + ");");
           // The leaf is exactly this extracted rest list: bind it directly
           // (emit_destructure's Rest branch would re-slice).
@@ -10097,7 +10097,7 @@ void Emitter::emit_destructure(const AssignTarget& pat, const std::string& src,
           idx_expr = n + " - " + std::to_string(L - j) + "u";
         }
         std::string elem = decl_temp();
-        line(ind() + elem + " = pt_unpack_get(" + src + ", " +
+        line(ind() + elem + " = cs_unpack_get(" + src + ", " +
              idx_expr + ", " + ln + ");");
         emit_destructure(leaf, elem, in_function);
       }
@@ -10106,7 +10106,7 @@ void Emitter::emit_destructure(const AssignTarget& pat, const std::string& src,
   }
 }
 
-// M2-2B §13: the static pt_funmeta instance of `f` plus its slot-name
+// M2-2B §13: the static cs_funmeta instance of `f` plus its slot-name
 // array (ABI order: positional params, then *vararg, then **kwarg). The
 // has_default bitmask covers the positional slots only; vararg/kwarg slots
 // never carry defaults.
@@ -10126,7 +10126,7 @@ void Emitter::emit_funmeta(const FuncDecl& f) {
     if (i < f.defaults.size() && f.defaults[i]) mask |= 1ull << i;
   std::string pn = "NULL";
   if (!slots.empty()) {
-    pn = "pt_mpn_" + f.c_name;
+    pn = "cs_mpn_" + f.c_name;
     std::string items;
     for (size_t i = 0; i < slots.size(); ++i) {
       if (i) items += ", ";
@@ -10134,7 +10134,7 @@ void Emitter::emit_funmeta(const FuncDecl& f) {
     }
     line("static const char* const " + pn + "[] = { " + items + " };");
   }
-  line("static const pt_funmeta " + meta_name(f) + " PT_UNUSED = {\"" +
+  line("static const cs_funmeta " + meta_name(f) + " CS_UNUSED = {\"" +
        c_escape(f.name) + "\", " + pn + ", " + std::to_string(nslots) + "u, " +
        std::to_string(nreq) + "u, " + std::to_string(mask) + "ull, " +
        (f.has_vararg ? "true" : "false") + ", " +
@@ -10192,14 +10192,14 @@ std::string Emitter::run() {
           fl == nativfl_ && !il_changed)
         break;
     }
-    analyze_promotable_globals();  // main-only natives -> pt_main_block locals
+    analyze_promotable_globals();  // main-only natives -> cs_main_block locals
     analyze_definite_assign();  // elide used-flag for DA slots
     // C3 Route-2 (task-5 B/4b1): bulk-body lanes + _b int-return facts,
     // under the round's lane/twin/DA state (removal-only, same discipline).
     analyze_bulk_lanes();
     more = retract_try_failures();
   }
-  analyze_guard_elim();  // Phase 2.1: elide pt_guard for provably-bound slots
+  analyze_guard_elim();  // Phase 2.1: elide cs_guard for provably-bound slots
   analyze_native_fvecs(); // SIMD fusion: fvec/ivec-proven slots (uses both)
   analyze_text_cats();  // amortized `s = s + chunk`: in-place append proof
   analyze_method_inlines();  // LAST: plan provable method inlines (see its
@@ -10209,22 +10209,22 @@ std::string Emitter::run() {
   analyze_int_lists();
   analyze_ephemeral_slices();
 
-  line("#include \"pentest_rt.h\"");
+  line("#include \"cstar_rt.h\"");
   line("");
 
   // Globals: zero-initialized static storage = tag unset (§10).
-  for (const std::string& g : prog_.globals) line("static pt_value pt_g_" + g + ";");
+  for (const std::string& g : prog_.globals) line("static cs_value cs_g_" + g + ";");
   // Post-2C native globals: parallel native pair (set iteration is
-  // deterministic). The pt_value slot above stays — it is a GC root.
+  // deterministic). The cs_value slot above stays — it is a GC root.
   for (const std::string& g : nativ_g_) {
-    if (local_g_.count(g)) continue;  // automatic local in pt_main_block
-    line("static int64_t pt_ng_" + g + " = 0; static char pt_ng_ok_" + g +
+    if (local_g_.count(g)) continue;  // automatic local in cs_main_block
+    line("static int64_t cs_ng_" + g + " = 0; static char cs_ng_ok_" + g +
          " = 0;");
   }
   // Native float64 globals (float twin of the int lane): same pair, double.
   for (const std::string& g : nativfg_) {
-    if (local_g_.count(g)) continue;  // automatic local in pt_main_block
-    line("static double pt_nfg_" + g + " = 0.0; static char pt_nfg_ok_" + g +
+    if (local_g_.count(g)) continue;  // automatic local in cs_main_block
+    line("static double cs_nfg_" + g + " = 0.0; static char cs_nfg_ok_" + g +
          " = 0;");
   }
   if (!prog_.globals.empty()) line("");
@@ -10236,31 +10236,31 @@ std::string Emitter::run() {
   // blocks, never static memory).
   for (const PinSlot& p : prog_.pins) {
     if (p.cell)
-      line("static pt_cell* " + p.cvar + ";");
+      line("static cs_cell* " + p.cvar + ";");
     else
-      line("static pt_cell " + p.cvar + ";");
+      line("static cs_cell " + p.cvar + ";");
   }
   if (!prog_.pins.empty()) line("");
 
   // Forward declarations of ALL functions (forward/mutual recursion). The
-  // uniform §13 ABI: pt_value f(pt_value* bound, pt_cell** env).
+  // uniform §13 ABI: cs_value f(cs_value* bound, cs_cell** env).
   for (const FuncDecl* f : funcs) {
     if (f->c_name.empty()) fail("function '" + f->name + "' has no c_name");
-    std::string d = "static pt_value " + f->c_name +
-                    "(pt_value* bound, pt_cell** env) PT_UNUSED;";
+    std::string d = "static cs_value " + f->c_name +
+                    "(cs_value* bound, cs_cell** env) CS_UNUSED;";
     line(d);  // suppresses -Wunused-function for never-called fns
   }
   // Post-2C perf: int-lane twins (int64 params -> int64 result) beside
-  // the dynamic entry points — same PT_UNUSED treatment.
+  // the dynamic entry points — same CS_UNUSED treatment.
   for (const FuncDecl* f : funcs) {
     if (!nativ_fn_decls_.count(f)) continue;
     std::string sig;
     for (size_t i = 0; i < f->params.size(); ++i)
       sig += (i ? ", int64_t" : "int64_t");
-    line("static int64_t " + f->c_name + "_i(" + sig + ") PT_UNUSED;");
+    line("static int64_t " + f->c_name + "_i(" + sig + ") CS_UNUSED;");
   }
   // C3 (task-5 A): bulk vararg entries (raw fixed int64s + int64 tail)
-  // beside the dynamic entry points — same PT_UNUSED treatment.
+  // beside the dynamic entry points — same CS_UNUSED treatment.
   for (const FuncDecl* f : funcs) {
     if (!bulk_ok_.count(f)) continue;
     std::string sig;
@@ -10268,13 +10268,13 @@ std::string Emitter::run() {
       sig += (i ? ", int64_t" : "int64_t");
     if (f->params.size()) sig += ", const int64_t*, int64_t";
     else sig += "const int64_t*, int64_t";
-    line("static pt_value " + f->c_name + "_b(" + sig + ") PT_UNUSED;");
+    line("static cs_value " + f->c_name + "_b(" + sig + ") CS_UNUSED;");
   }
   if (!funcs.empty()) line("");
 
-  // M2-2B §13: one static pt_funmeta per function, carrying the display
+  // M2-2B §13: one static cs_funmeta per function, carrying the display
   // name, slot names in ABI order, required count, has-default mask and
-  // the entry point — the data behind function values and pt_call.
+  // the entry point — the data behind function values and cs_call.
   for (const FuncDecl* f : funcs) emit_funmeta(*f);
   if (!funcs.empty()) line("");
 
@@ -10302,17 +10302,17 @@ std::string Emitter::run() {
   // binding is program-lifetime storage, so its value is rooted exactly
   // like a global's) — emitted at file scope so it outlives every
   // collection. Pinned CELL slots are rooted by the collector's
-  // pinned-cell table instead (pt_cell_pinned).
+  // pinned-cell table instead (cs_cell_pinned).
   size_t n_roots = prog_.globals.size();
   for (const PinSlot& p : prog_.pins)
     if (!p.cell) ++n_roots;
   if (n_roots > 0) {
-    std::string arr = "static pt_value* const pt_g_roots[] = {";
+    std::string arr = "static cs_value* const cs_g_roots[] = {";
     bool first = true;
     for (const std::string& g : prog_.globals) {
       if (!first) arr += ",";
       first = false;
-      arr += " &pt_g_" + g;
+      arr += " &cs_g_" + g;
     }
     for (const PinSlot& p : prog_.pins)
       if (!p.cell) {
@@ -10331,19 +10331,19 @@ std::string Emitter::run() {
   loop_depth_ = 0;
   try_stack_.clear();
   if (n_roots == 0) {
-    line(ind() + "pt_init(argc, argv, \"" + c_escape(prog_.file_path) +
+    line(ind() + "cs_init(argc, argv, \"" + c_escape(prog_.file_path) +
          "\", NULL, 0u);");
   } else {
-    line(ind() + "pt_init(argc, argv, \"" + c_escape(prog_.file_path) +
-         "\", pt_g_roots, " + std::to_string(n_roots) + "u);");
+    line(ind() + "cs_init(argc, argv, \"" + c_escape(prog_.file_path) +
+         "\", cs_g_roots, " + std::to_string(n_roots) + "u);");
   }
   // M2-2C §2.2: bind the builtin exception-class singletons into their
   // injected global slots (semantic injects only the names actually read;
-  // pt_init above created the singletons, and the runtime's internal
+  // cs_init above created the singletons, and the runtime's internal
   // table roots them from here on).
   for (const std::string& g : prog_.globals)
     if (is_builtin_exception_class(g))
-      line(ind() + "pt_g_" + g + " = pt_exc_class(\"" + g + "\");");
+      line(ind() + "cs_g_" + g + " = cs_exc_class(\"" + g + "\");");
   emit_framed(
       [&] {
         // Cross-scope access (docs/reference/cross-scope-access.md §4): create the
@@ -10351,18 +10351,18 @@ std::string Emitter::run() {
         // function that aliases them can run.
         for (const PinSlot& p : prog_.pins)
           if (p.cell)
-            line(ind() + p.cvar + " = pt_cell_pinned();");
+            line(ind() + p.cvar + " = cs_cell_pinned();");
         for (const TopLevel& t : prog_.items) {
           switch (t.kind) {
             case TopKind::Stmt:
-              line(ind() + "pt_gc_maybe();");  // statement boundary (2C §1.4)
+              line(ind() + "cs_gc_maybe();");  // statement boundary (2C §1.4)
               emit_stmt(t.stmt, /*in_function=*/false);
               break;
             case TopKind::Func:
               break;  // definition already emitted above
             case TopKind::Main:
-              line(ind() + "pt_gc_maybe();");
-              line(ind() + "pt_main_block();");
+              line(ind() + "cs_gc_maybe();");
+              line(ind() + "cs_main_block();");
               break;
             default:
               fail("unknown top-level item kind");
@@ -10406,4 +10406,4 @@ bool generate_c(const Program& program, const std::string& out_c_path) {
   }
 }
 
-}  // namespace pentest
+}  // namespace cstar

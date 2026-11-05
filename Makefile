@@ -1,6 +1,6 @@
 # cstar — build system.
 # Produces build/cstar (CLI driver + frontend + codegen) with the embedded
-# runtime sources (build/runtime_embed.h, generated from runtime/pentest_rt.*),
+# runtime sources (build/runtime_embed.h, generated from runtime/cstar_rt.*),
 # plus build/pentest, a legacy alias of the same driver (kept until v0.4).
 
 CXX = clang++
@@ -15,8 +15,8 @@ CXXFLAGS = -std=c++17 -Wall -Wextra -O2 -Isrc -Ibuild
 # driver only uses the object when the host reports the same ISA
 # fingerprint, and otherwise falls back to compiling + caching the object.
 RT_CFLAGS = -std=c11 -O3 -march=native
-RT_OBJ = build/pentest_rt.o
-RT_CPU = build/pentest_rt.cpu
+RT_OBJ = build/cstar_rt.o
+RT_CPU = build/cstar_rt.cpu
 
 SRC = src/main.cpp src/lexer.cpp src/parser.cpp src/semantic.cpp \
       src/diagnostics.cpp src/codegen.cpp src/modules.cpp
@@ -39,12 +39,12 @@ build/%.o: src/%.cpp build/runtime_embed.h | build
 build/embed: tools/embed.cpp | build
 	$(CXX) $(CXXFLAGS) -o $@ $<
 
-build/runtime_embed.h: runtime/pentest_rt.c runtime/pentest_rt.h $(RT_OBJ) $(RT_CPU) tools/embed.cpp build/embed | build
-	build/embed $@ runtime/pentest_rt.c runtime/pentest_rt.h $(RT_OBJ) $(RT_CPU)
+build/runtime_embed.h: runtime/cstar_rt.c runtime/cstar_rt.h $(RT_OBJ) $(RT_CPU) tools/embed.cpp build/embed | build
+	build/embed $@ runtime/cstar_rt.c runtime/cstar_rt.h $(RT_OBJ) $(RT_CPU)
 
 # Precompiled runtime object, embedded into the driver at link time.
-$(RT_OBJ): runtime/pentest_rt.c runtime/pentest_rt.h | build
-	$(CC) $(RT_CFLAGS) -I runtime -c runtime/pentest_rt.c -o $@
+$(RT_OBJ): runtime/cstar_rt.c runtime/cstar_rt.h | build
+	$(CC) $(RT_CFLAGS) -I runtime -c runtime/cstar_rt.c -o $@
 
 # Build-machine ISA fingerprint for the embedded object. Empty when
 # /proc/cpuinfo is unavailable; the driver then compiles the runtime itself.

@@ -7,7 +7,7 @@
 #include "ast.h"
 #include "diagnostics.h"
 
-namespace pentest {
+namespace cstar {
 
 // Lexes and parses `source`. On success fills `out` (file_path + items) and
 // returns true. On the first lexical or syntax error, prints it through
@@ -23,4 +23,4 @@ bool parse_source(const std::string& file_path, const std::string& source,
 // Reports ALL semantic errors through `diags`; returns false if any.
 bool semantic_check(Program& out, Diagnostics& diags);
 
-}  // namespace pentest
+}  // namespace cstar

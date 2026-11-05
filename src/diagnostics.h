@@ -7,7 +7,7 @@
 
 #include "ast.h"
 
-namespace pentest {
+namespace cstar {
 
 // Prints errors to stderr in the form:
 //   <file>:<line>:<col>: error: <message>
@@ -42,4 +42,4 @@ class Diagnostics {
   int count_ = 0;
 };
 
-}  // namespace pentest
+}  // namespace cstar

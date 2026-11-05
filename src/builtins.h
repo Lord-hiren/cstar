@@ -9,22 +9,22 @@
 // Slot model: every builtin has a FIXED slot list (its runtime signature).
 // Positional arguments fill slots left-to-right; a named argument fills the
 // slot whose name it matches. Unfilled optional slots arrive in the runtime
-// as pt_missing() and are defaulted there. Validation rejects "multiple
+// as cs_missing() and are defaulted there. Validation rejects "multiple
 // values for argument 'x'" exactly like Python.
 //
 // Design contract (docs/performance/optimization.md): every one of these compiles to a
-// single direct pt_builtin_* call — no dispatch table, no dynamic lookup,
+// single direct cs_builtin_* call — no dispatch table, no dynamic lookup,
 // nothing emitted unless the program uses it.
 
-#ifndef PENTEST_BUILTINS_H_
-#define PENTEST_BUILTINS_H_
+#ifndef CSTAR_BUILTINS_H_
+#define CSTAR_BUILTINS_H_
 
 #include <cstddef>
 #include <cstring>
 #include <string>
 #include <vector>
 
-namespace pentest {
+namespace cstar {
 
 struct BuiltinSpec {
   const char* name;
@@ -114,6 +114,6 @@ inline bool py_builtin_reserved(const std::string& n) {
          py_builtin_unavailable(n);
 }
 
-}  // namespace pentest
+}  // namespace cstar
 
-#endif  // PENTEST_BUILTINS_H_
+#endif  // CSTAR_BUILTINS_H_

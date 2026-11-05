@@ -5,7 +5,7 @@
 #include "ast.h"
 #include "diagnostics.h"
 
-namespace pentest {
+namespace cstar {
 
 // Declaration discovery + name resolution + validation. Annotates `out`
 // (Program.functions, Program.globals, Program.has_main, FuncDecl.c_name/
@@ -17,8 +17,8 @@ bool semantic_check(Program& out, Diagnostics& diags);
 // TypeError, ValueError, NameError, ZeroDivisionError, IndexError,
 // KeyError, AttributeError). They are READABLE singleton values — resolve
 // injects them into Program.globals and codegen binds each slot from
-// pt_exc_class() — while the reserved set keeps them non-assignable.
-// MUST stay in sync with pt_exc_cls_names in runtime/pentest_rt.c.
+// cs_exc_class() — while the reserved set keeps them non-assignable.
+// MUST stay in sync with cs_exc_cls_names in runtime/cstar_rt.c.
 bool is_builtin_exception_class(const std::string& name);
 
-}  // namespace pentest
+}  // namespace cstar

@@ -20,7 +20,7 @@
 
 #include "frontend.h"
 
-namespace pentest {
+namespace cstar {
 namespace {
 
 std::string path_dirname(const std::string& path) {
@@ -80,7 +80,7 @@ struct Module {
   std::string dir;    // canonical directory
   std::string source;
   Program prog;
-  std::unordered_map<std::string, std::string> rename;  // own globals -> __ptmN_name
+  std::unordered_map<std::string, std::string> rename;  // own globals -> __csmN_name
   int id = 0;
   bool loading = false;
   bool expanded = false;
@@ -512,7 +512,7 @@ class Linker {
     std::unordered_set<std::string> names;
     collect_module_bindings(mod->prog, names);
     for (const std::string& n : names) {
-      mod->rename[n] = "__ptm" + std::to_string(mod->id) + "_" + n;
+      mod->rename[n] = "__csm" + std::to_string(mod->id) + "_" + n;
     }
 
     Module* raw = mod.get();
@@ -1101,4 +1101,4 @@ bool link_imports(Program& program, const std::string& entry_path, bool strict,
   return !diags.has_error();
 }
 
-}  // namespace pentest
+}  // namespace cstar

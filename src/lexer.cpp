@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <utility>
 
-namespace pentest {
+namespace cstar {
 namespace {
 
 bool is_ident_start(char c) {
@@ -755,4 +755,4 @@ bool lex_tokens(const std::string& file_path, const std::string& source,
   return lex.run();
 }
 
-}  // namespace pentest
+}  // namespace cstar

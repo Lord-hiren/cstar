@@ -12,7 +12,7 @@
 #include "frontend.h"  // parse_source (contract interface)
 #include "lexer.h"
 
-namespace pentest {
+namespace cstar {
 
 namespace {
 
@@ -1097,7 +1097,7 @@ class Parser {
         op = ">=";
       else if (k == TokKind::KwIn)
         op = "in";  // membership: surface keyword `in`, internal op "in"
-                    // (lowered to pt_contains by codegen)
+                    // (lowered to cs_contains by codegen)
       else if (k == TokKind::KwIs)
         op = "is";  // M2-2C §3.4 — `is`, negated by a following `not`
       else
@@ -1687,4 +1687,4 @@ bool parse_source(const std::string& file_path, const std::string& source,
   return parse_tokens(toks, file_path, out, diags);
 }
 
-}  // namespace pentest
+}  // namespace cstar

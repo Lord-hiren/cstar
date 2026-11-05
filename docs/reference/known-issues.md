@@ -46,7 +46,7 @@ the grouped form may overshoot the width (`08,` → eight digits `00000042`
 → `0,000,042`, ten chars).
 
 **Cause.** Both numeric paths of `pt_format_apply` in
-[runtime/pentest_rt.c](../../runtime/pentest_rt.c) group first into
+[runtime/cstar_rt.c](../../runtime/cstar_rt.c) group first into
 `numbuf` and then prepend `width - (len(numbuf))` zero characters to the
 already-grouped string — the commas never move. Plain `","`, `",.2f"` and
 `width[,]` padding without the `0`/`=`-zero path are correct.

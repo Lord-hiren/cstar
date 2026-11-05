@@ -410,14 +410,14 @@ bool embedded_runtime_usable(const unsigned char* sig, unsigned int sig_len) {
 
 // Generates C for `program`, writes the embedded runtime sources next to it
 // in a fresh temp dir, and runs:
-//   clang -std=c11 -O3 -march=native -o <out> gen.c pentest_rt.c -lm
+//   clang -std=c11 -O3 -march=native -o <out> gen.c cstar_rt.c -lm
 // (`-march=native` lets the fvec/ivec SIMD kernels below pick the widest
 // vector extension the host supports; without it the generated C still
 // compiles — the kernels fall back to the baseline width.)
 // `in_out_path` must be non-empty for `build`; for `run` it may be empty, in
 // which case the executable is placed inside the temp dir and the path is
 // returned through it. Returns 0 on success, 1 on failure (message on stderr).
-int compile_program(const pentest::Program& program, std::string& in_out_path) {
+int compile_program(const cstar::Program& program, std::string& in_out_path) {
   std::string dir = make_temp_dir();
   if (dir.empty()) {
     std::fprintf(stderr, "error: cannot create temporary directory: %s\n",
@@ -425,7 +425,7 @@ int compile_program(const pentest::Program& program, std::string& in_out_path) {
     return 1;
   }
   std::string gen = dir + "/gen.c";
-  if (!pentest::generate_c(program, gen)) {
+  if (!cstar::generate_c(program, gen)) {
     std::fprintf(stderr, "error: failed to generate C code for '%s'\n",
                  program.file_path.c_str());
     remove_sources(dir);
@@ -452,7 +452,7 @@ int compile_program(const pentest::Program& program, std::string& in_out_path) {
   // Absolute paths keep the caller's cwd irrelevant; quoted includes in
   // gen.c resolve against the temp dir, and -I makes it explicit.
   std::string inc = "-I" + dir;
-  std::string rt_c = dir + "/pentest_rt.c";
+  std::string rt_c = dir + "/cstar_rt.c";
 
   // ---- runtime object: prebuilt (embedded) or compiled into the cache ----
   // The runtime TU is identical for every program and dominates the cold
@@ -491,9 +491,9 @@ int compile_program(const pentest::Program& program, std::string& in_out_path) {
     bool have_dir = !rt_o.empty() && ensure_dir(cdir);
 
     unsigned int pre_len = 0;
-    const unsigned char* pre = find_embedded("pentest_rt.o", pre_len);
+    const unsigned char* pre = find_embedded("cstar_rt.o", pre_len);
     unsigned int sig_len = 0;
-    const unsigned char* sig = find_embedded("pentest_rt.cpu", sig_len);
+    const unsigned char* sig = find_embedded("cstar_rt.cpu", sig_len);
     const bool pre_ok = pre != nullptr && pre_len > 0 &&
                         embedded_runtime_usable(sig, sig_len);
 
@@ -502,7 +502,7 @@ int compile_program(const pentest::Program& program, std::string& in_out_path) {
     } else if (pre_ok) {
       // Cold cache: install the embedded object atomically (no clang run).
       // Without a cache dir it still beats compiling both TUs together.
-      std::string dest = have_dir ? rt_o : (dir + "/pentest_rt.o");
+      std::string dest = have_dir ? rt_o : (dir + "/cstar_rt.o");
       std::string tmp_o = dest + ".tmp" + std::to_string(::getpid());
       if (write_file(tmp_o, pre, pre_len) &&
           ::rename(tmp_o.c_str(), dest.c_str()) == 0) {
@@ -719,16 +719,16 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  pentest::Diagnostics diags;
+  cstar::Diagnostics diags;
   diags.set_source(source_path, source);
-  pentest::Program program;
-  if (!pentest::parse_source(source_path, source, program, diags)) return 1;
+  cstar::Program program;
+  if (!cstar::parse_source(source_path, source, program, diags)) return 1;
 
   // Stage 2D: expand imports. In check mode every imported declaration is
   // kept for full validation; run/build prune imported declarations that are
   // unreachable, before semantic analysis or code generation.
-  pentest::LinkResult linked;
-  if (!pentest::link_imports(program, source_path, mode == Mode::Check, linked,
+  cstar::LinkResult linked;
+  if (!cstar::link_imports(program, source_path, mode == Mode::Check, linked,
                              diags)) {
     return 1;
   }
@@ -756,7 +756,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (!pentest::semantic_check(program, diags)) return 1;
+  if (!cstar::semantic_check(program, diags)) return 1;
 
   if (mode == Mode::Check) return 0;  // silent success
 

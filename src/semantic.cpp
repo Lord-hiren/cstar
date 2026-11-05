@@ -30,7 +30,7 @@
 // global function keep the M1 fast path (callee set, callee_expr null). Calls
 // through a nested function's local value (or any other variable) get a Var
 // `callee_expr` annotated with the load resolution (Local/Param/Global +
-// is_cell) so codegen can evaluate the callee and use the dynamic pt_call
+// is_cell) so codegen can evaluate the callee and use the dynamic cs_call
 // binder. Static arity/named-argument checks run whenever the callee's
 // declaration is known (2B §6.5).
 //
@@ -60,7 +60,7 @@
 #include "frontend.h"  // parse_source / semantic_check (contract interface)
 #include "builtins.h"  // Python-parity builtin table (SPEC §5.11.5)
 
-namespace pentest {
+namespace cstar {
 namespace {
 
 // All reserved builtin names (M2-2B §8). Each mirrors `print`'s M1 reserved
@@ -229,7 +229,7 @@ class Checker {
     std::unordered_set<std::string> seen;
     for (FuncDecl& m : s.class_methods) {
       m.is_method = true;
-      m.c_name = next_c_name(s.name + "_" + m.name);  // pt_fn_<class>_<method>
+      m.c_name = next_c_name(s.name + "_" + m.name);  // cs_fn_<class>_<method>
       if (!seen.insert(m.name).second) {
         error(m.loc, "duplicate method '" + m.name + "' in class '" +
                          s.name + "'");
@@ -244,7 +244,7 @@ class Checker {
   // Unique C name for every function (nested functions may repeat names in
   // sibling scopes).
   std::string next_c_name(const std::string& name) {
-    std::string base = "pt_fn_" + name;
+    std::string base = "cs_fn_" + name;
     std::string cand = base;
     int n = 2;
     while (!c_names_.insert(cand).second)
@@ -1295,7 +1295,7 @@ class Checker {
       // A `global` declaration makes every reference in the function global.
       // Register the slot even when nothing ever assigns it (the read then
       // trips the usual used-before-assignment guard at runtime instead of
-      // codegen hitting an undeclared pt_g_<name>).
+      // codegen hitting an undeclared cs_g_<name>).
       if (sc->global_names.count(e.name)) {
         note_global(e.name);
         e.res = VarRes::Global;
@@ -1366,8 +1366,8 @@ class Checker {
     const std::string& n = e.callee;
     if (is_builtin_exception_class(n)) {
       // M2-2C §2.2: calling a class constructs an exception instance — a
-      // dynamic pt_call through the injected global (0 or 1 positional
-      // arg; pt_exc_construct validates at runtime).
+      // dynamic cs_call through the injected global (0 or 1 positional
+      // arg; cs_exc_construct validates at runtime).
       inject_exc_class(n);
       auto v = std::make_unique<Expr>();
       v->kind = ExprKind::Var;
@@ -1425,7 +1425,7 @@ class Checker {
     if (target) check_static_call(e, *target);
     if (!target || target->is_nested) {
       // Nested callees go through the local's function value (dynamic
-      // pt_call; 2B §6.5). Annotate a Var callee_expr so codegen can load
+      // cs_call; 2B §6.5). Annotate a Var callee_expr so codegen can load
       // the closure; a parser-attached bare Var is annotated in place.
       if (e.callee_expr && e.callee_expr->kind == ExprKind::Var) {
         annotate_callee_load(*e.callee_expr, sc);
@@ -1440,7 +1440,7 @@ class Checker {
     } else {
       // Static direct call to a top-level, env-less function: drop the
       // parser-attached bare Var so `callee_expr != null` uniformly marks
-      // the dynamic pt_call path for codegen.
+      // the dynamic cs_call path for codegen.
       e.callee_expr.reset();
     }
     for (auto& arg : e.args)
@@ -1518,7 +1518,7 @@ class Checker {
     if (py_builtin_stub(n)) {
       // SPEC §5.11.6: recognized and reserved, arguments evaluate normally,
       // then the call always raises RuntimeError with its own reason
-      // (pt_builtin_unsupported). Arity is not policed — it can only fail.
+      // (cs_builtin_unsupported). Arity is not policed — it can only fail.
       for (auto& arg : e.args)
         if (arg) resolve_expr(*arg, sc);
       return;
@@ -1586,7 +1586,7 @@ class Checker {
   // SPEC §5.11.5 isinstance: a bare builtin type name in classinfo
   // position (`isinstance(x, str)`) names the TYPE, not a value — those
   // names are call-only, so the semantic pass rewrites the Var into the
-  // runtime's type-name string (exactly what pt_type_name yields: str→
+  // runtime's type-name string (exactly what cs_type_name yields: str→
   // "text", dict→"map", ...). A shadowing param/local wins, as everywhere
   // else; anything else in classinfo stays for the runtime to judge (a
   // class singleton, a tuple, a type-name text).
@@ -2112,7 +2112,7 @@ bool semantic_check(Program& out, Diagnostics& diags) {
   return c.run();
 }
 
-// M2-2C §2.2 — MUST match pt_exc_cls_names in runtime/pentest_rt.c (the
+// M2-2C §2.2 — MUST match cs_exc_cls_names in runtime/cstar_rt.c (the
 // exc_classes test builds and catches with every name, guarding drift).
 bool is_builtin_exception_class(const std::string& name) {
   return name == "Exception" || name == "RuntimeError" ||
@@ -2127,4 +2127,4 @@ bool is_builtin_exception_class(const std::string& name) {
          name == "OSError";
 }
 
-}  // namespace pentest
+}  // namespace cstar

@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-namespace pentest {
+namespace cstar {
 
 struct SourceLoc {
   int line = 1;
@@ -55,8 +55,8 @@ enum class ExprKind {
 enum class VarRes {
   Unresolved,
   Param,
-  Local,    // function-local (storage: cell if is_cell else pt_l_<name>)
-  Global,   // module global (storage: pt_g_<name>)
+  Local,    // function-local (storage: cell if is_cell else cs_l_<name>)
+  Global,   // module global (storage: cs_g_<name>)
   Function, // M2-2B: reading a function name yields a function value (2B §6)
 };
 
@@ -112,9 +112,9 @@ struct Expr {
   std::string builtin_name;            // semantic: which builtin (len/str/...)
   std::vector<std::string> arg_names;  // parallel to args ("" = positional)
   // semantic (SPEC §5.11.5 Python builtins): runtime slot per argument and
-  // the total slot count — the fixed pt_builtin_* signature. Positional
+  // the total slot count — the fixed cs_builtin_* signature. Positional
   // args fill slots left-to-right, named args their name's slot; unfilled
-  // optional slots arrive as pt_missing(). Empty arg_slots = the legacy
+  // optional slots arrive as cs_missing(). Empty arg_slots = the legacy
   // hand-written layout (the original 15 builtins + print/range).
   std::vector<int> arg_slots;
   size_t arg_nslots = 0;
@@ -266,7 +266,7 @@ struct FuncDecl {
   SourceLoc loc;
 
   // Semantic annotations:
-  std::string c_name;                 // "pt_fn_" + name
+  std::string c_name;                 // "cs_fn_" + name
   std::vector<std::string> locals;    // non-param local names, first-assign order
   std::vector<bool> local_is_cell;    // parallel to locals: boxed (captured)?
   std::vector<bool> param_is_cell;    // parallel to params: boxed (captured)?
@@ -335,7 +335,7 @@ struct TopLevel {
 // One pinned binding (docs/reference/cross-scope-access.md §4): the owner function, the
 // binding name, and the static C slot backing it. cell = the slot is an
 // immortal pinned-cell pointer (the binding is ALSO closure-captured);
-// otherwise the slot is a static pt_cell whose .v holds the value directly.
+// otherwise the slot is a static cs_cell whose .v holds the value directly.
 struct PinSlot {
   const FuncDecl* owner = nullptr;
   std::string name;
@@ -348,13 +348,13 @@ struct PinSlot {
 // must stay in sync, so the spelling lives here, next to the AST.
 inline std::string pin_cvar(const FuncDecl& owner, const std::string& name,
                             bool cell) {
-  return (cell ? "pt_px_" : "pt_p_") + owner.c_name + "_" + name;
+  return (cell ? "cs_px_" : "cs_p_") + owner.c_name + "_" + name;
 }
 
-// Internal names of imported declarations are `__ptm<module-id>_<name>`.
+// Internal names of imported declarations are `__csm<module-id>_<name>`.
 // Diagnostics and runtime-visible class names use the original spelling.
 inline std::string display_ident(const std::string& name) {
-  if (name.size() > 6 && name.compare(0, 5, "__ptm") == 0) {
+  if (name.size() > 6 && name.compare(0, 5, "__csm") == 0) {
     std::size_t i = 5;
     while (i < name.size() && name[i] >= '0' && name[i] <= '9') ++i;
     if (i > 5 && i < name.size() && name[i] == '_')
@@ -379,4 +379,4 @@ struct Program {
   std::vector<std::string> pin_globals;
 };
 
-}  // namespace pentest
+}  // namespace cstar

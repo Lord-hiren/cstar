@@ -8,7 +8,7 @@
 #include "ast.h"
 #include "diagnostics.h"
 
-namespace pentest {
+namespace cstar {
 
 enum class TokKind {
   Newline,  // "\n" — logical end of statement (suppressed inside brackets)
@@ -133,4 +133,4 @@ std::string token_display(const Token& tok);
 bool lex_tokens(const std::string& file_path, const std::string& source,
                 std::vector<Token>& out, Diagnostics& diags);
 
-}  // namespace pentest
+}  // namespace cstar

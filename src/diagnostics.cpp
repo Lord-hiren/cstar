@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-namespace pentest {
+namespace cstar {
 
 void Diagnostics::set_source(const std::string& file_path,
                              const std::string& source) {
@@ -49,4 +49,4 @@ void Diagnostics::error(const std::string& message) {
   }
 }
 
-}  // namespace pentest
+}  // namespace cstar

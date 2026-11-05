@@ -9,7 +9,7 @@
 #include "diagnostics.h"
 #include "lexer.h"
 
-namespace pentest {
+namespace cstar {
 
 // Parses a token stream produced by lex_tokens() into `out` (items only; the
 // semantic annotations are left untouched). Reports only the FIRST syntax
@@ -18,4 +18,4 @@ namespace pentest {
 bool parse_tokens(const std::vector<Token>& toks, const std::string& file_path,
                   Program& out, Diagnostics& diags);
 
-}  // namespace pentest
+}  // namespace cstar

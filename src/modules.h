@@ -6,7 +6,7 @@
 //      (relative to the importing file, the working directory, then
 //      $PENTEST_PATH), parse it once, and reject cycles.
 //   2. Rename each imported module's top-level declarations to
-//      `__ptm<id>_<name>` and rewrite that module's own global references.
+//      `__csm<id>_<name>` and rewrite that module's own global references.
 //      `from` imports and `module.name` references in the importer are
 //      rewritten to those unique internal names, so imported names never
 //      collide with the importing program or another module.
@@ -27,7 +27,7 @@
 #include "ast.h"
 #include "diagnostics.h"
 
-namespace pentest {
+namespace cstar {
 
 struct LinkResult {
   // Canonical paths of every loaded module (entry excluded), in load order.
@@ -44,4 +44,4 @@ struct LinkResult {
 bool link_imports(Program& program, const std::string& entry_path,
                   bool strict, LinkResult& result, Diagnostics& diags);
 
-}  // namespace pentest
+}  // namespace cstar
