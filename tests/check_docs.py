@@ -5,7 +5,7 @@ Two checks, both run by default:
 
   samples  Every ```python code block that is immediately followed by a
            ```text block (optionally with an "Output:" line between them) is
-           written to `example.pen`, run with `build/pentest run`, and its
+           written to `example.cst`, run with `build/cstar run`, and its
            combined output (stdout, then stderr) must equal the text block.
            Put `<!-- no-run -->` on the line before a ```python fence to skip
            a block (used for deliberately-failing "known issue" repros).
@@ -19,7 +19,7 @@ Usage:
   python3 tests/check_docs.py --links         # only check links
   python3 tests/check_docs.py docs/guide/*.md # specific files
 
-Needs build/pentest (run `make` first). Each sample compiles with clang (about
+Needs build/cstar (run `make` first). Each sample compiles with clang (about
 15 s for the whole tree once the runtime object is cached); --links is instant. Exit code 0 = everything passed.
 Not part of `make test`; run it whenever documentation or the language changes.
 """
@@ -31,7 +31,7 @@ import sys
 import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PENTEST = os.path.join(ROOT, "build", "pentest")
+CSTAR = os.path.join(ROOT, "build", "cstar")
 
 # A match can never cross a code fence: neither group may contain ```.
 SAMPLE = re.compile(
@@ -56,10 +56,10 @@ def rel(path):
 
 
 def check_samples(files):
-    if not os.access(PENTEST, os.X_OK):
-        print("error: build/pentest not found - run `make` first", file=sys.stderr)
+    if not os.access(CSTAR, os.X_OK):
+        print("error: build/cstar not found - run `make` first", file=sys.stderr)
         return 1
-    work = tempfile.mkdtemp(prefix="pentest-docs-")
+    work = tempfile.mkdtemp(prefix="cstar-docs-")
     try:
         return _run_samples(files, work)
     finally:
@@ -77,11 +77,11 @@ def _run_samples(files, work):
                 skipped += 1
                 continue
             src, want = m.group(2), m.group(3)
-            with open(os.path.join(work, "example.pen"), "w", encoding="utf-8") as f:
+            with open(os.path.join(work, "example.cst"), "w", encoding="utf-8") as f:
                 f.write(src)
             try:
                 p = subprocess.run(
-                    [PENTEST, "run", "example.pen"], cwd=work, env=env,
+                    [CSTAR, "run", "example.cst"], cwd=work, env=env,
                     stdin=subprocess.DEVNULL, capture_output=True, text=True,
                     timeout=180,
                 )

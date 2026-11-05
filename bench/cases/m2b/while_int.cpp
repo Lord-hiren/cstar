@@ -1,10 +1,10 @@
 // while_int.cpp — C++ twin of bench/cases/m2b/while_int.pen
 // Same algorithm as the M1 int_loop twin: a = a * 1664525 + 1013904223,
 // wrapping two's-complement, 12,976,128 steps, same seed, same printed
-// output. The Pentest side is now a REAL while loop (Stage 2B) instead of
+// output. The cstar side is now a REAL while loop (Stage 2B) instead of
 // the M1 K x N call chain, so this pair measures the loop-construct gain.
 // int64 wraparound is computed through uint64_t (defined behavior,
-// identical to the Pentest runtime's cs_wrap_*).
+// identical to the cstar runtime's cs_wrap_*).
 #include <cstdint>
 #include <cstdio>
 

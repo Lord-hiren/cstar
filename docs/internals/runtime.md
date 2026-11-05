@@ -1,7 +1,7 @@
 # Runtime internals
 
 `runtime/cstar_rt.{h,c}` (about 10,400 lines of C11; needs libc, libm and libcurl) is linked
-into every Pentest program. This page explains how it is organised and why. The
+into every cstar program. This page explains how it is organised and why. The
 public contract is the header; the semantic contracts are SPEC §5–§9 and the
 stage contracts. Anything marked *runtime-private* in the source is not part of
 the contract between compiler and runtime.
@@ -9,7 +9,7 @@ the contract between compiler and runtime.
 ## How the runtime is shipped
 
 * `tools/embed.cpp` converts `cstar_rt.c` and `cstar_rt.h` into
-  `build/runtime_embed.h`, which is compiled into `build/pentest`.
+  `build/runtime_embed.h`, which is compiled into `build/cstar`.
 * `make` also precompiles the runtime with the exact on-demand flags
   (`clang -std=c11 -O3 -march=native -c`) and embeds that object plus the
   build host's `/proc/cpuinfo` `flags` line. A first-ever compile installs and
@@ -18,7 +18,7 @@ the contract between compiler and runtime.
 * For each compile the driver writes both sources into a scratch directory. If
   the embedded object is unusable (CPU mismatch, old build), the runtime is
   built **once per distinct content, flags and CPU** into
-  `$XDG_CACHE_HOME/pentest/rt-<sha>.o`; later programs only compile their own
+  `$XDG_CACHE_HOME/cstar/rt-<sha>.o`; later programs only compile their own
   `gen.c` and link against that object ([CLI reference](../guide/cli.md#the-run-cache)).
   Changing any byte of the runtime (even a comment) changes the key, so the first
   run after editing it recompiles the runtime.
@@ -112,7 +112,7 @@ A **non-moving mark & sweep** collector over a registry of blocks.
   block only when its pointer is exactly a registered buffer base, which is
   why every producer must allocate through `cs_gc_buf(CS_GC_TEXT/…)`, never
   the value tag (passing the value tag hid the buffer from the collector —
-  fixed, with `tests/cases/gc_text_liveness.pen` as the regression).
+  fixed, with `tests/cases/gc_text_liveness.cst` as the regression).
   Text slices copy; text/bytes iteration pins the source object (`it.src`),
   so a cursor cannot outlive its buffer.
 * **Roots.** (1) the global root vector (one pointer per program global, handed
@@ -162,7 +162,7 @@ A **non-moving mark & sweep** collector over a registry of blocks.
   members to trace: an open file (`CS_FILE`) and a boxed iterator
   (`CS_ITERATOR`) must be marked or the sweep closes the handle / frees the
   source out from under a live reference (both tags were once missing from
-  the mark switch — fixed, with `tests/cases/gc_roots.pen` as the regression).
+  the mark switch — fixed, with `tests/cases/gc_roots.cst` as the regression).
 * **Sweep.** Walks the registry, freeing unmarked blocks (and closing files,
   freeing iterator state, parking vector lane buffers and unmarked GC blocks
   of the reusable kinds into their reuse pools — see the swept-block-parking

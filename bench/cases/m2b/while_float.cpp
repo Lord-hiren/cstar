@@ -1,7 +1,7 @@
 // while_float.cpp — C++ twin of bench/cases/m2b/while_float.pen
 // Same algorithm as the M1 float_loop twin: x = x * 1.0000001 + 0.5 in
 // double precision, 12,976,128 steps, seed 1.0, identical IEEE-754 op
-// sequence, identical output bytes. The Pentest side is a real while loop.
+// sequence, identical output bytes. The cstar side is a real while loop.
 // fmt_float is a line-for-line replica of runtime/cstar_rt.c
 // cs_fmt_float (shortest round-trip rule, unchanged from M1).
 #include <cmath>

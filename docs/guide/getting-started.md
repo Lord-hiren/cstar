@@ -7,7 +7,7 @@ From a fresh checkout to a compiled native executable in a few steps.
 | Need | Why | Verified with |
 |---|---|---|
 | Linux x86_64 | the only supported host *and* target | — |
-| `clang` and `clang++` | `clang++` builds the toolchain (C++17); `clang` compiles every Pentest program (C11, `-O3 -march=native`) at run/build time. **`clang` must be on `PATH` whenever you use `pentest`**, not just when building it | clang 21.1.8 (README states 14+ as the minimum; older versions were not tested here) |
+| `clang` and `clang++` | `clang++` builds the toolchain (C++17); `clang` compiles every cstar program (C11, `-O3 -march=native`) at run/build time. **`clang` must be on `PATH` whenever you use `cstar`**, not just when building it | clang 21.1.8 (README states 14+ as the minimum; older versions were not tested here) |
 | GNU `make` | builds the toolchain | — |
 | libcurl dev headers (`libcurl4-openssl-dev` on Ubuntu) | the runtime's HTTP builtins; every program is linked with `-lcurl` | libcurl 8.5.0 |
 | `sha256sum` (GNU coreutils) | optional: keys the compiled-program cache. Without it, caching is disabled and every `run` compiles (which also leaves `program` in `$TMPDIR` — [known issue 8](../reference/known-issues.md#8-a-cache-less-run-leaves-its-binary-in-the-temp-dir)) | coreutils 9.10 |
@@ -15,7 +15,7 @@ From a fresh checkout to a compiled native executable in a few steps.
 | `node` (optional) | the VSCode extension's smoke test | v24 |
 | `python3` (optional) | the benchmark case generators only | 3.x |
 
-The toolchain itself is plain C++17/C11. A compiled Pentest program needs
+The toolchain itself is plain C++17/C11. A compiled cstar program needs
 libc, libm and libcurl, which backs the HTTP builtins
 ([builtins guide](builtins.md)).
 
@@ -40,7 +40,7 @@ The toolchain runs on Linux, so on Windows you build and run it inside WSL
    ```bash
    wsl -d Ubuntu-24.04 -- make
    wsl -d Ubuntu-24.04 -- make test
-   wsl -d Ubuntu-24.04 -- build/pentest run hello.pen
+   wsl -d Ubuntu-24.04 -- build/cstar run hello.cst
    ```
 
 The repository's `.gitattributes` keeps every file's line endings LF on
@@ -50,63 +50,63 @@ expected-output comparison.
 ## Build the toolchain
 
 ```bash
-make            # builds build/pentest
+make            # builds build/cstar
 make test       # optional: runs the 372-check suite (about a minute)
 ```
 
 `make` compiles `src/*.cpp`, precompiles the runtime once with the flags the
 driver uses on demand, then embeds both the runtime sources and that object
 into the binary (`tools/embed.cpp` generates `build/runtime_embed.h`) — so the
-finished `build/pentest` is self-contained, does not read `runtime/` at run
-time, and a first-ever `pentest file.pen` links the embedded object instead of
+finished `build/cstar` is self-contained, does not read `runtime/` at run
+time, and a first-ever `cstar file.cst` links the embedded object instead of
 recompiling the runtime (see [optimization §5](../performance/optimization.md#5-compiled-artifact-caches)).
 
 Check it works:
 
 ```bash
-build/pentest --version     # pentest 0.2.1
+build/cstar --version     # cstar 0.2.1
 ```
 
 Optionally put it on your `PATH` (the VSCode extension also looks in
 `~/.local/bin`):
 
 ```bash
-mkdir -p ~/.local/bin && ln -sf "$PWD/build/pentest" ~/.local/bin/pentest
+mkdir -p ~/.local/bin && ln -sf "$PWD/build/cstar" ~/.local/bin/cstar
 ```
 
 ## Your first program
 
-Create `hello.pen`:
+Create `hello.cst`:
 
 ```python
-print("Hello, Pentest!")
+print("Hello, cstar!")
 ```
 
 Output:
 
 ```text
-Hello, Pentest!
+Hello, cstar!
 ```
 
 Run it. `run` compiles through C with `clang`, caches the executable, and
 executes it:
 
 ```bash
-build/pentest run hello.pen          # same as: build/pentest hello.pen
+build/cstar run hello.cst          # same as: build/cstar hello.cst
 ```
 
 Build a standalone executable you can copy anywhere on a compatible Linux
-system (it needs no `pentest` install):
+system (it needs no `cstar` install):
 
 ```bash
-build/pentest build hello.pen -o hello.pentest
-./hello.pentest
+build/cstar build hello.cst       # writes ./hello
+./hello
 ```
 
 Only parse and analyse — fast, never calls `clang`, silent on success:
 
 ```bash
-build/pentest check hello.pen && echo ok
+build/cstar check hello.cst && echo ok
 ```
 
 ## What a compile error looks like
@@ -121,7 +121,7 @@ print(hots)
 Output:
 
 ```text
-example.pen:2:7: error: undefined variable 'hots'
+example.cst:2:7: error: undefined variable 'hots'
   print(hots)
         ^
 ```
@@ -136,7 +136,7 @@ print(xs[10])
 Output:
 
 ```text
-example.pen:2: runtime error: list index out of range
+example.cst:2: runtime error: list index out of range
 ```
 
 See [errors and diagnostics](errors-and-diagnostics.md) for the catalogue.
@@ -145,13 +145,13 @@ See [errors and diagnostics](errors-and-diagnostics.md) for the catalogue.
 
 | Artifact | Location |
 |---|---|
-| `build` output | `<source basename>.pentest` in the **current directory**, or the `-o` path |
-| `run` cache | `$XDG_CACHE_HOME/pentest/` (default `~/.cache/pentest/`): one `<sha256>.pentest` per distinct program and one `rt-<sha256>.o` compiled-runtime object shared by all programs |
-| Scratch while compiling | `$TMPDIR/pentest-XXXXXX/` (default `/tmp`), removed afterwards |
+| `build` output | `<source basename>` (no extension) in the **current directory**, or the `-o` path |
+| `run` cache | `$XDG_CACHE_HOME/cstar/` (default `~/.cache/cstar/`): one `<sha256>.bin` per distinct program and one `rt-<sha256>.o` compiled-runtime object shared by all programs |
+| Scratch while compiling | `$TMPDIR/cstar-XXXXXX/` (default `/tmp`), removed afterwards |
 
 The cache key covers the source, the toolchain version **and** the toolchain
-binary itself, so rebuilding `pentest` automatically invalidates old entries.
-Deleting `~/.cache/pentest` is always safe. Details: [CLI reference](cli.md#the-run-cache).
+binary itself, so rebuilding `cstar` automatically invalidates old entries.
+Deleting `~/.cache/cstar` is always safe. Details: [CLI reference](cli.md#the-run-cache).
 
 ## More examples
 
@@ -159,12 +159,12 @@ The repository doesn't ship a separate examples folder. Two good sources of
 complete, runnable programs:
 
 * **The [language tour](language-tour.md).** Every sample there is a complete
-  program, shown with its exact output. Save one as `example.pen` and run it.
-* **The test programs in `tests/cases/`.** Each `NAME.pen` has its expected
+  program, shown with its exact output. Save one as `example.cst` and run it.
+* **The test programs in `tests/cases/`.** Each `NAME.cst` has its expected
   output next to it in `NAME.out`:
 
 ```bash
-build/pentest run tests/cases/fn_closure_capture.pen
+build/cstar run tests/cases/fn_closure_capture.cst
 cat tests/cases/fn_closure_capture.out
 ```
 

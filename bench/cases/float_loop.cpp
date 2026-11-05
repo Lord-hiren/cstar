@@ -1,8 +1,8 @@
 // float_loop.cpp — C++ twin of bench/cases/float_loop.pen
 // Same algorithm: x = x * 1.0000001 + 0.5 in double precision, 12967936
-// steps (chain K=2048 x N=6336 on the Pentest side), seed 1.0, identical
+// steps (chain K=2048 x N=6336 on the cstar side), seed 1.0, identical
 // IEEE-754 op sequence, identical output bytes.
-// The float formatting below is a line-for-line replica of the Pentest M1
+// The float formatting below is a line-for-line replica of the cstar M1
 // runtime's cs_fmt_float (docs/contracts/m1-semantics.md §4 shortest round-trip rule),
 // so printed text matches byte-for-byte.
 #include <cmath>

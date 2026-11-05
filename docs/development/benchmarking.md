@@ -1,6 +1,6 @@
 # Benchmarking
 
-The harness in `bench/` measures compiled Pentest programs against hand-written
+The harness in `bench/` measures compiled cstar programs against hand-written
 C++ twins that do exactly the same work and print byte-identical output. Results
 and interpretation live in [performance](../performance/README.md); this page is
 how to run it.
@@ -66,7 +66,7 @@ For each case (a `<name>.pen` and a `<name>.cpp` twin):
   old and new binaries over at least three runs and compare minima, and require
   identical stdout/stderr/exit codes first
   ([optimization §9](../performance/optimization.md)).
-* **Cross-scope acceptance.** `run-varq.sh` passes if the Pentest binary runs the
+* **Cross-scope acceptance.** `run-varq.sh` passes if the cstar binary runs the
   workload in under 20 ms *or* is at least as fast as the C twin
   ([cross-scope access](../reference/cross-scope-access.md) §6); it exits non-zero
   only if both miss.

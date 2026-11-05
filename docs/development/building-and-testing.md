@@ -3,7 +3,7 @@
 ## Build
 
 ```bash
-make              # build/pentest
+make              # build/cstar
 make clean        # rm -rf build   (build/ is git-ignored; make recreates it)
 make test         # runs tests/run_tests.sh
 ```

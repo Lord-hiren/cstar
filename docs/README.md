@@ -1,8 +1,8 @@
-# Pentest documentation
+# cstar documentation
 
-Pentest is a Python-like language for security tooling that compiles to native
+cstar is a Python-like language for security tooling that compiles to native
 Linux executables (through C). This is the map of everything written about it.
-Current version: **0.2.1** (`pentest --version`).
+Current version: **0.2.1** (`cstar --version`).
 
 ## Start here
 
@@ -25,7 +25,7 @@ Current version: **0.2.1** (`pentest --version`).
 
 ## Contents
 
-### Guide — writing Pentest programs (`guide/`)
+### Guide — writing cstar programs (`guide/`)
 
 | Page | Contents |
 |---|---|

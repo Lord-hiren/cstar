@@ -1,10 +1,10 @@
 // cross_scope.cpp — C twin of bench/cases/varq/cross_scope.pen
 //
-// Same storage classes the Pentest side lowers `variable.` access to
+// Same storage classes the cstar side lowers `variable.` access to
 // (docs/reference/cross-scope-access.md §5): a plain module global, two program-lifetime
 // statics standing in for the pinned bindings of counter()/feeder(), and
 // plain functions reading/writing exactly those statics. Same seeds, same
-// arithmetic (all operands positive, so `%` matches Pentest exactly), same
+// arithmetic (all operands positive, so `%` matches cstar exactly), same
 // output — the pair isolates the codegen quality of cross-scope access.
 #include <cstdint>
 #include <cstdio>

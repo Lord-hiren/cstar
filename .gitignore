@@ -7,7 +7,7 @@ tests/*.pen
 tests/*.cst
 extras/
 
-# Local speed-test workspace (Pentest vs optimized C) — scratch, not shipped
+# Local speed-test workspace (cstar vs optimized C) — scratch, not shipped
 speedtest/
 
 # Build products — `make` recreates them (bench/tools/pentest-m1 stays tracked)

@@ -1,11 +1,11 @@
 # Architecture
 
-How a `.pen` file becomes a native executable, and where each step lives in the
+How a `.cst` file becomes a native executable, and where each step lives in the
 source tree. The normative summary is SPEC §11; this page is the guided tour.
 
 ## The idea (SPEC §11.1, "Approach A")
 
-Pentest is a **source-to-C translator plus a small C runtime**. The compiler
+cstar is a **source-to-C translator plus a small C runtime**. The compiler
 turns a program into one C11 translation unit; `clang -O3 -march=native` does
 the native code
 generation and optimisation; the result is linked against a runtime library
@@ -15,7 +15,7 @@ performance decision is made at the point where C is emitted
 ([performance](../performance/optimization.md)).
 
 ```text
- prog.pen
+ prog.cst
     │
     ▼  src/lexer.cpp     tokens, INDENT/DEDENT, comments, literals     (first error stops)
     ▼  src/parser.cpp    recursive descent → AST (src/ast.h)           (first error stops)
@@ -77,7 +77,7 @@ Sizes are approximate lines as of `0.2.1`.
 * `generate_c(const Program&, out_path)` (`src/codegen.h`) is only called on a
   program that passed both.
 
-`pentest check` runs parse → link (strict) → semantic, which is why it is fast
+`cstar check` runs parse → link (strict) → semantic, which is why it is fast
 and never needs `clang`. Strict linking validates every imported declaration,
 including ones `run` would prune
 ([modules § selective loading](../guide/modules.md#selective-loading-you-only-pay-for-what-you-name)).

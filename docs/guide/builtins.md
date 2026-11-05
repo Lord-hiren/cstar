@@ -1,6 +1,6 @@
 # Builtins guide
 
-Pentest reserves **seventy-eight** builtin names. This page is a working reference:
+cstar reserves **seventy-eight** builtin names. This page is a working reference:
 what each one does, the shapes that are easy to get wrong, and the deviations
 from Python. The normative text is SPEC §5.11 (per-builtin error wording is
 there too); the method tables are SPEC §5.10.
@@ -74,12 +74,16 @@ original-fifteen rules (call-only, no named arguments).
 | `dot(a, b)` | inner product as a scalar: `float` for two `fvec`, `int` (wrapping) for two `ivec`; a length or type mismatch raises before any lane is read |
 
 Operators on vectors are elementwise and keep the scalar operators' exact
-per-element semantics: `+ - *` (and the compound forms) work on any
-numeric mix for `fvec` and `int`/`bool` for `ivec`; `/` `%` behave like
-the scalar operators too (float zero-divisor and int `MIN / -1` edges
-included). Operands must have equal length — `ValueError: fvec length
-mismatch` — and mixing `fvec` with `ivec` is a `TypeError`. Indexing,
-assignment (`v[i] = …`), iteration, `==` (elementwise), `len()`,
+per-element semantics: `+ - *` (and the compound forms) take another
+vector of the same type or a scalar — `int`/`float` for `fvec` (not
+`bool`), `int`/`bool` for `ivec`; `/` behaves like the scalar operator
+(float zero-divisor and int `MIN / -1` edges included); `%` is for `ivec`
+only — on an `fvec` it is a `TypeError`, like float `%` (the current
+compiler returns wrong values instead: [known issue
+10](../reference/known-issues.md#10-float-vector-modulo-returns-wrong-values)).
+Operands must have equal length — `ValueError: fvec length mismatch` —
+and mixing `fvec` with `ivec` is a `TypeError`. Indexing, assignment
+(`v[i] = …`), iteration, `==` (one `bool` for the whole vector), `len()`,
 `type()`, `sum`/`min`/`max` and `str` all work as for lists; unlike
 lists, vectors are **unhashable**, and slicing raises
 `TypeError: 'fvec' object does not support slicing` (likewise `ivec`).
@@ -265,7 +269,7 @@ the [tour](language-tour.md#13-exceptions).
   memoryview object`. Arguments are evaluated, then the call raises
   `RuntimeError` with its reason (e.g. `super() is not supported: classes have
   no inheritance`).
-* **Rejected at compile time**: `eval`, `exec`, `compile`. Pentest compiles
+* **Rejected at compile time**: `eval`, `exec`, `compile`. cstar compiles
   ahead of time and ships no interpreter, so
   `'eval' is not available in cstar: programs are compiled ahead of time and
   the runtime never compiles source`.
@@ -275,7 +279,7 @@ the [tour](language-tour.md#13-exceptions).
 
 The full numbered list is SPEC §5.11.5. The ones that bite:
 
-| Python | Pentest |
+| Python | cstar |
 |---|---|
 | `divmod(-7, 2)` → `(-4, 1)` | `divmod(-7, 2)` → `(-3, -1)` — truncating |
 | `zip`/`map`/`filter`/`enumerate`/`reversed` are lazy | eager lists |

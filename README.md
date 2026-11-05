@@ -1,10 +1,10 @@
-# Pentest
+# cstar
 
-Pentest is a Python-like programming language for cybersecurity tooling —
+cstar (formerly Pentest) is a Python-like programming language for cybersecurity tooling —
 scanners, parsers, network utilities and automation — that **compiles to
-native executables**. You write short, readable `.pen` scripts (indentation
+native executables**. You write short, readable `.cst` scripts (indentation
 blocks, functions, collections, classes, exceptions, a `main:` block); the
-`pentest` toolchain translates them to C and builds a standalone Linux binary, so
+`cstar` toolchain translates them to C and builds a standalone Linux binary, so
 your tools run fast and ship as a single file with no interpreter to install.
 
 **Version `0.2.1`** · Linux x86_64 · toolchain in C++17, runtime in C11 · one
@@ -28,12 +28,12 @@ in [getting started](docs/guide/getting-started.md) (including Windows through
 WSL).
 
 ```bash
-make                                    # builds build/pentest
-echo 'print("Hello, Pentest!")' > hello.pen
-build/pentest run hello.pen             # compile (cached) and run
-build/pentest build hello.pen -o hello.pentest && ./hello.pentest
-build/pentest check hello.pen           # parse + analyse only
-make test                               # 372 checks (about a minute)
+make                                    # builds build/cstar
+echo 'print("Hello, cstar!")' > hello.cst
+build/cstar run hello.cst               # compile (cached) and run
+build/cstar build hello.cst && ./hello  # writes ./hello, then runs it
+build/cstar check hello.cst             # parse + analyse only
+make test                               # 376 checks (about a minute)
 ```
 
 ## A taste of the language
@@ -193,12 +193,12 @@ Everything is indexed in **[docs/README.md](docs/README.md)**. The essentials:
 
 | Command | Behaviour |
 |---|---|
-| `pentest <file>` / `pentest run <file> [args…]` | compile (content-hash cached) and execute |
-| `pentest build <file> [-o out]` | emit a native executable (default `<basename>.pentest` in the current directory) |
-| `pentest check <file>` | parse + semantic analysis only, including every imported declaration (strict); silent on success |
-| `pentest --help`, `--version` | usage; prints `pentest 0.2.1` |
+| `cstar <file>` / `cstar run <file> [args…]` | compile (content-hash cached) and execute |
+| `cstar build <file> [-o out]` | emit a native executable (default `./<basename>`: the source name without its extension, in the current directory) |
+| `cstar check <file>` | parse + semantic analysis only, including every imported declaration (strict); silent on success |
+| `cstar --help`, `--version` | usage; prints `cstar 0.2.1` |
 
-Source files end in `.pen` or `.pent`. Exit codes: `0` success, `1` compile/runtime
+Source files end in `.cst` (the legacy `.pen`/`.pent` work until v0.4). Exit codes: `0` success, `1` compile/runtime
 error, `2` usage error. Full reference: [CLI](docs/guide/cli.md).
 
 ## Repository layout

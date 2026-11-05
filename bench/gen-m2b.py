@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic generator for the Pentest Stage 2B benchmark .pen cases.
+"""Deterministic generator for the cstar Stage 2B benchmark .pen cases.
 
 Stage 2B adds real `while`/`for` loops, collections (list/map/set), Text and
 Bytes, and the full function sector (closures, defaults, named args). Unlike

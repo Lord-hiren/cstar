@@ -1,6 +1,6 @@
 # Performance
 
-Pentest compiles to native code through C, and its performance work follows one
+cstar compiles to native code through C, and its performance work follows one
 rule: **make the emitted code simple and let `clang -O3 -march=native` finish
 the job** — no
 separate optimiser, no IR rewrite pass, and no optimisation that can change
@@ -20,7 +20,7 @@ in [benchmarking](../development/benchmarking.md).
 
 All numbers below are quoted from the baseline documents, measured on an
 Intel i7-6600U at 2.60 GHz pinned to one core with `clang` 21.1.8, comparing each
-Pentest program against a hand-written C++ twin with byte-identical output.
+cstar program against a hand-written C++ twin with byte-identical output.
 
 * **Memory (Stage 2C, still true).** Before the collector every heap object
   leaked: peak RSS reached 344 MB on `dispatch_ops`, 166 MB on `coll_mixed`,

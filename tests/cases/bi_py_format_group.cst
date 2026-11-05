@@ -10,7 +10,7 @@ print(format(1234567, ">12,"), "|", format(1234567, "+,"), format(1234, "0,"))
 print(format(1000000, ","), format(1000000000, ","))
 
 # A ',' before the width is not the grammar's position and is rejected
-# (Python agrees; Pentest's message wording is its own).
+# (Python agrees; cstar's message wording is its own).
 try:
     print(format(1234567, ",12"))
 except ValueError:

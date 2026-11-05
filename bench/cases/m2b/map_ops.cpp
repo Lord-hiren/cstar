@@ -1,7 +1,7 @@
 // map_ops.cpp — C++ twin of bench/cases/m2b/map_ops.pen
 // Stage-2B-only workload (M1 has no maps): 150,000 inserts m[i] = i*2+7,
 // 150,000 lookups + 150,000 get-with-default misses (absent key -> 0),
-// one keys() sum pass. The Pentest map preserves insertion order
+// one keys() sum pass. The cstar map preserves insertion order
 // (keys()/iteration); the sum is order-independent, so an unordered_map
 // twin is byte-identical. Insert/lookup are hash-based on both sides.
 #include <cstdint>

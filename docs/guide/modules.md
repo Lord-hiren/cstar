@@ -6,7 +6,7 @@ usable import costs nothing at run time: the compiled program is still one flat
 C translation unit with direct calls, no module objects and no lookup tables.
 
 > **Status (unreleased).** Modules are the Stage 2D feature and are present in
-> this working tree; `pentest --version` still prints `0.2.1`. The normative
+> this working tree; `cstar --version` still prints `0.2.1`. The normative
 > rules are [SPEC §14](../../SPEC.md#14-modules-and-imports-stage-2d); this page
 > is the guided tour.
 > The VSCode extension does not yet highlight `import`/`from` or understand
@@ -30,15 +30,15 @@ allowed at the top level — inside a function you get
 
 ```text
 tools/
-  scan.pen            # entry: pentest run tools/scan.pen
+  scan.cst            # entry: cstar run tools/scan.cst
   lib/
-    hosts.pen
-    ports.pen
+    hosts.cst
+    ports.cst
 ```
 
 <!-- no-run -->
 ```python
-# tools/lib/hosts.pen
+# tools/lib/hosts.cst
 PREFIX = "host"
 
 name(expand):
@@ -54,14 +54,14 @@ class Host:
 
 <!-- no-run -->
 ```python
-# tools/lib/ports.pen
+# tools/lib/ports.cst
 name(probe):
     return "probe " + name
 ```
 
 <!-- no-run -->
 ```python
-# tools/scan.pen
+# tools/scan.cst
 import lib.hosts as hosts
 from lib.ports import probe
 
@@ -71,7 +71,7 @@ main:
     print(probe("web1"))
 ```
 
-Running `build/pentest run tools/scan.pen` prints:
+Running `build/cstar run tools/scan.cst` prints:
 
 ```text
 host:web1
@@ -89,20 +89,21 @@ A specifier `a.b` becomes the path `a/b` and is tried, in this order:
 
 1. **the directory of the importing file** — so a module's own siblings
    import each other with short names (`import ports` inside `lib/`);
-2. **the current working directory** of the `pentest` process;
-3. **each directory in `$PENTEST_PATH`** (colon-separated, like `PATH`).
+2. **the current working directory** of the `cstar` process;
+3. **each directory in `$CSTAR_PATH`** (colon-separated, like `PATH`);
+4. each directory in the legacy `$PENTEST_PATH` (accepted until v0.4).
 
 At each root the first existing candidate wins:
 
 | Candidate | Example |
 |---|---|
-| `<path>.pen` | `lib/hosts.pen` |
-| `<path>.pent` | `lib/hosts.pent` |
-| `<path>/__init__.pen` | `lib/hosts/__init__.pen` |
-| `<path>/__init__.pent` | `lib/hosts/__init__.pent` |
+| `<path>.cst` | `lib/hosts.cst` |
+| `<path>.pen`, then `<path>.pent` (legacy, until v0.4) | `lib/hosts.pen` |
+| `<path>/__init__.cst` | `lib/hosts/__init__.cst` |
+| `<path>/__init__.pen`, then `<path>/__init__.pent` (legacy) | `lib/hosts/__init__.pen` |
 
-So `import pkg` is a package: it loads `pkg/__init__.pen` (`.pent`
-equivalently) when no `pkg.pen`/`pkg.pent` exists, and the initializer's
+So `import pkg` is a package: it loads `pkg/__init__.cst` when no `pkg.cst`
+(or legacy `pkg.pen`/`pkg.pent`) exists, and the initializer's
 top-level code and declarations are the module. There is no relative-dot syntax
 (`from . import x` is not accepted).
 
@@ -111,7 +112,7 @@ spellings — or imported twice by two importers — is loaded and initialised
 exactly **once**.
 
 ```bash
-PENTEST_PATH=/opt/pentest/lib:/srv/shared build/pentest run scan.pen
+CSTAR_PATH=/opt/cstar/lib:/srv/shared build/cstar run scan.cst
 ```
 
 ## Using imported names
@@ -148,7 +149,7 @@ PENTEST_PATH=/opt/pentest/lib:/srv/shared build/pentest run scan.pen
 
 ## Selective loading: you only pay for what you name
 
-`pentest run` and `pentest build` prune imported declarations that are not
+`cstar run` and `cstar build` prune imported declarations that are not
 reachable from the entry program **before** semantic analysis and code
 generation. An unused imported function, class or pure global is never
 analysed, never emitted and never compiled — importing a large library costs
@@ -156,7 +157,7 @@ only the parts the program uses.
 
 <!-- no-run -->
 ```python
-# lib/toolkit.pen
+# lib/toolkit.cst
 PREFIX = "toolkit"
 
 name(greet):
@@ -175,13 +176,13 @@ main:
     print("only the entry code runs")
 ```
 
-`pentest run` prints `only the entry code runs`: the reachability pass drops
+`cstar run` prints `only the entry code runs`: the reachability pass drops
 `greet` and the broken `unused_bad`, so semantic analysis never sees the
-undefined name. **`pentest check` is strict** — it validates every imported
+undefined name. **`cstar check` is strict** — it validates every imported
 declaration, reachable or not, so the same program is rejected with
 
 ```text
-lib/toolkit.pen:9:12: error: undefined variable 'no_such_name'
+lib/toolkit.cst:9:12: error: undefined variable 'no_such_name'
       return no_such_name + 1
              ^
 ```
@@ -200,7 +201,7 @@ Rules of the pruning pass:
   is kept as initialization even if its name is never used.
 
 Diagnostics from imported files name the imported file and line
-(`lib/toolkit.pen:9:12`), never the entry file that imported it.
+(`lib/toolkit.cst:9:12`), never the entry file that imported it.
 
 ### Zero cost, by construction
 
@@ -230,14 +231,14 @@ Imports behave like top-level statements at their textual position:
 
 <!-- no-run -->
 ```python
-# lib/util.pen
+# lib/util.cst
 print("util initialised")
 BASE = 10
 ```
 
 <!-- no-run -->
 ```python
-# app.pen
+# app.cst
 print("entry 1")
 import lib.util
 print("entry 2")
@@ -280,7 +281,7 @@ split is in the [CLI reference](cli.md).
 
 The `run` cache key covers the entry source **and the canonical path plus the
 contents of every imported module**, so editing any dependency re-keys the
-program and the next `pentest run` recompiles it. Editing an unrelated file
+program and the next `cstar run` recompiles it. Editing an unrelated file
 does not. Nothing else changes: builds are still single self-contained
 executables that need no module files at run time.
 
@@ -293,7 +294,7 @@ playground and falls back across three independent sites. Using such a module
 looks like this:
 
 ```text
-# your tool.pen
+# your tool.cst
 from AI import jev
 
 main:
@@ -303,10 +304,10 @@ main:
     dist = jev.score(state, "Rate frustration.", ["Calm", "Annoyed", "Furious"])
 ```
 
-Run it with the library directory on `$PENTEST_PATH`:
+Run it with the library directory on `$CSTAR_PATH`:
 
 ```bash
-PENTEST_PATH=/path/to/library-dir pentest run tool.pen
+CSTAR_PATH=/path/to/library-dir cstar run tool.cst
 ```
 
 Because modules are expanded at compile time, importing `AI` adds zero runtime

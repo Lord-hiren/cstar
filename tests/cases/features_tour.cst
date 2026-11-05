@@ -1,5 +1,5 @@
-#!/usr/bin/env pentest
-# Pentest M1 — full feature tour (positive paths)
+#!/usr/bin/env cstar
+# cstar M1 — full feature tour (positive paths)
 
 # ---- comments: all four forms ----
 # hash comment

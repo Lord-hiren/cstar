@@ -1,6 +1,6 @@
 # Language tour
 
-A practical walk through the whole Pentest language, from `print` to classes,
+A practical walk through the whole cstar language, from `print` to classes,
 exceptions and cross-scope access. Every example on this page is a complete
 program followed by the exact output the `0.2.1` compiler produces for it —
 these blocks are executed against the real toolchain whenever the docs are
@@ -26,10 +26,10 @@ the normative [language specification](../../SPEC.md).
 13. [Exceptions](#13-exceptions)
 14. [Builtins](#14-builtins)
 15. [Memory management](#15-memory-management)
-16. [What Pentest deliberately does not have](#16-what-pentest-deliberately-does-not-have)
+16. [What cstar deliberately does not have](#16-what-cstar-deliberately-does-not-have)
 
-How to run the snippets: save one as `example.pen`, then
-`build/pentest run example.pen` (see [getting started](getting-started.md)).
+How to run the snippets: save one as `example.cst`, then
+`build/cstar run example.cst` (see [getting started](getting-started.md)).
 When a snippet fails on purpose, the output block shows what it prints to
 standard output first and then the diagnostic it writes to standard error.
 
@@ -37,16 +37,16 @@ standard output first and then the diagnostic it writes to standard error.
 
 ## 1. Hello, script
 
-A Pentest file is a *script*: statements run top to bottom.
+A cstar file is a *script*: statements run top to bottom.
 
 ```python
-print("Hello, Pentest!")
+print("Hello, cstar!")
 ```
 
 Output:
 
 ```text
-Hello, Pentest!
+Hello, cstar!
 ```
 
 Blocks are introduced by a colon and **indentation with spaces** — a tab in
@@ -86,7 +86,7 @@ only this line runs
 
 ## 3. Values and types
 
-Pentest is dynamically typed: values carry a tag at runtime and a variable may
+cstar is dynamically typed: values carry a tag at runtime and a variable may
 be reassigned to a value of another type. There are **no implicit conversions**
 between categories (no int→text, no bool→int).
 
@@ -169,7 +169,7 @@ Output:
 
 ```text
 start
-example.pen:2: runtime error: global variable 'later' used before assignment
+example.cst:2: runtime error: global variable 'later' used before assignment
 ```
 
 (Reading a name that is never assigned anywhere is caught at compile time:
@@ -254,7 +254,7 @@ Output:
 
 ### Membership `in` and identity `is`
 
-`in` is Pentest's membership test (the job Python's `in` does). It is also the
+`in` is cstar's membership test (the job Python's `in` does). It is also the
 binder in `for` loops. The right operand may be a `range`, `text`, `bytes`,
 `list`, `tuple`, `map` (tests keys) or `set`.
 
@@ -291,7 +291,7 @@ t = "héllo wörld"
 print(len(t), t[1], t[-1], t[0:5], t[::-1])
 print(t.upper(), t.find("wörld"), t.replace("l", "L"))
 print("a,b,c".split(","), "-".join(["x", "y"]), "  pad ".strip())
-print("https://x".starts_with("https"), "x.pen".ends_with(".pen"))
+print("https://x".starts_with("https"), "x.cst".ends_with(".cst"))
 raw = encode("héllo")
 print(raw, len(raw), raw[1], decode(raw))
 for c in "añ":
@@ -683,8 +683,9 @@ from lib.toolkit import greet as hello
 ```
 
 A dotted specifier resolves relative to the importing file first, then the
-working directory, then `$PENTEST_PATH`; `lib/toolkit` loads
-`lib/toolkit.pen`/`.pent` or `lib/toolkit/__init__.pen`. The first import runs
+working directory, then `$CSTAR_PATH` (and the legacy `$PENTEST_PATH`);
+`lib/toolkit` loads `lib/toolkit.cst` (or a legacy `.pen`/`.pent`) or
+`lib/toolkit/__init__.cst`. The first import runs
 the module's top-level code once, at the import's position; an imported
 module's `main:` is ignored. `run`/`build` compile only the declarations the
 program uses, so an unused (even broken) imported function costs nothing —
@@ -920,7 +921,7 @@ None
 IndexError IndexError | list index out of range
 bare except catches the rest
 re-raised: ValueError: inner
-example.pen:34: runtime error: fatal
+example.cst:34: runtime error: fatal
 ```
 
 Rules worth knowing (SPEC §6.10):
@@ -995,7 +996,7 @@ Implementation details are in [runtime internals](../internals/runtime.md).
 
 ---
 
-## 16. What Pentest deliberately does not have
+## 16. What cstar deliberately does not have
 
 Beyond the released single-file core, the unreleased Stage 2D work adds
 imports ([§10](#modules-and-imports)); everything else below is still absent:

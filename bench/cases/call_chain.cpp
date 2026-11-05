@@ -1,14 +1,14 @@
 // call_chain.cpp — C++ twin of bench/cases/call_chain.pen
 // Same per-frame algorithm, 2400256 frames (chain K=1024 x N=2344 on the
-// Pentest side):
+// cstar side):
 //   b = a*3+17; c = b % 1000003; d = c < 1000000007; e = d == True;
 //   f = b != c; g = e != f; h = a - b; a = h*5 + c
 // plus a final comparison z = a < 1000000007.  Signed int64 semantics with
-// wrapping computed via uint64_t (identical to Pentest: % and < see signed
+// wrapping computed via uint64_t (identical to cstar: % and < see signed
 // values, wraparound via two's complement).  Note: M1 has no branching; the
 // comparisons are straight-line expressions and the per-frame bools cannot
 // influence ints (no bool->int), so on the C++ side the optimizer legally
-// deletes the dead bool chain while Pentest must execute it — that asymmetry
+// deletes the dead bool chain while cstar must execute it — that asymmetry
 // is part of what this case measures.
 #include <cstdint>
 #include <cstdio>

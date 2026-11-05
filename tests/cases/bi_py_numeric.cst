@@ -1,5 +1,5 @@
 # bi_py_numeric — abs / divmod / pow / round (SPEC §5.11.5), happy paths.
-# Cross-checked against CPython; Pentest deviations (int64 wrap, C99 divmod,
+# Cross-checked against CPython; cstar deviations (int64 wrap, C99 divmod,
 # int-only modulo) are the documented ones.
 print(abs(-5))
 print(abs(5))

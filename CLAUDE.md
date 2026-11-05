@@ -73,7 +73,7 @@ src/main.cpp      CLI, temp dir, sha256sum cache key, runtime-object cache, clan
   - reads are guarded unless definite assignment proves them safe;
   - temporaries are cleared at statement boundaries, and every live value is rooted at every safe point;
   - `return` and `try` keep the frame and protect depths restorable;
-  - integer edge cases behave as Pentest specifies (wrap, signs, `MIN / -1`).
+  - integer edge cases behave as cstar specifies (wrap, signs, `MIN / -1`).
 - **Optimisation lanes are conservative:** a lane bails out ("poisons") on anything it can't prove. Performance changes are validated A/B with byte-identical stdout, stderr and exit codes (`docs/performance/optimization.md` §9).
 
 ## Tests (`tests/cases/`)
@@ -100,7 +100,7 @@ src/main.cpp      CLI, temp dir, sha256sum cache key, runtime-object cache, clan
 - **Doc code samples are executed:** a ```` ```python ```` fence followed by a ```` ```text ```` fence is a test (stdout then stderr). Use `<!-- no-run -->` before the fence to skip one.
 - **Some docs are historical records:** `docs/history/*` and `docs/performance/baseline-*.md` describe a past moment. Add a note to them instead of updating.
 - **Repeated counts and versions:** test counts, "N builtins" and the version string appear in several docs and may already be stale. The real values come from `make test` and `cstar --version`.
-- **Vocabulary:** write *text* (not string) and *map* (not dict). The language is being renamed from Pentest to **cstar** (Phase 2): new text says cstar, and the CLI is `cstar`; older docs still say Pentest until plan 02-04.
+- **Vocabulary:** write *text* (not string) and *map* (not dict). The language is **cstar** (lowercase; called Pentest before v0.3) and the CLI is `cstar`. The legacy names — the `pentest` command, `.pen`/`.pent`, `$PENTEST_PATH`, the editor's `pentest.*` settings — keep working until v0.4, so mention them only as legacy. Historical docs, recorded bench results and the benchmark tooling (`bench/` runners and workloads, `tools/hpcbench`) still use the old names.
 - **The language deliberately differs from Python:** `//` is a comment, `and`/`or` return `bool`, an unparenthesised `a, b` joins into text, exception matching is by exact class, and `eval`/`exec` are rejected. Read `docs/guide/gotchas.md` before writing `.cst` code.
 - **`build/` is git-ignored**; `make` recreates it. `examples/` and top-level `tests/*.cst` / `tests/*.pen` are git-ignored scratch.
 - **Bench runners overwrite recorded results:** `bench/run-m2b.sh`, `run-m2c.sh` and `run-varq.sh` rewrite the baselines in `bench/results/` that `docs/performance/` quotes. Only `bench/run.sh` is insulated, because it uses the frozen `bench/tools/pentest-m1`.

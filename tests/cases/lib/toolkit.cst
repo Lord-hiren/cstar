@@ -16,6 +16,6 @@ class Box:
         return self.value
 
 # Deliberately invalid, and deliberately never referenced: run/build mode must
-# not analyse or emit it (pentest check does, which is the strict mode).
+# not analyse or emit it (cstar check does, which is the strict mode).
 unused_bad():
     return no_such_name + 1

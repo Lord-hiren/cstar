@@ -2,7 +2,7 @@
 // Stage-2B-only workload (M1 has no indirect calls): 300,000 calls of a
 // 4-parameter function (a, b = 5, *rest, **kw) through a function value
 // held in a map, each with one positional + two named args (b binds the
-// defaulted param, extra lands in **kwargs). The Pentest side rebinds
+// defaulted param, extra lands in **kwargs). The cstar side rebinds
 // positionals/names and builds the kwarg map per call (cs_call); the twin
 // models the same call shape through a function pointer fetched from a
 // one-entry "map" — the measured gap is the binding machinery.

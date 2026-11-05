@@ -1,9 +1,9 @@
 # SQL injection walkthroughs
 
-Pentest's HTTP builtins (`http_get`, `http_post`, `url_encode` — see
+cstar's HTTP builtins (`http_get`, `http_post`, `url_encode` — see
 [builtins.md](builtins.md) and
 [`SPEC.md`](../../SPEC.md#5118-network-builtins-http_get-http_post-url_encode-unreleased)
-§5.11.8) make classic injection workflows plain `.pen` programs. This page
+§5.11.8) make classic injection workflows plain `.cst` programs. This page
 walks through two of them. Both run only against a deliberately vulnerable
 **local** lab, so every target stays on `127.0.0.1`. The lab server and the
 full scripts are not included in the repository; the snippets below show their

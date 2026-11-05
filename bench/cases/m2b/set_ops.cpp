@@ -1,10 +1,10 @@
 // set_ops.cpp — C++ twin of bench/cases/m2b/set_ops.pen
 // Stage-2B-only workload (M1 has no sets): 120,000 iterations adding both
 // i and i>>1 (so half the adds are duplicates), 120,000 membership tests,
-// then drain via pop() summing the popped values. The Pentest set pops in
+// then drain via pop() summing the popped values. The cstar set pops in
 // insertion order; the sum and count are order-independent, so a std::set
 // (sorted) twin is byte-identical. Membership/add are O(1) hash on the
-// Pentest side vs O(log n) here — a deliberate, documented divergence that
+// cstar side vs O(log n) here — a deliberate, documented divergence that
 // only understates the twin.
 #include <cstdint>
 #include <cstdio>

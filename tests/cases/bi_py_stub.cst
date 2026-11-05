@@ -1,6 +1,6 @@
 # bi_py_stub — the always-fail stubs (SPEC §5.11.6): recognized, reserved,
 # arguments evaluate normally, then the call raises RuntimeError with its
-# own reason. None of these concepts exist in Pentest.
+# own reason. None of these concepts exist in cstar.
 f():
     return 1
 

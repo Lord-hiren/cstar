@@ -1,9 +1,9 @@
 // call_overhead.cpp — C++ twin of bench/cases/call_overhead.pen
 // Same algorithm: 12967936 pass-through calls that return their argument
-// unchanged (chain K=2048 x N=6336 on the Pentest side); result equals the
+// unchanged (chain K=2048 x N=6336 on the cstar side); result equals the
 // seed.  The C++ chain is a single noinline passthrough called in a loop
 // (same call count as the .pen K-deep chain repeated N times); the empty asm
-// barrier is a zero-cost optimizer fence (the Pentest side is fenced by its
+// barrier is a zero-cost optimizer fence (the cstar side is fenced by its
 // external cs_guard calls) that stops the optimizer from hoisting/DCE-ing
 // the pure call.
 #include <cstdint>

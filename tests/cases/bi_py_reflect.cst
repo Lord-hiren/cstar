@@ -1,6 +1,6 @@
 # bi_py_reflect — callable / isinstance / hash / id / getattr / hasattr /
 # setattr / delattr (SPEC §5.11.5). isinstance performs exact-type matching
-# (Pentest has no subclassing — documented).
+# (cstar has no subclassing — documented).
 class Point:
     __init__(self, x):
         self.x = x

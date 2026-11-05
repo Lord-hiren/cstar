@@ -3,7 +3,7 @@
 // concatenations of a 16-byte literal + 150,000 period-5 seed resets
 // (reset does not append) — the identical intermediate-length sequence
 // (8 -> 24 -> 40 -> 56 -> 72, peak 72), so the before/after ratio
-// isolates loop-vs-chain cost. The Pentest runtime leaks every
+// isolates loop-vs-chain cost. The cstar runtime leaks every
 // intermediate concatenation (no GC until 2C); the twin's std::string
 // reallocations reuse freed buffers, so the RSS gap is the honest
 // measured cost of the leak policy.

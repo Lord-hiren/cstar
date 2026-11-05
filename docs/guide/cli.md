@@ -1,26 +1,29 @@
 # Command-line reference
 
 ```text
-pentest <file.pen|file.pent> [args...]        # shorthand for `run`
-pentest run   <file.pen|file.pent> [args...]  # compile (cached) and execute
-pentest build <file.pen|file.pent> [-o out]   # emit a native executable
-pentest check <file.pen|file.pent>            # parse + analyse only
-pentest --help | -h
-pentest --version | -v                        # prints: pentest 0.2.1
+cstar <file.cst> [args...]              # shorthand for `run`
+cstar run   [<file.cst> [args...]]      # compile (cached) and execute
+cstar build [<file.cst>] [-o out]       # emit a native executable
+cstar check [<file.cst>]                # parse + analyse only
+cstar --help | -h
+cstar --version | -v                    # prints: cstar 0.2.1
 ```
 
 The normative statement of this contract is SPEC §10; this page adds the
-observed behaviour.
+observed behaviour. The command was called `pentest` before v0.3; `pentest`
+(and `build/pentest`) remains an alias of the same driver until v0.4.
 
 ## Source files
 
-* A source path **must end in `.pen` or `.pent`**. Both are accepted
-  everywhere; `.pen` is the canonical spelling. Anything else is a usage error
-  (exit `2`) — in particular `.pentest` (the compiled-binary extension) is
-  rejected as input.
+* A source path **must end in `.cst`**. The legacy `.pen` and `.pent` are
+  accepted everywhere until v0.4. Anything else is a usage error (exit `2`) —
+  in particular `.pentest` (the old compiled-binary extension) is rejected as
+  input.
+* Without a path, `run`, `build` and `check` use **`./index.cst`**; if it
+  does not exist that is a usage error (exit `2`).
 * Source is UTF-8. An empty file is a valid, silent program.
 * Imports are resolved relative to the importing file, then the current
-  working directory, then `$PENTEST_PATH` — see
+  working directory, then `$CSTAR_PATH`, then the legacy `$PENTEST_PATH` — see
   [modules](modules.md#resolution). Imported files are ordinary source files;
   the entry path rules do not restrict them.
 
@@ -30,7 +33,7 @@ observed behaviour.
 
 Compiles the program (or reuses a cached executable) and executes it.
 Standard input, output and error are inherited. **The program's own exit code
-becomes `pentest`'s** — except that an uncaught Pentest runtime error exits
+becomes `cstar`'s** — except that an uncaught cstar runtime error exits
 `1` by definition.
 
 Extra arguments after the file are passed to the program as `argv[1..]`. Note
@@ -38,16 +41,17 @@ that, as of `0.2.1`, **no builtin can read them** (there is no `argv`
 builtin), so they are currently inert.
 
 ```bash
-echo bob | build/pentest run greet.pen
+echo bob | build/cstar run greet.cst
 ```
 
 ### `build`
 
 Writes a native executable and does **not** run it. The default output is the
-source's **basename** with `.pen`/`.pent` replaced by `.pentest`, written to
-the **current working directory** — not next to the source (`tools/scan.pen` →
-`./scan.pentest`); `-o out` overrides it. `-o` may be given once and needs
-an argument. `build` never *serves* from the program cache, but it does use the
+source's **basename without its extension**, written to the **current working
+directory** — not next to the source (`tools/scan.cst` → `./scan`); `-o out`
+overrides it. If that default name is an existing directory (e.g. `lib.cst`
+next to a `lib/` module folder), `build` stops with a usage error (exit `2`)
+and asks for `-o`. `-o` may be given once and needs an argument. `build` never *serves* from the program cache, but it does use the
 shared compiled-runtime object (below).
 
 The result depends only on the system C library, libm and libcurl.
@@ -73,14 +77,14 @@ Lexer and parser errors stop at the *first* error. The semantic pass reports
 |---|---|
 | `0` | success (including an empty program) |
 | `1` | lexer/parser error, semantic error, uncaught runtime exception, unreadable source file, missing `clang`, or a failed `clang` run |
-| `2` | usage error: no input file, a path not ending in `.pen`/`.pent`, an unknown option, `-o` without a path, extra arguments to `check` |
+| `2` | usage error: no input file (and no `./index.cst`), a path not ending in `.cst` (or the legacy `.pen`/`.pent`), a default `build` output that is an existing directory, an unknown option, `-o` without a path, extra arguments to `check` |
 
 Usage errors print `error: <reason>` followed by the usage text on stderr.
 
 ## The `run` cache
 
-* Location: `$XDG_CACHE_HOME/pentest/`, falling back to `~/.cache/pentest/`.
-* Contents: `<key>.pentest` (a compiled program) and `rt-<key>.o` (the runtime
+* Location: `$XDG_CACHE_HOME/cstar/`, falling back to `~/.cache/cstar/`.
+* Contents: `<key>.bin` (a compiled program) and `rt-<key>.o` (the runtime
   compiled once and linked into every program). Compiling the runtime is by
   far the slowest part of a cold build, so `make` precompiles it and embeds
   the object in the driver: a cold cache installs that object directly (no
@@ -90,8 +94,8 @@ Usage errors print `error: <reason>` followed by the usage text on stderr.
   machines never serves another ISA's machine code.
 * Program key: `sha256(source bytes [+ dependency paths and contents]
   + version string + toolchain identity)`,
-  where *toolchain identity* is the size and mtime of the running `pentest`
-  binary. Editing a program re-keys it; rebuilding or upgrading `pentest`
+  where *toolchain identity* is the size and mtime of the running `cstar`
+  binary. Editing a program re-keys it; rebuilding or upgrading `cstar`
   re-keys **everything**, so a stale executable can never be served.
 * When the program imports modules, the key material also includes the
   canonical path and full contents of every dependency (in load order), so
@@ -116,12 +120,12 @@ Usage errors print `error: <reason>` followed by the usage text on stderr.
 5. obtain the runtime object: install the precompiled object embedded by
    `make` when the host CPU fingerprint matches, otherwise compile it to
    `rt-<key>.o` (`clang -std=c11 -O3 -march=native -c …`);
-6. link: `clang -std=c11 -O3 -march=native -o <out> gen.c <runtime.o> -lm`
+6. link: `clang -std=c11 -O3 -march=native -o <out> gen.c <runtime.o> -lm -lcurl`
    (or `gen.c cstar_rt.c` when neither object is available);
 7. for `run`: store under the program key and `exec` it.
 
 If `clang` is not on `PATH` the driver prints
-`error: 'clang' was not found on PATH; the Pentest toolchain requires clang to
+`error: 'clang' was not found on PATH; the cstar toolchain requires clang to
 build programs` and exits `1`.
 
 ## Environment variables
@@ -130,7 +134,8 @@ build programs` and exits `1`.
 |---|---|
 | `XDG_CACHE_HOME` | base of the cache directory (default `~/.cache`) |
 | `TMPDIR` | base of the per-build scratch directory (default `/tmp`) |
-| `PENTEST_PATH` | colon-separated extra roots searched for imported modules, after the importing file's directory and the working directory |
+| `CSTAR_PATH` | colon-separated extra roots searched for imported modules, after the importing file's directory and the working directory |
+| `PENTEST_PATH` | the legacy name, searched after `CSTAR_PATH` (until v0.4) |
 | `PATH` | must contain `clang` and `sha256sum` |
 
 No other environment variable or configuration file is read.

@@ -1,4 +1,4 @@
-# Optimization — how Pentest gets speed without a dedicated optimizer
+# Optimization — how cstar gets speed without a dedicated optimizer
 
 Status: **informative companion to `SPEC.md` §11.8** (implementation &
 architecture; the SPEC governs if they differ). Part of the
@@ -15,7 +15,7 @@ performance ever changes a program's output (byte-compat contract, §9).
    introduce regressions between releases.
 2. **Zero junk.** Compilation produces the C translation unit, the object
    cache entry, and the binary — no `*.tmp` strays, no leaked scratch
-   directories (verified after every suite run: no `/tmp/pentest-*`, no
+   directories (verified after every suite run: no `/tmp/cstar-*`, no
    `build/*.tmp`). Generated C compiles with empty stderr (see §6).
 3. **Conservative by one slot.** Anything the analysis cannot *prove*
    exits an optimization lane rather than risking a behavior change
@@ -70,7 +70,7 @@ sum still exact under wrapping semantics) — the strongest form of
 optimizer to finish the job.
 
 **Edge parity is part of the contract.** C integer semantics are *not*
-Pentest semantics by default; the lane guarantees exact parity for wrap,
+cstar semantics by default; the lane guarantees exact parity for wrap,
 division/modulo sign rules, and `MIN / -1` (`tests/cases/nint_edges`,
 `nint_loop`). Any divergence is a bug, not a performance trade.
 
@@ -115,7 +115,7 @@ cheap enough that no further special casing is needed.
 ## 5. Compiled-artifact caches
 
 The runtime translation unit is compiled once at `make` time and embedded; two
-independent caches under `$XDG_CACHE_HOME/pentest` (fallback `~/.cache/pentest`)
+independent caches under `$XDG_CACHE_HOME/cstar` (fallback `~/.cache/cstar`)
 cover everything emitted per program or per machine:
 
 * **Embedded runtime object (build time)** — `make` compiles
@@ -130,11 +130,11 @@ cover everything emitted per program or per machine:
   on any mismatch — a binary copied to another CPU, kernel-masked features —
   silently falls back to the runtime-object cache below. Cost: one runtime
   compile per `make` (~6 s) and ~290 KB in the binary.
-* **Run-mode binary cache** — `pentest run` compiles once and reuses the
+* **Run-mode binary cache** — `cstar run` compiles once and reuses the
   executable for repeat runs. Key = `sha256(entry source bytes + every
   imported module's source bytes + kVersion + toolchain identity)` where the
   toolchain identity is the size + mtime
-  of the running `pentest` binary: editing the source or any imported module
+  of the running `cstar` binary: editing the source or any imported module
   invalidates (source hash), and — crucially — **rebuilding or updating the
   toolchain re-keys every entry automatically**, so a stale executable from
   before a `make` can never be served. The identity read is a single `stat` of
@@ -480,7 +480,7 @@ auto-vectorize (four iterations/AVX2 gathers for slices; four-way unroll plus
 FMA and an unchecked cast for mixed), so the residual is the cost of
 bounds/type/error and rounding parity, not an unoptimized scalar loop.
 
-Scoreboard after Wave 9 (Pentest vs hand-written C, same flags):
+Scoreboard after Wave 9 (cstar vs hand-written C, same flags):
 `divmod`/`call_direct`/`branchy` at parity; `text_build` ~2.5× faster
 than the pre-wave compiler (2.2× from Wave 4's in-place growth, a
 further 1.13× from Wave 8's pooling); `float_loop` 2.02×;

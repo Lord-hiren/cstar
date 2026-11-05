@@ -5,8 +5,9 @@ and call functions, use collections, classes, exceptions, imports, and every
 builtin. It covers version `0.2.1` plus the unreleased work in this tree
 (imports, HTTP builtins and SIMD vectors).
 
-> **Name.** The language is being renamed **cstar**. Until that change lands, the
-> command is `pentest` and source files end in `.pen` (or `.pent`).
+> **Name.** The language was called Pentest before v0.3. The command is `cstar`
+> and source files end in `.cst`; the legacy `pentest` command and `.pen`/`.pent`
+> files keep working until v0.4.
 
 How to read the examples: a `# →` comment shows what the line prints. The
 outputs come from the executed examples in the [language tour](language-tour.md),
@@ -42,10 +43,10 @@ each feature in more depth, and [`SPEC.md`](../../SPEC.md) has the exact rules.
 ## 1. Run a program
 
 ```bash
-build/pentest run hello.pen        # compile (cached) and run
-build/pentest hello.pen            # the same as run
-build/pentest build hello.pen      # make ./hello.pentest   (-o NAME to choose the name)
-build/pentest check hello.pen      # only look for errors; prints nothing when the file is fine
+build/cstar run hello.cst      # compile (cached) and run
+build/cstar hello.cst          # the same as run
+build/cstar build hello.cst    # make ./hello   (-o NAME to choose the name)
+build/cstar check hello.cst    # only look for errors; prints nothing when the file is fine
 ```
 
 Exit codes: `0` success, `1` compile or runtime error, `2` wrong command usage.
@@ -59,7 +60,7 @@ There is no required structure: no `void main`, no class wrapper, no imports to
 start. A file is a **script**, and its statements run from top to bottom.
 
 ```python
-print("Hello, Pentest!")           # → Hello, Pentest!
+print("Hello, cstar!")           # → Hello, cstar!
 ```
 
 * **Blocks** start with a colon `:` and are indented with **spaces**. A tab in
@@ -258,7 +259,7 @@ print(t.upper(), t.find("wörld"), t.replace("l", "L"))
 # → HéLLO WöRLD 6 héLLo wörLd
 print("a,b,c".split(","), "-".join(["x", "y"]), "  pad ".strip())
 # → [a, b, c] x-y pad
-print("https://x".starts_with("https"), "x.pen".ends_with(".pen"))
+print("https://x".starts_with("https"), "x.cst".ends_with(".cst"))
 # → True True
 raw = encode("héllo")               # text → bytes
 print(raw, len(raw), raw[1], decode(raw))
@@ -699,10 +700,10 @@ from lib.toolkit import greet     # use it as:  greet("x")
 from lib.toolkit import greet as hello
 ```
 
-* **File lookup:** `lib.toolkit` loads `lib/toolkit.pen` (or `.pent`), or
-  `lib/toolkit/__init__.pen`.
+* **File lookup:** `lib.toolkit` loads `lib/toolkit.cst` (or a legacy `.pen`/`.pent`),
+  or `lib/toolkit/__init__.cst`.
 * **Search order:** the importing file's folder, then the current folder, then
-  each folder in `$PENTEST_PATH`.
+  each folder in `$CSTAR_PATH` (then the legacy `$PENTEST_PATH`).
 * **Bound name:** `import lib.toolkit` binds **`toolkit`**, the last part of the
   path, not `lib`.
 * **Imported names are read-only:** after `from m import x`, assigning to `x`
@@ -730,7 +731,7 @@ if name is None:                  # None means end of input
     print("no input")
 ```
 
-Command-line arguments (`pentest run prog.pen a b`) reach the program, but no
+Command-line arguments (`cstar run prog.cst a b`) reach the program, but no
 builtin can read them yet.
 
 ### Files
@@ -952,7 +953,7 @@ Planned work is on the project roadmap. Known bugs are in
 
 ## 21. Differences from Python
 
-| Python | Pentest |
+| Python | cstar |
 |---|---|
 | `def f(x):` | `f(x):` |
 | `7 // 2` is floor division | `//` starts a comment; `7 / 2` is `3` |

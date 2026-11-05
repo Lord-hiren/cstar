@@ -1,6 +1,6 @@
 # Gotchas and FAQ
 
-Pentest looks like Python, and most of the time it behaves like Python — but it
+cstar looks like Python, and most of the time it behaves like Python — but it
 is a different language, and the differences are deliberate. This page is the
 checklist of things that surprise people, each with the reason and the
 spelling that works. Every program here is run against the real compiler.
@@ -204,9 +204,9 @@ from outside at all.
 
 ### `check` is strict about imports — `run` is not
 
-`pentest run`/`build` drop unused imported declarations *before* analysing
+`cstar run`/`build` drop unused imported declarations *before* analysing
 them, so an unused broken function in an imported library does not stop the
-program. `pentest check` validates **every** imported declaration and fails on
+program. `cstar check` validates **every** imported declaration and fails on
 that same file. If a library must always be fully clean, run `check` in CI; if
 a large library has unused corners, `run` still works. Both modes agree on
 everything the program actually uses. See
@@ -221,7 +221,7 @@ f = sorted
 Output:
 
 ```text
-example.pen:1:5: error: undefined variable 'sorted'
+example.cst:1:5: error: undefined variable 'sorted'
   f = sorted
       ^
 ```
@@ -282,7 +282,7 @@ still runs. You cannot call it, return from it, or declare a function named `mai
 * `divmod` truncates (Python floors).
 * `input()` returns `None` at end of input (and `""` for an empty line) —
   check before using the result as text.
-* Program arguments (`pentest run prog.pen a b`) reach the process but **no
+* Program arguments (`cstar run prog.cst a b`) reach the process but **no
   builtin can read them yet**.
 * `format()` with the `,` option **and** zero-padding (`"08,"`-style specs)
   pads the already-grouped string instead of regrouping a padded digit run —
@@ -291,8 +291,8 @@ still runs. You cannot call it, return from it, or declare a function named `mai
 
 ## Tooling
 
-* `pentest check` is silent on success, by design.
-* A change to the `pentest` binary re-keys the whole run cache; the first run
+* `cstar check` is silent on success, by design.
+* A change to the `cstar` binary re-keys the whole run cache; the first run
   after a rebuild recompiles the runtime (~seconds), later ones are fast.
-* `build` writes `<basename>.pentest` into the **current directory**, not next to
-  the source.
+* `build` writes `<basename>` (the source name without its extension) into the
+  **current directory**, not next to the source.

@@ -1,4 +1,4 @@
-# HTTP / SQLi latency — where the time goes, and what Pentest removes
+# HTTP / SQLi latency — where the time goes, and what cstar removes
 
 Bench: `bench/http_speed.pen`, runner `bench/run_http_speed.sh` (N≥30 runs,
 `taskset -c 0`, min/mean reported — the §9 methodology of

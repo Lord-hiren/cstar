@@ -1,7 +1,7 @@
 # bi_py_bytes — bytes() forms (SPEC §5.11.5): bytes(), bytes(n) zero-fill,
 # bytes(iterable of 0..255), bytes(bytes) copy, bytes(text) REQUIRING an
 # encoding (UTF-8 only). Displays are b'...' like Python's repr. Error
-# wordings match CPython (3.14) except Pentest's type names (text/None).
+# wordings match CPython (3.14) except cstar's type names (text/None).
 print(bytes())
 print(len(bytes()))
 print(bytes(3))

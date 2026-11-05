@@ -1,8 +1,10 @@
 # Changelog
 
-All notable changes to Pentest. Dates and commit ids are from the repository
-history. The format follows [Keep a Changelog](https://keepachangelog.com/);
-versions are the strings reported by `pentest --version`. For the narrative see
+All notable changes to cstar (called Pentest before v0.3). Dates and commit ids
+are from the repository history. The format follows
+[Keep a Changelog](https://keepachangelog.com/); versions are the strings
+reported by `cstar --version` (`pentest --version` before v0.3). Entries below
+the Unreleased section use the names of their time. For the narrative see
 [docs/history](docs/history/README.md).
 
 ## [Unreleased]
@@ -59,6 +61,17 @@ versions are the strings reported by `pentest --version`. For the narrative see
   (it used a folder VS Code does not read).
 
 ### Documentation
+- **The documentation says cstar**: README, SPEC (now the "cstar Language
+  Specification"), contracts, guides, internals and the docs checker use the
+  `cstar` command, `.cst` files and today's paths (`./<base>` build output,
+  `$XDG_CACHE_HOME/cstar/`, `$CSTAR_PATH`). The legacy names appear only as
+  legacy notes; the m1 contract's CLI section is marked superseded by SPEC §10.
+- SPEC §5.11.9 specifies the SIMD vector builtins `fvec`, `ivec`, `fvec_fill`,
+  `ivec_fill` and `dot` (operators, lanes, every message), and SPEC now counts
+  **seventy-eight** builtins (it said seventy, missing the network and vector
+  builtins).
+- Known issue #10 added: `%` on an `fvec` returns wrong values instead of the
+  `TypeError` that float `%` raises.
 - New: [quick reference](docs/guide/quick-reference.md), the whole language and
   all 78 builtins on one page.
 - New: building and testing from Windows through WSL

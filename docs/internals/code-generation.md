@@ -78,7 +78,7 @@ static void cs_main_block(void) {
 static cs_value* const cs_g_roots[] = { &cs_g_total, &cs_g_i, &cs_g_names };
 
 int main(int argc, char** argv) {
-  cs_init(argc, argv, "demo.pen", cs_g_roots, 3u);   /* path, args, GC root vector */
+  cs_init(argc, argv, "demo.cst", cs_g_roots, 3u);   /* path, args, GC root vector */
   cs_frame cs_fr; cs_frame_begin(&cs_fr, NULL, 0u);
   cs_gc_maybe();
   cs_g_total = cs_int(0LL);                          /* top-level statements, in order */
@@ -155,7 +155,7 @@ is pruned, but code generation does not run.
 
 | Source | Lowered form |
 |---|---|
-| `a + b`, `a < b`, … | `cs_add_f` / `cs_lt_f` … inline fast path with out-of-line fallback; native-int operands use plain C arithmetic with Pentest's wrap/sign rules |
+| `a + b`, `a < b`, … | `cs_add_f` / `cs_lt_f` … inline fast path with out-of-line fallback; native-int operands use plain C arithmetic with cstar's wrap/sign rules |
 | `x` (global/local read) | `cs_guard(slot, "name", scope, line)` unless definite assignment proves the guard unnecessary |
 | `f(args)` to a known function | stack `bound[]` + direct `cs_fn_f(bound, env)`; arity/named checks already done at compile time |
 | `f(args)` to an int-lane-viable function over int-shaped positional args | `cs_int(cs_fn_f_i(args…))` — the call runs in the callee's int64 lane; anything else (floats, named args, defaults) keeps the dynamic form |
@@ -190,7 +190,7 @@ for a in "$@"; do case "$a" in */gen.c) cp "$a" /tmp/cap/gen.c ;; esac; done
 exec /usr/bin/clang "$@"
 EOF
 chmod +x /tmp/shim/clang
-PATH=/tmp/shim:$PATH build/pentest build prog.pen -o /tmp/prog && less /tmp/cap/gen.c
+PATH=/tmp/shim:$PATH build/cstar build prog.cst -o /tmp/prog && less /tmp/cap/gen.c
 ```
 
 (Adjust `/usr/bin/clang` to your `clang`.) The generated file compiles with empty
@@ -212,5 +212,5 @@ These are the invariants that make the output safe; they are why changes to
    every safe point.
 5. `return` paths pop the frame; `try` lowering keeps frame/protect depths
    restorable.
-6. Output must match C semantics *and* Pentest semantics for integer edges
+6. Output must match C semantics *and* cstar semantics for integer edges
    (wrap, division/modulo signs, `MIN / -1`).

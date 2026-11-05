@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic generator for the Pentest M1 benchmark .pen cases.
+"""Deterministic generator for the cstar M1 benchmark .pen cases.
 
 M1 has no loops and no conditionals (docs/contracts/m1-semantics.md §1), so iteration is
 emulated with FINITE ACYCLIC CALL CHAINS: K distinct functions

@@ -1,5 +1,5 @@
 # bi_py_numeric_errors — abs/divmod/pow/round failure shapes (Python
-# wording; Pentest's documented int-only modulo rules where they differ).
+# wording; cstar's documented int-only modulo rules where they differ).
 try:
     abs("x")
 except TypeError as e:

@@ -1,6 +1,6 @@
 # Errors and diagnostics
 
-How Pentest reports problems, what the common messages mean, and how runtime
+How cstar reports problems, what the common messages mean, and how runtime
 errors relate to exceptions. The normative catalogues are SPEC §9.1 (lexer and
 parser), §9.2 (semantic) and §9.3 (runtime); every quoted message there is
 normative and the test-suite matches on those substrings.
@@ -42,7 +42,7 @@ if True
 Output:
 
 ```text
-example.pen:2:8: error: expected ':'
+example.cst:2:8: error: expected ':'
   if True
          ^
 ```
@@ -62,10 +62,10 @@ print(zzz)
 Output:
 
 ```text
-example.pen:4:7: error: function 'add' expects 2 argument(s), got 1
+example.cst:4:7: error: function 'add' expects 2 argument(s), got 1
   print(add(1))
         ^
-example.pen:5:7: error: undefined variable 'zzz'
+example.cst:5:7: error: undefined variable 'zzz'
   print(zzz)
         ^
 ```
@@ -83,13 +83,13 @@ print(f(c = 1))
 Output:
 
 ```text
-example.pen:3:7: error: function 'f' expects at most 2 argument(s), got 3
+example.cst:3:7: error: function 'f' expects at most 2 argument(s), got 3
   print(f(1, 2, 3))
         ^
-example.pen:4:7: error: unexpected argument name 'c' in call to 'f'
+example.cst:4:7: error: unexpected argument name 'c' in call to 'f'
   print(f(c = 1))
         ^
-example.pen:4:7: error: function 'f' expects at least 1 argument(s), got 0
+example.cst:4:7: error: function 'f' expects at least 1 argument(s), got 0
   print(f(c = 1))
         ^
 ```
@@ -105,10 +105,10 @@ len(x):
 Output:
 
 ```text
-example.pen:2:1: error: cannot declare function with reserved name 'len'
+example.cst:2:1: error: cannot declare function with reserved name 'len'
   len(x):
   ^
-example.pen:1:1: error: cannot assign to reserved name 'sum'
+example.cst:1:1: error: cannot assign to reserved name 'sum'
   sum = 0
   ^
 ```
@@ -144,7 +144,7 @@ file). The messages and their triggers are tabulated in
 
 | Message | Meaning |
 |---|---|
-| `cannot find module 'lib.nope'` | no candidate file in the importer's directory, the working directory or `$PENTEST_PATH` |
+| `cannot find module 'lib.nope'` | no candidate file in the importer's directory, the working directory or `$CSTAR_PATH` |
 | `circular import: 'm' is already being loaded` | `m` (transitively) imports the file doing the importing |
 | `module 'm' has no declaration 'x'` | `from m import x` where `x` is not top-level in `m` |
 | `cannot import private name '_x' from module 'm'` / `'_x' is private in module '<path>'` | `_`-prefixed names are module-private |
@@ -154,8 +154,8 @@ file). The messages and their triggers are tabulated in
 | `'import' is only allowed at the top level` | an `import` inside a function or `main:` body |
 | `expected module name` / `expected 'import' after module name` / `expected a name to import` / `expected alias after 'as'` | malformed import statement |
 
-Remember the two-mode split: `pentest run` ignores *unused* imported code, but
-`pentest check` validates all of it, so a broken unused declaration fails only
+Remember the two-mode split: `cstar run` ignores *unused* imported code, but
+`cstar check` validates all of it, so a broken unused declaration fails only
 `check` ([modules](modules.md#selective-loading-you-only-pay-for-what-you-name)).
 
 ## Runtime errors
@@ -186,7 +186,7 @@ print("a" + 1)
 Output:
 
 ```text
-example.pen:1: runtime error: unsupported operand types for +: text and int
+example.cst:1: runtime error: unsupported operand types for +: text and int
 ```
 
 Type names inside messages are `int float bool text bytes range list map set
@@ -229,7 +229,7 @@ A program you `build` and run directly returns `1` for an uncaught error and
 
 ## Tips
 
-* `build/pentest check file.pen` is the fastest feedback loop — it never invokes
+* `build/cstar check file.cst` is the fastest feedback loop — it never invokes
   `clang`.
 * Use `try`/`except` around operations that can fail on untrusted input (indexing,
   map lookups, `open`), and `finally` for cleanup.

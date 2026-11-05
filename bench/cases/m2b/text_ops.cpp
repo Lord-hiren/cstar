@@ -2,7 +2,7 @@
 // Stage-2B-only workload (M1 has no text methods): 200,000 passes of
 // upper + split(" ") + "|".join + replace("a","@") + find("@") +
 // starts_with over a 37-code-point ASCII text. All methods dispatch at
-// runtime on the Pentest side. upper/lower are ASCII-only on the Pentest
+// runtime on the cstar side. upper/lower are ASCII-only on the cstar
 // side (documented 2B limitation) and the text is pure ASCII, so
 // std::toupper is byte-identical. replace is 1-char-for-1-char, so
 // len(rep) == len(base) == 37.
