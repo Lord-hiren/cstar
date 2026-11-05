@@ -34,13 +34,13 @@ shows up in `git status`.
 make test         # or: bash tests/run_tests.sh
 ```
 
-Current size: **372 checks = 365 program cases + 7 extra checks**. A full run
-takes about 70 seconds on the development machine (measured), because every
-case is a real compile (`clang -O3 -march=native`) and run.
+Current size: **376 checks = 365 program cases + 11 extra checks**. A full run
+takes about 30–70 seconds (measured), because every case is a real compile
+(`clang -O3 -march=native`) and run.
 
 ### How a case works
 
-`tests/run_tests.sh` runs `build/pentest run tests/cases/<name>.pen` for every
+`tests/run_tests.sh` runs `build/cstar run tests/cases/<name>.cst` for every
 case, with stdin taken from `<name>.in` if present, else `/dev/null` (so
 `input()` can never hang the harness), and checks:
 
@@ -54,19 +54,27 @@ case, with stdin taken from `<name>.in` if present, else `/dev/null` (so
 Because `.err` matching is by substring, **quoted error messages in the SPEC are
 normative**: change the wording and cases fail.
 
-Seven extra CLI-level checks follow the cases: `check_valid` (silent, exit 0 on a
-good file), `check_error` (non-zero on a bad one), `build_roundtrip` (`build` then
-run the binary directly), `pent_extension` (`.pent` accepted by `run` and the
-bare form, and `build script.pent` → `script.pentest`), `no_sha256sum` (the
-driver still runs without the hash tool), `check_imports_valid` (a multi-file
-program checks clean) and `check_imports_strict` (`check` rejects a broken
-declaration that `run` would prune).
+Eleven extra CLI-level checks follow the cases:
+
+| Check | What it proves |
+|---|---|
+| `check_valid` | `check` on a good file is silent, exit 0 |
+| `check_error` | `check` on a bad file exits non-zero |
+| `build_roundtrip` | `build`, then run the binary directly |
+| `cst_extension` | `.cst` works with `run`, the bare form, and `build script.cst` → `./script` |
+| `legacy_extensions` | `.pen` / `.pent` still work (until v0.4) |
+| `no_sha256sum` | the driver still runs without the hash tool |
+| `check_imports_valid` | a multi-file program checks clean |
+| `check_imports_strict` | `check` rejects a broken declaration that `run` would prune |
+| `cli_alias` | the legacy `pentest` command is the same driver |
+| `index_entry` | `run` / `check` / `build` without a file use `./index.cst` |
+| `module_path` | `$CSTAR_PATH`, then the legacy `$PENTEST_PATH` |
 
 ### Isolation
 
 The harness sets a private `XDG_CACHE_HOME` and a private scratch directory for
 each run and removes both on exit, so a green run can never be an artefact of a
-warm cache, and no `/tmp/pentest-*` litter should remain after a run.
+warm cache, and no `/tmp/cstar-*` litter should remain after a run.
 
 ### Case naming
 
@@ -87,10 +95,10 @@ Names are a prefix plus a topic; error cases start with `err_`.
 
 ### Adding a test
 
-1. Write `tests/cases/<name>.pen` (start with a one-line comment saying what it
+1. Write `tests/cases/<name>.cst` (start with a one-line comment saying what it
    proves and which SPEC section it exercises, as many existing cases do).
 2. Run it and **review** the output before accepting it:
-   `build/pentest run tests/cases/<name>.pen > tests/cases/<name>.out`.
+   `build/cstar run tests/cases/<name>.cst > tests/cases/<name>.out`.
 3. For a failing program also write `<name>.err` (the message substrings) and
    `<name>.exit` (`1`).
 4. `make test`.
@@ -101,14 +109,14 @@ the compiler, or about the contract — in which case update the contract first.
 ### Regression cases from the documentation pass
 
 The bugs the documentation pass reproduced each landed with a regression case:
-`try_multi_named.pen` (multi-clause `except` — every clause after the first),
-`bi_py_parse_catch.pen` + `rt_bi_parse_finally.pen` (caught `int()`/`float()`
-parse errors, `finally` on the unwind edge), `bi_py_format_group.pen`
+`try_multi_named.cst` (multi-clause `except` — every clause after the first),
+`bi_py_parse_catch.cst` + `rt_bi_parse_finally.cst` (caught `int()`/`float()`
+parse errors, `finally` on the unwind edge), `bi_py_format_group.cst`
 (right-counting thousands grouping and `","` after a width, outputs identical
 to Python), and the CLI check (e) `no_sha256sum` (a `PATH` without
 `sha256sum` disables caching instead of killing the driver with SIGPIPE).
 The GC text-liveness fix followed the same pattern — one case per defect
-(`gc_text_liveness.pen`). The next bug fixed should land the same way — a
+(`gc_text_liveness.cst`). The next bug fixed should land the same way — a
 case per defect, with outputs cross-checked against Python where parity
 applies.
 

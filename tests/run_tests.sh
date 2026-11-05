@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/run_tests.sh — cstar test harness.
 #
-# For each tests/cases/*.pen:
+# For each tests/cases/*.cst:
 #   * runs `build/cstar run <case>` capturing stdout/stderr/exit code;
 #     stdin is the optional <case>.in file, or /dev/null (end of input)
 #     when absent, so input() can never hang the harness;
@@ -56,16 +56,16 @@ report_fail() {
 }
 
 shopt -s nullglob
-cases=(tests/cases/*.pen)
+cases=(tests/cases/*.cst)
 if [ "${#cases[@]}" -eq 0 ]; then
   echo "error: no test cases found in tests/cases" >&2
   exit 1
 fi
 
 n=0
-for pen in "${cases[@]}"; do
+for src in "${cases[@]}"; do
   n=$((n + 1))
-  base="${pen%.pen}"
+  base="${src%.cst}"
   name="$(basename "$base")"
 
   stdout_file="$work/$name.stdout"
@@ -74,7 +74,7 @@ for pen in "${cases[@]}"; do
   stdin_file="/dev/null"
   if [ -f "$base.in" ]; then stdin_file="$base.in"; fi
 
-  "$cstar" run "$pen" <"$stdin_file" >"$stdout_file" 2>"$stderr_file"
+  "$cstar" run "$src" <"$stdin_file" >"$stdout_file" 2>"$stderr_file"
   actual_exit=$?
 
   detail=""
@@ -117,7 +117,7 @@ done
 
 # Extra check (a): `check` on a valid case — exit 0, completely silent.
 n=$((n + 1))
-valid_case="tests/cases/arithmetic.pen"
+valid_case="tests/cases/arithmetic.cst"
 detail=""
 "$cstar" check "$valid_case" >"$work/cv.out" 2>"$work/cv.err"
 cv_exit=$?
@@ -140,7 +140,7 @@ fi
 
 # Extra check (b): `check` on a compile-error case — nonzero exit.
 n=$((n + 1))
-error_case="tests/cases/err_undefined_function.pen"
+error_case="tests/cases/err_undefined_function.cst"
 detail=""
 if "$cstar" check "$error_case" >"$work/ce.out" 2>"$work/ce.err"; then
   detail="  check exited 0, expected nonzero"$'\n'
@@ -157,17 +157,17 @@ detail=""
 if "$cstar" build "$valid_case" -o "$work/x" \
     >"$work/br.out" 2>"$work/br.err"; then
   expected_build_exit=0
-  if [ -f "${valid_case%.pen}.exit" ]; then
-    expected_build_exit="$(tr -d '[:space:]' <"${valid_case%.pen}.exit")"
+  if [ -f "${valid_case%.cst}.exit" ]; then
+    expected_build_exit="$(tr -d '[:space:]' <"${valid_case%.cst}.exit")"
   fi
   "$work/x" >"$work/br.run.out" 2>"$work/br.run.err"
   br_exit=$?
   if [ "$br_exit" -ne "$expected_build_exit" ]; then
     detail+="  built binary exit: expected $expected_build_exit, got $br_exit"$'\n'
   fi
-  if ! cmp -s "${valid_case%.pen}.out" "$work/br.run.out"; then
+  if ! cmp -s "${valid_case%.cst}.out" "$work/br.run.out"; then
     detail+="  built binary stdout mismatch (expected vs actual):"$'\n'
-    detail+="$(diff -u "${valid_case%.pen}.out" "$work/br.run.out" | head -n 20 | sed 's/^/    /')"$'\n'
+    detail+="$(diff -u "${valid_case%.cst}.out" "$work/br.run.out" | head -n 20 | sed 's/^/    /')"$'\n'
   fi
 else
   detail+="  build failed:"$'\n'
@@ -179,7 +179,7 @@ else
   report_pass "$n" "build_roundtrip"
 fi
 
-expected_out="${valid_case%.pen}.out"
+expected_out="${valid_case%.cst}.out"
 
 # check_source_ext DIR FILE LABEL — `cstar run FILE` and the bare `cstar FILE`
 # form both print the valid case's output, and `cstar build FILE` (run in DIR)
@@ -251,9 +251,9 @@ if [ "$nh_exit" -ne 0 ]; then
   detail+="  run without sha256sum exited $nh_exit (141 = SIGPIPE death)"$'\n'
   detail+="$(head -n 10 "$work/nh.err" | sed 's/^/    /')"$'\n'
 fi
-if ! cmp -s "${valid_case%.pen}.out" "$work/nh.out"; then
+if ! cmp -s "${valid_case%.cst}.out" "$work/nh.out"; then
   detail+="  run without sha256sum stdout mismatch:"$'\n'
-  detail+="$(diff -u "${valid_case%.pen}.out" "$work/nh.out" | head -n 20 | sed 's/^/    /')"$'\n'
+  detail+="$(diff -u "${valid_case%.cst}.out" "$work/nh.out" | head -n 20 | sed 's/^/    /')"$'\n'
 fi
 leftover_hash=( "$work/notmp"/cstar-hash-* "$work/notmp"/pentest-hash-* )
 if [ "${#leftover_hash[@]}" -gt 0 ]; then
@@ -268,7 +268,7 @@ fi
 # Extra check (f): `check` on a valid multi-file program — silent success.
 n=$((n + 1))
 detail=""
-"$cstar" check tests/cases/imp_check.pen >"$work/ci.out" 2>"$work/ci.err"
+"$cstar" check tests/cases/imp_check.cst >"$work/ci.out" 2>"$work/ci.err"
 ci_exit=$?
 if [ "$ci_exit" -ne 0 ]; then
   detail+="  check exited $ci_exit, expected 0"$'\n'
@@ -287,10 +287,10 @@ fi
 # them (imp_unused passes), but strict mode must report the error.
 n=$((n + 1))
 detail=""
-if "$cstar" check tests/cases/imp_unused.pen >"$work/cu.out" 2>"$work/cu.err"; then
+if "$cstar" check tests/cases/imp_unused.cst >"$work/cu.out" 2>"$work/cu.err"; then
   detail="  check exited 0, expected failure for the unused broken body"$'\n'
 fi
-if ! grep -F -q "lib/broken.pen" "$work/cu.err"; then
+if ! grep -F -q "lib/broken.cst" "$work/cu.err"; then
   detail+="  diagnostic did not name the imported file:"$'\n'
   detail+="$(head -n 10 "$work/cu.err" | sed 's/^/    /')"$'\n'
 fi

@@ -4,6 +4,7 @@ TODO.txt
 .vscode/
 examples/
 tests/*.pen
+tests/*.cst
 extras/
 
 # Local speed-test workspace (Pentest vs optimized C) — scratch, not shipped

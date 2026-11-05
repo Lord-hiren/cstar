@@ -22,6 +22,12 @@ versions are the strings reported by `pentest --version`. For the narrative see
 - `--version` prints `cstar 0.2.1`. The run cache moved to
   `$XDG_CACHE_HOME/cstar/` (`<key>.bin`); scratch folders are `cstar-*`. The
   old `~/.cache/pentest/` is no longer used and can be deleted.
+- Error messages name the language **cstar**: `'eval' is not available in
+  cstar: …`, `cstar supports only the UTF-8 encoding`, `pow() 3rd argument
+  must be positive (cstar does not support negative moduli)`, `chr()
+  surrogates are not allowed (cstar strings are UTF-8)`.
+- The test programs use `.cst`: all 365 cases in `tests/cases/` and the module
+  fixtures in `tests/cases/lib/` were renamed from `.pen`.
 
 ### Tooling
 - GitHub Actions CI (`.github/workflows/ci.yml`): a warning-free build,
