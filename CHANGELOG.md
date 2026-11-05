@@ -28,11 +28,27 @@ versions are the strings reported by `pentest --version`. For the narrative see
   surrogates are not allowed (cstar strings are UTF-8)`.
 - The test programs use `.cst`: all 365 cases in `tests/cases/` and the module
   fixtures in `tests/cases/lib/` were renamed from `.pen`.
+- **The VSCode extension is cstar**: id `cstar-lang.cstar-lang`, language id
+  `cstar`, grammar `source.cstar`. It opens `.cst` files (and `.pen`/`.pent`
+  until v0.4), runs `cstar check` and `cstar run` (falling back to a `pentest`
+  CLI), and reads the new `cstar.executable`, `cstar.diagnostics` and
+  `cstar.diagnosticsDelay` settings. The `pentest.*` settings and the
+  `pentest.run` / `pentest.toggleLineComment` command ids still work until v0.4;
+  the settings show as deprecated.
+- The editor extension knows the SIMD vector builtins `fvec`, `ivec`,
+  `fvec_fill`, `ivec_fill` and `dot` (highlighting, completion, hover, reserved
+  names); it now covers all 78 builtins the compiler reserves.
 
 ### Tooling
 - GitHub Actions CI (`.github/workflows/ci.yml`): a warning-free build,
   `make test`, the editor smoke test and the docs checker on Ubuntu 24.04, for
   pushes to `main`/`phase-*` and pull requests to `main`.
+- `install-vscode-extension.sh` installs `cstar-lang.cstar-lang` and removes
+  any other link to the same `editors/vscode` folder (such as the pre-rename
+  `pentest-lang.pentest-lang`), which would load the extension twice; it never
+  deletes real folders. On Windows it links with a directory junction (Git
+  Bash's `ln -s` silently copied), and on macOS it uses `~/.vscode/extensions`
+  (it used a folder VS Code does not read).
 
 ### Documentation
 - New: [quick reference](docs/guide/quick-reference.md), the whole language and
