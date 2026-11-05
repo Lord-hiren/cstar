@@ -179,7 +179,7 @@ building-and-testing (history README, progress-m2b, progress-m2c), in the same e
 |-------|------------|
 | WSL idled out after the first 10-minute A/B run, and its reboot wiped `/tmp` (both the outputs and compiler A), so the first compare read missing files | Scratch moved to `/root`; build A, run and compare in one WSL session (`ab-all.sh`); the data persisted for later comparisons |
 | PowerShell mangled an inline `bash -c` loop | Script files in the scratchpad, as before |
-| Ledger timestamps for the 02-04 plan/apply entries were estimates (05:30Z/06:00Z) | Corrected to the commit times (16:55Z/16:56Z) in this UNIFY |
+| Ledger timestamps for the 02-04 plan/apply entries were estimates (05:30Z/06:00Z) | Plan corrected to its commit time (16:55Z) in this UNIFY; apply (first set to an estimated 16:56Z) was re-set to the first task commit, 17:03:39Z, in 02-05's UNIFY |
 
 ## Next Phase Readiness
 

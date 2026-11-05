@@ -16,21 +16,21 @@ See: .paul/PROJECT.md (updated 2026-11-04 after Phase 1)
 ## Current Position
 
 Milestone: v0.3 cstar Foundation (v0.3.0)
-Phase: 2 of 4 (Rename to cstar) — Planning
-Plan: 02-05 created, awaiting approval
-Status: PLAN created, ready for APPLY
-Last activity: 2026-11-05 — Created .paul/phases/02-rename-to-cstar/02-05-PLAN.md
+Phase: 2 of 4 (Rename to cstar) — Complete (5 of 5 plans)
+Plan: 02-05 complete
+Status: Loop closed; Phase 2 transition next
+Last activity: 2026-11-05 — Unified 02-05 (D-6 closed; known issue #10 logged for Phase 3)
 
 Progress:
-- Milestone: [██████░░░░] 64% (7 of 11 plans; 1 of 4 phases)
-- Phase 2: [████████░░] 80% (4 of 5 plans)
+- Milestone: [███████░░░] 73% (8 of 11 plans; 2 of 4 phases)
+- Phase 2: [██████████] 100% (5 of 5 plans)
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ○        ○     [Plan 02-05 created, awaiting approval]
+  ✓        ✓        ✓     [Loop complete - Phase 2 transition next]
 ```
 
 ## Accumulated Context
@@ -50,6 +50,7 @@ PLAN ──▶ APPLY ──▶ UNIFY
 | 2026-11-05: editor extension is `cstar-lang.cstar-lang`, one language id `cstar` for `.cst`/`.pen`/`.pent`; `pentest.*` settings and command ids honoured until v0.4 | Phase 2 | Existing editor setups keep working |
 | 2026-11-05: human-verify checkpoints are automated by Claude where possible (e.g. a real VS Code test instance) | Phase 2 | Fewer manual steps for you |
 | 2026-11-05: internal names are `cstar_rt.{h,c}`, `cs_`/`CS_`, `namespace cstar`, `__csm<id>_` (historical docs keep old names + a note) | Phase 2 | New runtime code (Phase 3) uses these names |
+| 2026-11-05: `fvec %` bug — SPEC §5.11.9 states the intended rule (TypeError, like float `%`); logged as known issue #10; fixed in Phase 3 | Phase 2 | Phase 3 gains a fourth issue |
 
 Full decision log: PROJECT.md → Key Decisions.
 
@@ -57,10 +58,11 @@ Full decision log: PROJECT.md → Key Decisions.
 
 | Issue | Origin | Effort | Revisit |
 |-------|--------|--------|---------|
-| D-6: SPEC lacks `fvec`/`ivec`/`fvec_fill`/`ivec_fill`/`dot`; says "seventy" (code has 78) | 01-02 | M | With 02-05 (docs/SPEC) or its own plan |
+| Known issue #10: `%` on an `fvec` returns wrong values (should be a TypeError) | 02-05 | S | Phase 3 (with #7, #8, #9) |
 | D-9: CI not yet run on GitHub (branch not pushed); GitHub `main` still has the broken `file_line_edges.out` | 01-03 | S | Whenever you approve a push |
 | D-10: keep the real-VS-Code end-to-end test (45 checks) in the repo as a local-only check | 02-03 | S | Optional; any editor plan |
 | D-11: benchmark tooling (tools/hpcbench, bench/ runners, generators and workloads) still uses `.pen` and `build/pentest` (both work until v0.4) | 02-04/02-05 planning | S | Before the v0.4 legacy removal |
+| D-12: the membership TypeError names the retired `->` operator (`unsupported operand types for ->: …`); normative in m2a/m2b + 7 test expectations — changing it to `in` means contract + SPEC + tests together | 02-05 | S | When convenient (a deliberate wording decision) |
 | Auto-GPU float policy; memory-access scope; "freely code in app" meaning | Init | S | v0.8 / v0.5 / v0.4 planning |
 
 ### Blockers/Concerns
@@ -69,7 +71,7 @@ None.
 
 ### Git State
 
-Last commit: bf5cf75 docs(02-04): references use the cstar internal names (+ plan metadata commit)
+Last commit: ce83ac3 docs(02-05): guides, README and doc tools say cstar (+ plan metadata commit)
 Branch: phase-2-rename (from phase-1-dev-environment; local only)
 main: 6c82d72 (local and remote, unchanged)
 Feature branches merged: none (merge into main and push only when you ask)
@@ -77,9 +79,9 @@ Feature branches merged: none (merge into main and push only when you ask)
 ## Session Continuity
 
 Last session: 2026-11-05
-Stopped at: Plan 02-05 created
-Next action: Review and approve plan, then run /paul:apply .paul/phases/02-rename-to-cstar/02-05-PLAN.md
-Resume file: .paul/phases/02-rename-to-cstar/02-05-PLAN.md
+Stopped at: Plan 02-05 unified (Phase 2: 5/5 plans)
+Next action: Phase 2 transition (PROJECT.md, ROADMAP.md, phase commit)
+Resume file: .paul/phases/02-rename-to-cstar/02-05-SUMMARY.md
 
 ---
 *STATE.md — Updated after every significant action*
