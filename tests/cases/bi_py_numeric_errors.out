@@ -5,7 +5,7 @@
 5 negative exponent
 6 unsupported operand types for **: text and int
 7 pow() 3rd argument cannot be 0
-8 pow() 3rd argument must be positive (Pentest does not support negative moduli)
+8 pow() 3rd argument must be positive (cstar does not support negative moduli)
 9 pow() 3-argument form does not support negative exponents (no modular inverse)
 10 pow() 3-argument form expects int operands
 11 round(): 'ndigits' must be an int, not 'text'

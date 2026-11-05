@@ -25,7 +25,7 @@ b"\x00"
 b""
 b"\x01\x00"
 1 string argument without an encoding
-2 Pentest supports only the UTF-8 encoding
+2 cstar supports only the UTF-8 encoding
 3 bytes must be in range(0, 256)
 4 bytes must be in range(0, 256)
 5 negative count

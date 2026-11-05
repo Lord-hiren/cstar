@@ -1508,7 +1508,7 @@ class Checker {
       // name so the intent is documented where it happens. This is the
       // terminal diagnosis for the call — no arity/shape check follows
       // (their shapes only make sense in a language that has them).
-      error(e.loc, "'" + n + "' is not available in Pentest: programs are "
+      error(e.loc, "'" + n + "' is not available in cstar: programs are "
                            "compiled ahead of time and the runtime never "
                            "compiles source (see SPEC.md §5.11.6)");
       for (auto& arg : e.args)

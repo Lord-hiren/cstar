@@ -267,7 +267,7 @@ the [tour](language-tour.md#13-exceptions).
   no inheritance`).
 * **Rejected at compile time**: `eval`, `exec`, `compile`. Pentest compiles
   ahead of time and ships no interpreter, so
-  `'eval' is not available in Pentest: programs are compiled ahead of time and
+  `'eval' is not available in cstar: programs are compiled ahead of time and
   the runtime never compiles source`.
 * **Not implemented, deferred**: `bytearray`, `complex`, `frozenset`.
 

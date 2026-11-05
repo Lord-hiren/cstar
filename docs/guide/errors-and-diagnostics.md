@@ -133,7 +133,7 @@ example.pen:1:1: error: cannot assign to reserved name 'sum'
 | `integer literal out of range` | literal > 9223372036854775807 | arithmetic wraps, but literals cannot |
 | `no binding for nonlocal 'x' found` | no enclosing function binds `x` | assign it in the outer function first |
 | `classes must be declared at the top level` | `class` inside a function | move it out |
-| `'eval' is not available in Pentest…` | `eval`/`exec`/`compile` | not supported by design |
+| `'eval' is not available in cstar…` | `eval`/`exec`/`compile` | not supported by design |
 
 ### Import errors
 

@@ -967,7 +967,7 @@ positional binds **stop** (§5.11.5.10).
 | `bin(x)` | `0b…` text for a non-negative `int`, `-0b…` for a negative; non-int → `TypeError` `'<t>' object cannot be interpreted as an integer` |
 | `bytes(source?, encoding?, errors?)` | see below — `bytes()` empty, `bytes(n)` n zero bytes, `bytes(iterable)` of 0..255, `bytes(bytes)` copy, `bytes(text, encoding)` UTF-8 encode |
 | `callable(obj)` | `bool` — `True` for function values, bound methods, class and exception classes; `False` for everything else (never raises) |
-| `chr(i)` | one-code-point `text` for 0..0x10FFFF; out of range → `ValueError`; surrogates → `ValueError` `chr() surrogates are not allowed (Pentest strings are UTF-8)` |
+| `chr(i)` | one-code-point `text` for 0..0x10FFFF; out of range → `ValueError`; surrogates → `ValueError` `chr() surrogates are not allowed (cstar strings are UTF-8)` |
 | `delattr(obj, name)` | `None` — removes one **dynamic instance field**; class method → `AttributeError` `'<C>' attribute '<m>' belongs to its class and cannot be deleted`; missing field or non-instance → `AttributeError` `'<t>' object has no attribute '<n>'` |
 | `dict(source?, **pairs)` | a `map`; ≤ 1 positional source (a `map` copies, an iterable of 2-item pairs / a `zip` list unpacks; element errors mirror CPython: `dictionary update sequence element #0 is not a pair`, `… has length 3; 2 is required`) |
 | `dir(obj?)` | no argument → **sorted** `text` names of the globals table (§5.11.5.4); with an instance → sorted union of its dynamic field and method names; anything else → `TypeError` `'<t>' object has no attributes` |
@@ -990,7 +990,7 @@ positional binds **stop** (§5.11.5.10).
 | `min(…, key?, default?)` | mirror of `max` (`min() arg is an empty sequence`) |
 | `next(obj, default?)` | advances a boxed iterator one step; a `file` yields its next line **including** the trailing newline (Python); exhaustion with `default` → `default`, without → `StopIteration`; non-iterator → `TypeError` `'<t>' object is not an iterator`, non-iterable → `'<t>' object is not iterable` |
 | `oct(x)` | `0o…` text; same `TypeError` as `bin` |
-| `open(file, mode="r", encoding?)` | a `file` value; `mode` is `r`/`w`/`a` plus optional `t` or `b` (`x` → `ValueError` `open(): unsupported mode '<m>'`); UTF-8 only (`encoding` other → `ValueError` `Pentest supports only the UTF-8 encoding`; on `b` → `ValueError` `binary mode doesn't take an encoding argument`); missing file → `FileNotFoundError` `[Errno 2] No such file or directory: '<path>'` |
+| `open(file, mode="r", encoding?)` | a `file` value; `mode` is `r`/`w`/`a` plus optional `t` or `b` (`x` → `ValueError` `open(): unsupported mode '<m>'`); UTF-8 only (`encoding` other → `ValueError` `cstar supports only the UTF-8 encoding`; on `b` → `ValueError` `binary mode doesn't take an encoding argument`); missing file → `FileNotFoundError` `[Errno 2] No such file or directory: '<path>'` |
 | `ord(c)` | `int` code point of a one-character `text`; empty → `TypeError` `ord() expected a character, but string of length 0 found`; longer → `TypeError` `ord() expected a character, but string of length <n> found`; non-`text` → `TypeError` `ord() expected string of length 1, but <t> found` |
 | `pow(base, exp, mod?)` | two-argument: wrapping int power (§5.3) or `float`; three-argument: `int` only with an `int` modulus — `mod ≤ 0` → `ValueError`, negative exponent → `ValueError` `pow() 3-argument form does not support negative exponents (no modular inverse)` (computed with `__int128` modular exponentiation) |
 | `repr(x)` | the quoted/escaped form of §5.6: `'…'` for text with `\n \t \\ \' \xNN`-style escapes (interior `"` kept raw), quoted inner text inside collections, `b"…"` for bytes; non-text → its display form |
@@ -1012,7 +1012,7 @@ positional binds **stop** (§5.11.5.10).
 out of range → `ValueError` `bytes must be in range(0, 256)`;
 `bytes(bytes)` → a fresh copy; `bytes(text, …)` **requires** an encoding
 (omitted → `TypeError` `string argument without an encoding`), accepts
-only `utf-8`/`utf8` (else `ValueError` `Pentest supports only the UTF-8
+only `utf-8`/`utf8` (else `ValueError` `cstar supports only the UTF-8
 encoding`), and `encoding`/`errors` must be `text` (`bytes() argument
 'encoding' must be str, not <t>` / `'errors'` likewise) — passing either
 to a non-text source → `TypeError` `encoding without a string argument` /
@@ -1103,7 +1103,7 @@ documented cases below.
     raises at runtime).
 11. **`bytes` display uses Pentest's locked form** `b"…"` (double
     quotes) where Python's repr uses `b'…'`; `bytes(text)` supports only
-    UTF-8 (`encoding="ascii"` → `ValueError Pentest supports only the
+    UTF-8 (`encoding="ascii"` → `ValueError cstar supports only the
     UTF-8 encoding`) and `errors=` is accepted but never consulted.
     `chr()` rejects surrogates (UTF-8 cannot represent them).
 12. **Files:** `seek()` allows end-relative seeks in text mode (Python's
@@ -1150,7 +1150,7 @@ compiler in every binary. Calling one is a **compile-time error**
 (the message names the call site and §5.11.6):
 
 ```
-'eval' is not available in Pentest: programs are compiled ahead of time
+'eval' is not available in cstar: programs are compiled ahead of time
 and the runtime never compiles source (see SPEC.md §5.11.6)
 ```
 
@@ -1985,7 +1985,7 @@ The semantic pass **collects and reports every error**, then fails. Prefix:
 | unknown named argument to a Python-parity builtin (or any name to `map`/`zip`) | `'abs' has no named argument 'y'` (message carries the actual builtin's name) |
 | named argument binding a slot already filled positionally | `'round' got multiple values for argument 'ndigits'` (message carries the actual builtin's name) |
 | `dict()` called with 2+ positionals | `'dict' expects at most 1 positional argument, got <n>` (named arguments excluded from the count) |
-| `eval(...)`, `exec(...)` or `compile(...)` called anywhere | `'eval' is not available in Pentest: programs are compiled ahead of time and the runtime never compiles source (see SPEC.md §5.11.6)` (message carries the actual name; §5.11.6) |
+| `eval(...)`, `exec(...)` or `compile(...)` called anywhere | `'eval' is not available in cstar: programs are compiled ahead of time and the runtime never compiles source (see SPEC.md §5.11.6)` (message carries the actual name; §5.11.6) |
 | call to `print` (any count ≥ 0); call to `range` (1–3 args); call to `set` (0–1); call to `collect` (0 args) | never an error |
 | variable read of undefined name | `undefined variable 'zzz'` |
 | qualified reference whose qualifier/binding doesn't resolve | `no binding for 'variable.global zzz' found` (message carries the actual `variable.<qual> <name>`, §8) |

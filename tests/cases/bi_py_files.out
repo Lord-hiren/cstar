@@ -49,7 +49,7 @@ b"\x00\xff"
 1 [Errno 2] No such file or directory: '/tmp/pen_files_missing.txt'
 2 open(): unsupported mode 'x'
 3 open(): unsupported mode 'q'
-4 Pentest supports only the UTF-8 encoding
+4 cstar supports only the UTF-8 encoding
 5 binary mode doesn't take an encoding argument
 6 open(): argument 1 must be str or bytes, not 'int'
 7 I/O operation on closed file
