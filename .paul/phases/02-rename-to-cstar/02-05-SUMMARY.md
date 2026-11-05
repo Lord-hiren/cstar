@@ -73,7 +73,7 @@ This completes Phase 2.
 | Completed | 2026-11-05 |
 | Tasks | 3 of 3 (auto); one decision asked mid-task (fvec `%`) |
 | Qualify results | 3 PASS. Task 3 caught one self-inflicted sample break before verification (see deviations) |
-| Commits | `6ab620c` (plan), `ee0b6a0` (D-6), `09c05e0` (normative docs), `ce83ac3` (guides + tools) |
+| Commits | `d6e5666` (plan), `65d5b59` (D-6), `854b25c` (normative docs), `9552911` (guides + tools) |
 | Diff | 55 files, +507 / −316 |
 
 ## Acceptance Criteria Results
@@ -83,7 +83,7 @@ This completes Phase 2.
 | AC-1: SPEC specifies the vector builtins and the true count (D-6) | ✅ Pass | **§5.11.9:** signatures, arity, element and scalar rules, operators, equality, lanes/indexing/stores, slicing, iteration, reductions, unhashability, and every message. **Messages:** 32 checked — 19 in code verbatim, 11 identical to the compiler's actual output (format-built), 2 exempt (a code expression; the intended `%` TypeError). **Counts:** seventy-eight in §3.5, §5.11.1, §8 and §10; `fvec`/`ivec` added to the §5.1 tags (eighteen), heap objects and the §5.1/§9.3 type names. **Sample** passes. **Headings:** 90 → 91, only 5.11.9 added |
 | AC-2: Normative docs say cstar without changing meaning | ✅ Pass | **Code-span multiset** before/after (rename rules normalised): m2a, m2b and known-issues identical. SPEC and m1 differ only by the added legacy/supersession spans and the removed stale `.pentest`. **Section numbers** unchanged. Legacy notes and the corrections record kept |
 | AC-3: Every other living doc and doc tool says cstar | ✅ Pass | ~280 lines in 50 files. `check_docs.py` runs samples as `example.cst` via `build/cstar`. CLAUDE.md vocabulary note updated. **Final sweep:** 579 remaining hits all tagged — bench tooling 214, history 162, code/legacy support 110, legacy notes 68, M1 record 12, private files 6, fixture data 3, dev path 2, corrections record 2 — 0 untagged |
-| AC-4: All gates green | ✅ Pass | Local and in a fresh clone of `ce83ac3`: 0 build warnings, make test 376/0, smoke 1363/0, check_docs 320 links / 0 broken, 53 samples pass (one more: the SPEC vector sample) |
+| AC-4: All gates green | ✅ Pass | Local and in a fresh clone of `9552911`: 0 build warnings, make test 376/0, smoke 1363/0, check_docs 320 links / 0 broken, 53 samples pass (one more: the SPEC vector sample) |
 
 ## Accomplishments
 
@@ -101,10 +101,10 @@ This completes Phase 2.
 
 | Task | Commit | Type | Description |
 |------|--------|------|-------------|
-| Plan | `6ab620c` | docs | Plan 02-05 |
-| Task 1: D-6 | `ee0b6a0` | docs | SPEC §5.11.9 + counts + type lists; known issue #10 |
-| Task 2: normative docs | `09c05e0` | docs | SPEC/contracts/reference wording; m1 §9 superseded; known-issues #7–#9 |
-| Task 3: guides + tools | `ce83ac3` | docs | Guides, README, internals, CLAUDE.md, CHANGELOG, check_docs.py, test comments, bench prose |
+| Plan | `d6e5666` | docs | Plan 02-05 |
+| Task 1: D-6 | `65d5b59` | docs | SPEC §5.11.9 + counts + type lists; known issue #10 |
+| Task 2: normative docs | `854b25c` | docs | SPEC/contracts/reference wording; m1 §9 superseded; known-issues #7–#9 |
+| Task 3: guides + tools | `9552911` | docs | Guides, README, internals, CLAUDE.md, CHANGELOG, check_docs.py, test comments, bench prose |
 
 Plan metadata: committed with this SUMMARY.
 
@@ -152,12 +152,12 @@ There was no scope creep into code.
 - `(?<=\w)\.pen` turned `"x.pen".ends_with(".pen")` into `"x.cst".ends_with(".pen")` (language-tour,
   quick-reference). Expected output `True` would have failed.
 - **Fix:** `.ends_with(".cst")`. Found in the post-pass review, before check_docs ran.
-- **Commit:** `ce83ac3`
+- **Commit:** `9552911`
 
 **2. [Docs] The builtins guide's SIMD section was wrong in three places**
 - `fvec` does not take `bool` scalars; `%` is not scalar-like on `fvec`; `==` yields one `bool`.
 - **Fix:** aligned with §5.11.9, with a link to issue #10.
-- **Commit:** `ce83ac3`
+- **Commit:** `9552911`
 
 **3. [Docs] Guides still described the pre-02-01 CLI**
 - `.pentest` build output, `~/.cache/pentest/`, `pentest-XXXXXX`, `$PENTEST_PATH` only, and a module
@@ -165,12 +165,12 @@ There was no scope creep into code.
   README said 372 checks.
 - **Fix:** rewritten to SPEC §10 and the driver's real names (`<key>.bin`, `cstar-XXXXXX`, the clang
   message).
-- **Commit:** `ce83ac3`
+- **Commit:** `9552911`
 
 **4. [Normative] The m1 contract still specified the M1 CLI**
 - Since contracts win over SPEC, it contradicted SPEC §10.
 - **Fix:** a supersession note plus updated table rows; the M1 rules are kept as the record.
-- **Commit:** `09c05e0`
+- **Commit:** `854b25c`
 
 ### Scope additions
 

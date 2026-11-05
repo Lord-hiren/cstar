@@ -61,7 +61,7 @@ commit, the `file_line_edges` test failed in every fresh clone. That's now fixed
 | Completed | 2026-11-04 |
 | Tasks | 3 of 4 executed. Task 4 (push + watch the run) was skipped by decision `no-push` |
 | Qualify results | 3 PASS (Task 2 passed after the approved fix) |
-| Commits | `2d81c3e` (CI), `d420220` (fix) |
+| Commits | `ed64763` (CI), `f97a7be` (fix) |
 
 ## Acceptance Criteria Results
 
@@ -87,8 +87,8 @@ commit, the `file_line_edges` test failed in every fresh clone. That's now fixed
 
 | Task | Commit | Type | Description |
 |------|--------|------|-------------|
-| Task 1: CI workflow + docs | `2d81c3e` | ci | `.github/workflows/ci.yml`, building-and-testing, CLAUDE.md, CHANGELOG |
-| Task 2: Fresh-clone rehearsal (+ approved fix) | `d420220` | fix | `.gitattributes` `-text` rules; restore the CR byte in `file_line_edges.out` |
+| Task 1: CI workflow + docs | `ed64763` | ci | `.github/workflows/ci.yml`, building-and-testing, CLAUDE.md, CHANGELOG |
+| Task 2: Fresh-clone rehearsal (+ approved fix) | `f97a7be` | fix | `.gitattributes` `-text` rules; restore the CR byte in `file_line_edges.out` |
 | Task 3: Push decision | — | — | `no-push` |
 | Task 4: Push + watch run | — | — | Skipped (`no-push`) |
 
@@ -131,7 +131,7 @@ commit, the `file_line_edges` test failed in every fresh clone. That's now fixed
 - **Boundary:** `tests/*` was protected by the plan; the fix ran only after you approved it.
 - **Verification:** the staged blob has 1 CR and is byte-identical to the working copy; the fresh-clone
   rehearsal gives 372/0.
-- **Commit:** `d420220`
+- **Commit:** `f97a7be`
 
 ### Deferred Items
 

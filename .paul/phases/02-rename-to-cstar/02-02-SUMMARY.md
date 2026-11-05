@@ -70,7 +70,7 @@ The code, SPEC quotes, guides and test expectations changed together. All 371 te
 | Completed | 2026-11-05 |
 | Tasks | 2 of 2 (auto) |
 | Qualify results | 2 PASS. Task 1 needed one fix loop: `bi_py_text.out` (see deviations) |
-| Commits | `5e758bf` (plan), `96de0e6` (messages), `ccecc4d` (.cst tests) |
+| Commits | `f685090` (plan), `8f3b997` (messages), `b41c737` (.cst tests) |
 
 ## Acceptance Criteria Results
 
@@ -79,7 +79,7 @@ The code, SPEC quotes, guides and test expectations changed together. All 371 te
 | AC-1: Messages say cstar | ✅ Pass | Probe: bytes(), open(), pow() and chr() print the cstar messages; `check` on `eval("1")` prints the semantic message; no string literal in src/ or runtime/ contains "Pentest" |
 | AC-2: SPEC, docs and expectations match | ✅ Pass | SPEC quotes at 970, 993, 1015, 1106, 1153, 1988; builtins.md; errors-and-diagnostics.md; 5 expectation files. 89 SPEC headings, unchanged |
 | AC-3: Test files are .cst | ✅ Pass | 365 + 6 `.cst`; 0 tracked `.pen` under tests/; 371 renames (`git log --follow` reaches the initial commit); err_uncaught_raise.err expects `.cst:4:` |
-| AC-4: Harness runs .cst and stays green | ✅ Pass | 376/0, local and fresh clone (`ccecc4d`); `legacy_extensions` still covers .pen/.pent; smoke 1294/0; docs 315 links / 0 broken, 52 samples |
+| AC-4: Harness runs .cst and stays green | ✅ Pass | 376/0, local and fresh clone (`b41c737`); `legacy_extensions` still covers .pen/.pent; smoke 1294/0; docs 315 links / 0 broken, 52 samples |
 
 ## Accomplishments
 
@@ -93,9 +93,9 @@ The code, SPEC quotes, guides and test expectations changed together. All 371 te
 
 | Task | Commit | Type | Description |
 |------|--------|------|-------------|
-| Plan | `5e758bf` | docs | Plan 02-02; Phase 2 split into 5 plans |
-| Task 1: messages | `96de0e6` | feat | 5 messages; SPEC ×6 quotes; 2 guides; 5 expectation files |
-| Task 2: .cst tests | `ccecc4d` | test | 371 `git mv`; harness; .gitignore; CLAUDE.md; building-and-testing; CHANGELOG |
+| Plan | `f685090` | docs | Plan 02-02; Phase 2 split into 5 plans |
+| Task 1: messages | `8f3b997` | feat | 5 messages; SPEC ×6 quotes; 2 guides; 5 expectation files |
+| Task 2: .cst tests | `b41c737` | test | 371 `git mv`; harness; .gitignore; CLAUDE.md; building-and-testing; CHANGELOG |
 
 Plan metadata: committed with this SUMMARY.
 
@@ -142,11 +142,11 @@ inside the plan's intent.
   bytes, git marks it `-text`, and the search tools skip binary files, so it never showed up.
 - **Fix:** `sed` on line 15 only (the file shrank by exactly 2 bytes, Pentest → cstar). A binary-safe
   `grep -a` scan of all `-text` expectation files found no other occurrence.
-- **Commit:** `96de0e6`
+- **Commit:** `8f3b997`
 
 **2. [Planning fact] One more SPEC quote: §5.11.5 deviations list (line 1106)**
 - **Fix:** Updated with the other quotes (the UTF-8 message, wrapped across lines).
-- **Commit:** `96de0e6`
+- **Commit:** `8f3b997`
 
 ### Scope additions
 
@@ -154,7 +154,7 @@ inside the plan's intent.
 - **Planned:** only the test-file extension.
 - **Also done:** the extra-checks list (7 → 11, now a table) and the count 376 = 365 + 11, both stale
   since 02-01. Same file and the same topic; leaving them stale next to the edit would have been wrong.
-- **Commit:** `ccecc4d`
+- **Commit:** `b41c737`
 
 ### Deferred Items
 

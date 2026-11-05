@@ -68,7 +68,7 @@ Full decision log: PROJECT.md → Key Decisions.
 
 ### Git State
 
-Last commit: ce83ac3 docs(02-05): guides, README and doc tools say cstar (+ metadata commits c6d229a and the Phase 2 transition commit)
+Last commit: 9552911 docs(02-05): guides, README and doc tools say cstar (+ metadata commits 5cd85d9 and the Phase 2 transition commit)
 Branch: phase-2-rename (from phase-1-dev-environment; local only); Phase 3 gets its own branch from here
 main: 6c82d72 (local and remote, unchanged)
 Feature branches merged: none (merge into main and push only when you ask)

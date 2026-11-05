@@ -69,7 +69,7 @@ about: "cstar"
 | Completed | 2026-11-05 |
 | Tasks | 3 of 3 (all auto) |
 | Qualify results | 3 PASS, 0 GAP, 0 DRIFT |
-| Commits | `d8659ee` (plan), `546944d` (driver + harness + CI), `7bdf09a` (SPEC + docs) |
+| Commits | `c2a1252` (plan), `5733f44` (driver + harness + CI), `09f2ca3` (SPEC + docs) |
 
 ## Acceptance Criteria Results
 
@@ -99,9 +99,9 @@ about: "cstar"
 
 | Task | Commit | Type | Description |
 |------|--------|------|-------------|
-| Plan + Phase 2 split | `d8659ee` | docs | Plan 02-01; ROADMAP: 4 plans in Phase 2 |
-| Task 1 + Task 2: driver, Makefile, harness, CI | `546944d` | feat | One commit: see the deviation below |
-| Task 3: SPEC, CLAUDE.md, CHANGELOG | `7bdf09a` | docs | SPEC §2/§10/§11.6/§14.2; Unreleased → Changed |
+| Plan + Phase 2 split | `c2a1252` | docs | Plan 02-01; ROADMAP: 4 plans in Phase 2 |
+| Task 1 + Task 2: driver, Makefile, harness, CI | `5733f44` | feat | One commit: see the deviation below |
+| Task 3: SPEC, CLAUDE.md, CHANGELOG | `09f2ca3` | docs | SPEC §2/§10/§11.6/§14.2; Unreleased → Changed |
 
 Plan metadata: committed with this SUMMARY.
 
@@ -143,7 +143,7 @@ Plan metadata: committed with this SUMMARY.
 - **Found during:** Task 1
 - **Issue:** The plan asked for one commit per task and for every commit to pass `make test`. Those
   conflict: the new driver makes the old harness check (d), which expected `script.pentest`, fail.
-- **Fix:** The driver, Makefile, harness and CI changes went into one commit (`546944d`), which passes 376/0.
+- **Fix:** The driver, Makefile, harness and CI changes went into one commit (`5733f44`), which passes 376/0.
 
 **2. [SPEC accuracy] The §10 compile-pipeline line now lists `-lm -lcurl`**
 - The old text said `-lm` only; the driver links both. Wording only.

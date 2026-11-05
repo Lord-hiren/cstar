@@ -74,7 +74,7 @@ server confirmed it end to end.
 | Completed | 2026-11-05 |
 | Tasks | 3 of 3 (auto) |
 | Qualify results | 3 PASS. Task 1 needed one tooling fix (composite reverse mapping) before the proof read clean; the code was right first time |
-| Commits | `290306b` (plan), `2c08c1d` (code rename), `72d8cf4` (comments + UA), `bf5cf75` (references) |
+| Commits | `3f11e63` (plan), `8870201` (code rename), `6115fa9` (comments + UA), `6fb2b1f` (references) |
 | Diff | 64 files, +5,252 / −5,232 |
 
 ## Acceptance Criteria Results
@@ -82,10 +82,10 @@ server confirmed it end to end.
 | Criterion | Status | Notes |
 |-----------|--------|-------|
 | AC-1: Code uses only the new internal names | ✅ Pass | `runtime/cstar_rt.{h,c}`; `git log --follow` reaches the initial commit. No old identifier in src/, runtime/, tools/embed.cpp or the Makefile. Every remaining `pentest` is legacy behaviour: the Makefile alias, the main.cpp alias comment, `PENTEST_PATH` |
-| AC-2: The rename is provably pure (A/B) | ✅ Pass | A = base `290306b`, B = renamed tree. Outputs 365/365 byte-identical (stdout, stderr, exit). gen.c 275/275 identical after reverse mapping; the other 90 cases are compile-time errors (82 err_, 4 imp_, 3 rt_ arity/reserved, 1 varq_) with identical outputs. Sources 20/20 identical to the base after reverse mapping (Task 1 commit). Final tree vs A, after Tasks 2–3: 365/365 and 275/275 again |
+| AC-2: The rename is provably pure (A/B) | ✅ Pass | A = base `3f11e63`, B = renamed tree. Outputs 365/365 byte-identical (stdout, stderr, exit). gen.c 275/275 identical after reverse mapping; the other 90 cases are compile-time errors (82 err_, 4 imp_, 3 rt_ arity/reserved, 1 varq_) with identical outputs. Sources 20/20 identical to the base after reverse mapping (Task 1 commit). Final tree vs A, after Tasks 2–3: 365/365 and 275/275 again |
 | AC-3: Comments and the User-Agent say cstar | ✅ Pass | 34 comment lines. A local Python server saw `GET`/`POST User-Agent: jev-pipeline/1.0 (cstar)`. SPEC:1192 and the extension hover (2×) quote the same text |
 | AC-4: Living references use the new names | ✅ Pass | 37 files mapped (508 `cs_`, 67 `CS_`, 51 `cstar_rt`, 9 `__csm`). Test comments only, no lines moved. History notes in 5 files. CHANGELOG Unreleased entry. Old names remain only in excluded/historical files |
-| AC-5: All gates green | ✅ Pass | make warning-free; make test 376/0; smoke 1363/0; check_docs 318 links / 0 broken, 52 samples pass. Fresh clone of `bf5cf75` in WSL: same results |
+| AC-5: All gates green | ✅ Pass | make warning-free; make test 376/0; smoke 1363/0; check_docs 318 links / 0 broken, 52 samples pass. Fresh clone of `6fb2b1f` in WSL: same results |
 
 ## Accomplishments
 
@@ -100,10 +100,10 @@ server confirmed it end to end.
 
 | Task | Commit | Type | Description |
 |------|--------|------|-------------|
-| Plan | `290306b` | docs | Plan 02-04 |
-| Task 1: code rename | `2c08c1d` | refactor | git mv runtime; mapping over src/ runtime/ embed Makefile; known-issues link |
-| Task 2: comments + UA | `72d8cf4` | refactor | 34 comment lines; User-Agent in runtime, SPEC and hover; extension comment |
-| Task 3: references | `bf5cf75` | docs | 37 living files; composite sample names; 3 stale facts; history notes (+D-8); CHANGELOG |
+| Plan | `3f11e63` | docs | Plan 02-04 |
+| Task 1: code rename | `8870201` | refactor | git mv runtime; mapping over src/ runtime/ embed Makefile; known-issues link |
+| Task 2: comments + UA | `6115fa9` | refactor | 34 comment lines; User-Agent in runtime, SPEC and hover; extension comment |
+| Task 3: references | `6fb2b1f` | docs | 37 living files; composite sample names; 3 stale facts; history notes (+D-8); CHANGELOG |
 
 Plan metadata: committed with this SUMMARY.
 
@@ -149,13 +149,13 @@ Plan metadata: committed with this SUMMARY.
 - **Issue:** the word-boundary mapping turned `pt_meta_pt_fn_square` into `cs_meta_pt_fn_square`.
 - **Fix:** 3 names set to `cs_mpn_cs_fn_square` / `cs_meta_cs_fn_square`, which is what the compiler now
   emits (seen in the A/B gen.c).
-- **Commit:** `bf5cf75`
+- **Commit:** `6fb2b1f`
 
 **2. [Docs] Three stale facts on lines already being edited**
 - The m1 contract said the runtime is "embedded in the `pentest` binary" → `cstar`.
 - cli.md gave the temp folder as `$TMPDIR/pentest-XXXXXX` → `cstar-XXXXXX` (main.cpp:151).
 - architecture.md said `build/pentest` carries the runtime → `build/cstar`.
-- **Commit:** `bf5cf75`
+- **Commit:** `6fb2b1f`
 
 **3. [Tooling] The reverse mapping for generated C** (scratchpad only)
 - Codegen joins prefixed names at run time, so the inner prefix follows `_`. A `reverse-gen` mode also

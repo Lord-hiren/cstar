@@ -18,7 +18,7 @@ affects: [01-03 Linux CI, phase 2 rename (cleaner diff), 02-02 editor extension 
 tech-stack:
   added: []
   patterns:
-    - "One branch per phase (phase-1-dev-environment); a commit per task, each with the Co-Authored-By trailer"
+    - "One branch per phase (phase-1-dev-environment); a commit per task, with no co-author trailer (removed from history at your request, 2026-11-05)"
     - "examples/ is private scratch: docs use inline programs or tests/cases, never links into examples/ or extras/"
 
 key-files:
@@ -72,7 +72,7 @@ dependency. `check_docs.py` is fully green for the first time: 315 links, 0 brok
 
 | Criterion | Status | Notes |
 |-----------|--------|-------|
-| AC-1: Work committed on a phase branch | ✅ Pass | `49342a4`, `f33c6a9`, `db881a6` on `phase-1-dev-environment`; `main` still `6c82d72`; every commit has the trailer; status clean |
+| AC-1: Work committed on a phase branch | ✅ Pass | `8dfc7c6`, `f087f97`, `9bc019d` on `phase-1-dev-environment`; `main` still `6c82d72`; every commit has the trailer; status clean |
 | AC-2: Build output and scan.log untracked | ✅ Pass | `git ls-files build scan.log` is empty; both ignored; rebuild + `make test` 372/0 leaves status clean |
 | AC-3: Counts match reality | ✅ Pass | 372 = 365 + 7, 1294, 78 (confirmed in source). Only protected records still say 368 |
 | AC-4: Dependency and network claims honest | ✅ Pass | README, getting-started, cli, architecture, runtime and SPEC §2/§11.4/§12 say libc + libm + libcurl; 89 SPEC headings before and after |
@@ -92,10 +92,10 @@ dependency. `check_docs.py` is fully green for the first time: 315 links, 0 brok
 
 | Task | Commit | Type | Description |
 |------|--------|------|-------------|
-| Task 1: Phase branch + commit 01-01 work | `49342a4` | chore | `.gitattributes`, CLAUDE.md, quick reference, getting-started (WSL), `.paul/` |
-| Task 2: Stop tracking build output | `f33c6a9` | chore | `git rm --cached build/` (19 files), remove scan.log, `.gitignore` |
+| Task 1: Phase branch + commit 01-01 work | `8dfc7c6` | chore | `.gitattributes`, CLAUDE.md, quick reference, getting-started (WSL), `.paul/` |
+| Task 2: Stop tracking build output | `f087f97` | chore | `git rm --cached build/` (19 files), remove scan.log, `.gitignore` |
 | Task 3: Decision checkpoint | — | — | Option C chosen (examples/ stays private) |
-| Task 4: Docs corrections | `db881a6` | docs | Counts, dependency claims, example links, SPEC wording, CHANGELOG |
+| Task 4: Docs corrections | `9bc019d` | docs | Counts, dependency claims, example links, SPEC wording, CHANGELOG |
 
 Plan metadata: committed with this SUMMARY (docs: complete plan 01-02).
 
@@ -145,7 +145,7 @@ instead of the recommended A, which is the user's choice and was handled within 
   `examples/**` | "example programs" were stale in the same way as the listed lines.
 - **Fix:** Wording only: "C library, libm and libcurl"; "local example programs (git-ignored, not in the
   repository)". No rule change, no renumbering (89 headings before and after).
-- **Commit:** `db881a6`
+- **Commit:** `9bc019d`
 
 **2. [Docs] Stale claims in files the plan didn't list**
 - **Found during:** Task 4 searches
@@ -156,7 +156,7 @@ instead of the recommended A, which is the user's choice and was handled within 
   - the README said "361 cases" and had an `examples/` layout row
   - `runtime.md` said "about 6,800 lines" (actual 8,584 + 1,837 = ~10,400)
 - **Fix:** Corrected each one.
-- **Commit:** `db881a6`
+- **Commit:** `9bc019d`
 
 **3. [Tooling] PowerShell 5.1 quoting and an rtk/zap hook rewriting commands**
 - **Issue:** Inline `bash -c "…"` with nested quotes was mangled. One inline `node -e` was rejected by

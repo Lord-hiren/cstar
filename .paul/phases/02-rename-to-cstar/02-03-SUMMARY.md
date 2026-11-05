@@ -74,7 +74,7 @@ Results: the smoke test passes 1363/0. In a real VS Code 1.144.1, all 45 end-to-
 | Completed | 2026-11-05 |
 | Tasks | 3 auto + 1 human-verify checkpoint (verified by Claude in a real VS Code, at the user's request) |
 | Qualify results | 3 PASS. Task 1 needed 17 smoke assertions updated to the new names (expected) |
-| Commits | `66deefb` (plan), `13e7aed` (rename), `e28e5a0` (D-7), `e701ee9` (docs + install script) |
+| Commits | `dd29e34` (plan), `90108f7` (rename), `e1f65aa` (D-7), `f3d789b` (docs + install script) |
 | Diff | 9 files, +819 / −463 |
 
 ## Acceptance Criteria Results
@@ -105,10 +105,10 @@ Results: the smoke test passes 1363/0. In a real VS Code 1.144.1, all 45 end-to-
 
 | Task | Commit | Type | Description |
 |------|--------|------|-------------|
-| Plan | `66deefb` | docs | Plan 02-03 |
-| Task 1: rename | `13e7aed` | feat | package.json; grammar and snippets `git mv` + scopes; extension.js settings/CLI/commands/text; smoke updates + fallback checks |
-| Task 2: D-7 | `e28e5a0` | feat | 5 vector builtins in RESERVED, BUILTIN_DOCS and the grammar; smoke section |
-| Task 3: docs + install | `e701ee9` | docs | install-vscode-extension.sh; extension README; editor-extension.md; CHANGELOG |
+| Plan | `dd29e34` | docs | Plan 02-03 |
+| Task 1: rename | `90108f7` | feat | package.json; grammar and snippets `git mv` + scopes; extension.js settings/CLI/commands/text; smoke updates + fallback checks |
+| Task 2: D-7 | `e1f65aa` | feat | 5 vector builtins in RESERVED, BUILTIN_DOCS and the grammar; smoke section |
+| Task 3: docs + install | `f3d789b` | docs | install-vscode-extension.sh; extension README; editor-extension.md; CHANGELOG |
 | Task 4: checkpoint | — | — | Real-VS-Code check 45/45 (scratchpad script, not committed) |
 
 Plan metadata: committed with this SUMMARY.
@@ -154,16 +154,16 @@ Plan metadata: committed with this SUMMARY.
 - **Fix:** on MINGW/MSYS/CYGWIN, `"$COMSPEC" /c mklink /J`, falling back to `ln -s` with a "this is a copy"
   note. Git Bash treats junctions as `-L`, `pwd -P` resolves them, and `rm -f` / `rm -rf` remove only the
   link (verified with a scratch source file).
-- **Commit:** `e701ee9`
+- **Commit:** `f3d789b`
 
 **2. [Bug] Install script's macOS path was a folder VS Code doesn't read**
 - **Fix:** `~/.vscode/extensions` on Darwin, as on Linux. `sed` uses `[[:space:]]` instead of the GNU-only `\s`.
-- **Commit:** `e701ee9`
+- **Commit:** `f3d789b`
 
 **3. [Docs] README pointed public readers at the git-ignored `extras/AI.pen`**
 - **Fix:** the note was removed; the HTTP builtins moved into the feature rows (Phase 1 decision: no
   links into `extras/`).
-- **Commit:** `e701ee9`
+- **Commit:** `f3d789b`
 
 ### Scope additions
 
