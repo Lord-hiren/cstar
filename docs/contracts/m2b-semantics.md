@@ -1,4 +1,4 @@
-# Pentest M2 Stage 2B — Normative Semantics and Decisions
+# cstar M2 Stage 2B — Normative Semantics and Decisions
 
 > Part of the [stage contracts](README.md) (normative; they govern over
 > [`SPEC.md`](../../SPEC.md) if the two differ).
@@ -207,7 +207,7 @@ Rules:
     `**kwargs`, named args are unbounded. Static checks apply within these
     bounds; fully dynamic residue is checked at runtime where needed.
 - **Defaults**: evaluated **fresh at each call** for each omitted argument
-  (avoids Python's shared-mutable-default footgun and Pentest's
+  (avoids Python's shared-mutable-default footgun and cstar's
   define-time-vs-discovery timing problem). A default may reference globals
   and earlier params.
 - **Function values**: `f = greet` binds a function value; `f(1)` calls it.
@@ -423,7 +423,7 @@ map set tuple function`.
   expression (`callee_expr`); bare-ident fast path and builtin detection
   retained. Method calls lower to `cs_call_method`. Index-assign evaluates
   object+index once into temporaries.
-- Every failing op receives its AST node's Pentest source line (M1 rule).
+- Every failing op receives its AST node's cstar source line (M1 rule).
 
 ## 14. Ownership (Stage 2B agents)
 

@@ -1,4 +1,4 @@
-# Pentest M2 Stage 2A — Normative Semantics and Decisions
+# cstar M2 Stage 2A — Normative Semantics and Decisions
 
 > Part of the [stage contracts](README.md) (normative; they govern over
 > [`SPEC.md`](../../SPEC.md) if the two differ).
@@ -348,7 +348,7 @@ New requirements:
 - Loop variable read guards: the loop assigns before each body execution;
   codegen may skip the used-before-assignment guard for reads of the loop
   variable inside its own body (optional optimization).
-- Every new runtime call receives its AST node's Pentest source line.
+- Every new runtime call receives its AST node's cstar source line.
 
 ## 12. Fixed source file layout (ownership — Stage 2A agents)
 
@@ -365,7 +365,7 @@ SPEC.md README.md docs/contracts/m1-semantics.md                    (integrator,
 editors/vscode/**                                         (integrator, at the end)
 ```
 
-Agents must not run `make` in the project root (build/pentest is shared);
+Agents must not run `make` in the project root (build/cstar is shared);
 syntax-check single files with
 `clang++ -std=c++17 -Wall -Wextra -fsyntax-only -Isrc src/<file>.cpp`
 (respectively `clang -std=c11 -fsyntax-only runtime/cstar_rt.c`) and keep

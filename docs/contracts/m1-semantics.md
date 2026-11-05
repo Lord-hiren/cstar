@@ -1,4 +1,4 @@
-# Pentest M1 — Normative Semantics and Decisions
+# cstar M1 — Normative Semantics and Decisions
 
 > Part of the [stage contracts](README.md) (normative; they govern over
 > [`SPEC.md`](../../SPEC.md) if the two differ).
@@ -16,7 +16,7 @@ normative: tests match on these substrings.
 | Backend | Approach A: generate C11, compile with `clang -std=c11 -O2 ... -lm`. |
 | Control flow | **Strict M1**: no if/else, no loops, no break/continue, no and/or/not. |
 | Target platform | Linux x86_64 only. |
-| CLI grammar | `pentest <file.pen>`, `pentest run <file.pen>`, `pentest build <file.pen> [-o out]`, `pentest check <file.pen>`, `--help`, `--version`. |
+| CLI grammar | `cstar <file.cst>`, `cstar run <file.cst>`, `cstar build <file.cst> [-o out]`, `cstar check <file.cst>`, `--help`, `--version` — SPEC §10 is normative for the CLI since v0.3 (M1 shipped it as `pentest` with `.pen` sources; see §9). |
 | Reassignment | Always allowed, including type change. |
 | Params | Types optional → no type syntax at all in M1. No defaults, no named args, no variadics. Fixed arity, checked at compile time. |
 | Return | `return expr` and bare `return` (= None). `return` only inside `function` bodies. Not allowed at top level nor inside `main():`. Falling off the end of a function returns `None`. `None` is an official keyword/value. |
@@ -26,7 +26,7 @@ normative: tests match on these substrings.
 | Triple quotes | `"""..."""` is a multiline **comment** only (not a string literal). `'''` unsupported. |
 | Comments | `#` line, `//` line (ALWAYS a comment: `x = 7 // 2` is `x = 7`), `/* */` (non-nesting), `""" """` multiline. A comment runs to EOL even inside unclosed parentheses, so it can swallow a closing `)`. |
 | Errors | First lexer/parser error aborts; semantic errors are collected (all reported); runtime errors print and exit 1. |
-| CLI workflow | `run` compiles with content-hash cache and executes; `build` emits standalone `.pentest`; `check` parses+analyzes only. |
+| CLI workflow | `run` compiles with content-hash cache and executes; `build` emits a standalone executable (M1: `.pentest`; now `./<base>`, SPEC §10); `check` parses+analyzes only. |
 
 ## 2. Lexical structure
 
@@ -220,7 +220,7 @@ Any compile error → exit code 1.
 ## 8. Runtime errors
 
 Format (stderr, then exit 1): `<file>:<line>: runtime error: <message>`
-where `<file>` is the path as invoked and `<line>` is the Pentest source line
+where `<file>` is the path as invoked and `<line>` is the cstar source line
 of the failing expression.
 
 | Condition | Message |
@@ -235,6 +235,13 @@ of the failing expression.
 Type names in messages: `int`, `float`, `bool`, `string`, `None`, `unset`.
 
 ## 9. CLI contract
+
+> **Superseded by SPEC §10.** This is the CLI as M1 shipped it: the
+> `pentest` command, `.pen`/`.pent` sources, `.pentest` build output and the
+> `~/.cache/pentest/` cache. Since v0.3 the command is `cstar`, sources are
+> `.cst`, `build` writes `./<base>`, and the cache is `$XDG_CACHE_HOME/cstar/`;
+> **SPEC §10 is normative for the CLI**, and the legacy names keep working
+> until v0.4. The rules below are kept as the M1 record.
 
 ```
 pentest <file.pen> [args...]        # = run
@@ -287,7 +294,7 @@ int main(int argc, char** argv) {
 - Locals: C parameters are named `cs_l_<name>` directly; other locals are
   declared at function entry as `cs_value cs_l_<name> = <unset value>;`.
 - `print` calls emit a local array + `cs_print(arr, n, line)`.
-- Every operation that can fail at runtime must receive the Pentest source
+- Every operation that can fail at runtime must receive the cstar source
   line number of the corresponding AST node.
 - Reads of Global/Local nodes must be guarded by the used-before-assignment
   check with the proper name and scope kind.
@@ -312,5 +319,5 @@ src/lexer.{h,cpp} src/parser.{h,cpp} src/semantic.{h,cpp}   (frontend)
 src/codegen.cpp        runtime/cstar_rt.{h,c}             (backend)
 src/main.cpp           Makefile  tools/embed.cpp  tests/**  examples/**   (CLI/build/tests)
 SPEC.md                README.md              (docs)
-build/pentest          (the CLI binary)
+build/cstar            (the CLI binary; build/pentest is a legacy alias)
 ```

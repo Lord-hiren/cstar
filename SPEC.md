@@ -1,4 +1,4 @@
-# Pentest Language Specification (version 0.2.1)
+# cstar Language Specification (version 0.2.1)
 
 > **Where this fits.** This is the normative language specification. For a
 > gentle introduction start with the [language tour](docs/guide/language-tour.md);
@@ -8,13 +8,14 @@
 > (`§5.11.5`, `§8`, …) are cited from source comments, tests and the editor
 > extension — they are stable; new material is appended, never renumbered.**
 
-**Normative status:** This document specifies the Pentest language as of
+**Normative status:** This document specifies the cstar language (called
+Pentest before v0.3; the legacy names keep working until v0.4) as of
 Milestone 2 Stages 2A + 2B + 2C, the `0.2.1` performance push and
 cross-scope variable access, plus the **unreleased** Stage 2D modules/imports
 work (§14) and the v0.3 surface-syntax overhaul (`()` calls, `in`
 membership/binding, `name():`/`name(params):` declarations, `main:`) — the
-`pentest` in this working tree still reports version `0.2.1`
-(`pentest --version` prints `pentest 0.2.1`). It is derived from
+`cstar` in this working tree still reports version `0.2.1`
+(`cstar --version` prints `cstar 0.2.1`). It is derived from
 [docs/contracts/m2c-semantics.md](docs/contracts/m2c-semantics.md) (the Stage 2C contract),
 [docs/contracts/m2b-semantics.md](docs/contracts/m2b-semantics.md) (the Stage 2B contract),
 [docs/contracts/m2a-semantics.md](docs/contracts/m2a-semantics.md) (the Stage 2A contract),
@@ -32,8 +33,8 @@ remains normative for semantics, error wording and behaviour.
 [docs/performance/optimization.md](docs/performance/optimization.md) explains the performance
 mechanisms: informative, not normative.
 
-**Audience:** people implementing the Pentest compiler, or writing tools that
-read, analyze, or build `.pen` programs. (Learning the language? Read the
+**Audience:** people implementing the cstar compiler, or writing tools that
+read, analyze, or build `.cst` programs. (Learning the language? Read the
 [language tour](docs/guide/language-tour.md) first.)
 
 **Conformance note:** every error message quoted in this document is
@@ -46,8 +47,9 @@ normative. Tests match on these substrings; do not reword them.
 Milestone 2 Stages 2A, 2B and 2C, the `0.2.1` drop, and the unreleased
 Stage 2D modules/imports work deliver a small, natively compiled language:
 
-- programs in `.pen` source, compiled to native Linux x86_64 executables
-  (`.pentest`) — single-file or split across modules with `import`/`from`
+- programs in `.cst` source (the legacy `.pen`/`.pent` are accepted until
+  v0.4), compiled to native Linux x86_64 executables — single-file or split
+  across modules with `import`/`from`
   (§14);
 - dynamically typed values — `int`, `float`, `bool`, `text`, `bytes`,
   `None`, `range` (§6.9), and the Stage 2B heap types `list`, `map`, `set`,
@@ -87,8 +89,9 @@ Stage 2D modules/imports work deliver a small, natively compiled language:
 - clear compile-time and runtime error reporting with defined exit codes;
   runtime errors are throwable exceptions with a defined class (§6.10, §9),
   and the uncaught output keeps the exact M1 byte format;
-- a CLI `pentest` with `run`, `build`, `check`, `--help`, `--version`
-  (the CLI contract and exit codes are unchanged from M1, §9.4, §10).
+- a CLI `cstar` (called `pentest` before v0.3; that name stays an alias
+  until v0.4) with `run`, `build`, `check`, `--help`, `--version` (the
+  subcommands and exit codes are those of M1, §9.4, §10).
 
 **Deliberately excluded (for now)** (reserved for later Milestone 2 stages;
 see §13):
@@ -158,7 +161,7 @@ forms():
 
 | Form | Extent | Notes |
 |---|---|---|
-| `# ...` | to end of line | A shebang on the first line (`#!/usr/bin/env pentest`) is just a `#` comment. |
+| `# ...` | to end of line | A shebang on the first line (`#!/usr/bin/env cstar`) is just a `#` comment. |
 | `// ...` | to end of line | **Always a comment.** See footgun below. |
 | `/* ... */` | to matching `*/` | **Non-nesting**: an inner `/*` has no effect. Unterminated → lex error `unterminated block comment`. |
 | `""" ... """` | to closing `"""` | Multiline **comment** (never a string literal; `'''` is unsupported). Unterminated → lex error `unterminated triple-quoted comment`. |
@@ -886,7 +889,7 @@ it cannot be read as a value, assigned, used as a parameter or loop
 variable, or redeclared — so `callable(print)`, `type(abs)` or
 `f = sorted` are impossible by construction (§3.5, §8). Callbacks
 (`key=`, `map`/`filter` functions) are therefore passed as ordinary named
-`function` declarations — Pentest has no lambdas.
+`function` declarations — cstar has no lambdas.
 
 **Arity and named arguments are checked at compile time** (§9.2):
 
@@ -977,7 +980,7 @@ positional binds **stop** (§5.11.5.10).
 | `delattr(obj, name)` | `None` — removes one **dynamic instance field**; class method → `AttributeError` `'<C>' attribute '<m>' belongs to its class and cannot be deleted`; missing field or non-instance → `AttributeError` `'<t>' object has no attribute '<n>'` |
 | `dict(source?, **pairs)` | a `map`; ≤ 1 positional source (a `map` copies, an iterable of 2-item pairs / a `zip` list unpacks; element errors mirror CPython: `dictionary update sequence element #0 is not a pair`, `… has length 3; 2 is required`) |
 | `dir(obj?)` | no argument → **sorted** `text` names of the globals table (§5.11.5.4); with an instance → sorted union of its dynamic field and method names; anything else → `TypeError` `'<t>' object has no attributes` |
-| `divmod(a, b)` | `(quotient, remainder)` using Pentest's C99 truncating `/` and `%` (§5.4) — **not** Python's floor semantics (§5.11.5.1); `b == 0` → `ZeroDivisionError` `division by zero`; `INT64_MIN / -1` → `(INT64_MIN, 0)` |
+| `divmod(a, b)` | `(quotient, remainder)` using cstar's C99 truncating `/` and `%` (§5.4) — **not** Python's floor semantics (§5.11.5.1); `b == 0` → `ZeroDivisionError` `division by zero`; `INT64_MIN / -1` → `(INT64_MIN, 0)` |
 | `enumerate(iterable, start=0)` | **eager** `list` of `(index, item)` (§5.11.5.7); `start` must be an `int` → `TypeError` `enumerate() start must be an int, not '<t>'` |
 | `filter(function, iterable)` | **eager** `list` of the elements whose item is truthy; `function` may be `None` (filters truthy, like Python); non-callable → `TypeError` `filter() arg 1 must be callable or None` |
 | `format(value, format_spec?)` | the mini-language `[[fill]align][sign][#][0][width][,][.precision][type]` with types `d i u b o x X c e E f F g G % s r`; a typeless int formats as `d` (so `format(42, ">7")` is `"     42"`); typeless int + precision → `ValueError` `Precision not allowed in integer format specifier`; grouping counts from the right (`format(314159, ",")` → `314,159`); `'='`-align pads after the sign |
@@ -1023,7 +1026,7 @@ encoding`), and `encoding`/`errors` must be `text` (`bytes() argument
 'encoding' must be str, not <t>` / `'errors'` likewise) — passing either
 to a non-text source → `TypeError` `encoding without a string argument` /
 `errors without a string argument`. The `errors` handler name is accepted
-but never consulted (Pentest strings are valid UTF-8, so encoding cannot
+but never consulted (cstar strings are valid UTF-8, so encoding cannot
 fail). A non-iterable, non-int source → `TypeError` `cannot convert
 '<t>' object to bytes`.
 
@@ -1056,12 +1059,12 @@ builtins the program does not use (docs/performance/optimization.md):
 #### 5.11.5 Deviations from Python
 
 Every observable difference from CPython (3.14) is listed here; each is
-either a consequence of an earlier normative Pentest rule or an explicit
+either a consequence of an earlier normative cstar rule or an explicit
 design decision. Error-message wording matches CPython except for
-Pentest's type names (`text`, `None`, `map`, `class` — §5.1) and the
+cstar's type names (`text`, `None`, `map`, `class` — §5.1) and the
 documented cases below.
 
-1. **`divmod` truncates, Python floors.** Pentest's `/` and `%` are C99
+1. **`divmod` truncates, Python floors.** cstar's `/` and `%` are C99
    (§5.4), so `divmod(-7, 2)` is `(-3, -1)` where Python gives `(-4, 1)`
    — the same deviation `/` and `%` already have. `divmod(INT64_MIN, -1)`
    returns `(INT64_MIN, 0)` instead of trapping.
@@ -1074,16 +1077,16 @@ documented cases below.
    (`cannot assign attribute '<n>' on '<t>'`, §5.12) so both spellings
    fail the same way; Python raises `AttributeError`.
 4. **`dir()` always lists the globals table.** Python's `dir()` with no
-   argument lists the *local* scope inside a function; Pentest's lists
+   argument lists the *local* scope inside a function; cstar's lists
    the program's globals in every scope (there is no builtin
    namespace — the table contains program globals: user functions,
    classes, assigned names, the readable exception classes and nothing
    else). `globals()`/`locals()`/`vars()` return maps whose **display**
-   follows Pentest's `{k: v}` form, not Python's `{'k': 'v'}`.
+   follows cstar's `{k: v}` form, not Python's `{'k': 'v'}`.
 5. **`isinstance` matches exactly — there is no subclassing.**
    `isinstance(True, int)` is `False` (§5.12), `isinstance(5, float)` is
    `False`, and only the listed type names/classes/tuples are accepted
-   (a `text` type name — `isinstance(x, "int")` — is a Pentest
+   (a `text` type name — `isinstance(x, "int")` — is a cstar
    *extension*: Python raises there). Bare builtin-type names in
    `classinfo` are rewritten to type-name strings at compile time
    (shadowing locals win); `isinstance(None, type)` is `False` (no
@@ -1107,7 +1110,7 @@ documented cases below.
     slice (a tuple subscript → `TypeError`); use `xs[a:b:c]` (§5.9).
     `slice()` with no arguments is a compile-time arity error (Python
     raises at runtime).
-11. **`bytes` display uses Pentest's locked form** `b"…"` (double
+11. **`bytes` display uses cstar's locked form** `b"…"` (double
     quotes) where Python's repr uses `b'…'`; `bytes(text)` supports only
     UTF-8 (`encoding="ascii"` → `ValueError cstar supports only the
     UTF-8 encoding`) and `errors=` is accepted but never consulted.
@@ -1127,7 +1130,7 @@ documented cases below.
 14. **`eval`/`exec`/`compile` fail at compile time**, not at runtime
     (§5.11.6).
 15. **`vars()`/`dir()` on a class object raise** `TypeError '<t>' object
-    has no attributes` — class objects expose no attributes in Pentest
+    has no attributes` — class objects expose no attributes in cstar
     (§5.12), so Python's `dir(SomeClass)` method listing has no
     equivalent.
 
@@ -1150,7 +1153,7 @@ about them is checked (no arity policing):
 | `object()` | `object() is not supported: define your own class — every class is already a root` |
 
 **The dynamic-code trio** `eval`, `exec`, `compile` is not part of the
-language at all: Pentest compiles ahead of time and the runtime never
+language at all: cstar compiles ahead of time and the runtime never
 compiles source — no embedded parser, no interpreter, no megabyte of
 compiler in every binary. Calling one is a **compile-time error**
 (the message names the call site and §5.11.6):
@@ -1215,8 +1218,8 @@ connections stay alive across calls, so every call after the first skips
 the TCP + TLS handshake; HTTP/3 is preferred with an HTTP/2 fallback (ALPN);
 TCP fast open is enabled; each request has a 30-second timeout.
 
-**SQL injection in Pentest.** UNION-based GET SQLi and Burp-style raw-POST
-templating are done in `.pen` via `http_get`/`http_post` + `url_encode` —
+**SQL injection in cstar.** UNION-based GET SQLi and Burp-style raw-POST
+templating are done in `.cst` via `http_get`/`http_post` + `url_encode` —
 see the worked walkthroughs in [docs/guide/sqli.md](docs/guide/sqli.md),
 which run against a deliberately vulnerable local lab on
 `http://127.0.0.1:8080` (the lab and the full scripts are not included in the
@@ -2004,7 +2007,7 @@ main:
 read on the right-hand side happens before any executed assignment:
 
 ```text
-<bump.pen>:4: runtime error: local variable 'count' used before assignment
+<bump.cst>:4: runtime error: local variable 'count' used before assignment
 ```
 
 (exit code 1). Reading a global from a function works without any
@@ -2150,7 +2153,7 @@ Printed to stderr, then exit 1, in the exact format:
 ```
 
 `<file>` is the source path as invoked (baked into the program at compile
-time) and `<line>` is the Pentest source line of the failing expression.
+time) and `<line>` is the cstar source line of the failing expression.
 There is no column in runtime errors.
 
 **2C:** every runtime error below is *raised* as an exception **instance**
@@ -2229,7 +2232,7 @@ Unchanged from M1:
 |---|---|
 | `0` | success (including an empty program) |
 | `1` | lexer/parser error, semantic error, uncaught runtime exception (runtime error), missing `clang` |
-| `2` | usage errors (missing source argument, path not ending in `.pen`/`.pent`, unrecognized option/subcommand) |
+| `2` | usage errors (missing source argument, path not ending in `.cst` or the legacy `.pen`/`.pent`, unrecognized option/subcommand) |
 
 ## 10. Command-line interface
 
@@ -2294,7 +2297,7 @@ cstar --version | -v                    # prints: cstar 0.2.1
 ### 11.1 Overall shape (Approach A)
 
 The toolchain uses **Approach A** from docs/history/design.md §7: the compiler translates
-Pentest to C11 and lets `clang` do native code generation and optimization.
+cstar to C11 and lets `clang` do native code generation and optimization.
 
 - **Compiler driver + frontend:** C++17, built with
   `clang++ -std=c++17 -Wall -Wextra`.
@@ -2306,7 +2309,7 @@ see §11.7.)
 
 ### 11.2 Pipeline
 
-1. Read the source file (`.pen`/`.pent`, UTF-8).
+1. Read the source file (`.cst`, or the legacy `.pen`/`.pent`; UTF-8).
 2. **Lexer** — tokens, INDENT/DEDENT, comments, literals; first error stops.
 3. **Parser** — EBNF of §4 → AST (`src/ast.h`); first error stops.
 4. **Import linker** (only when the entry file imports something) — parse
@@ -2403,7 +2406,7 @@ Rules():
   pad) — nested try-blocks compose the CATCH/FINALLY pairs (§6.10).
 - Generated temporaries are cleared at statement boundaries so the
   collector can reclaim dropped values (§7.3).
-- **Every operation that can fail at runtime must receive the Pentest source
+- **Every operation that can fail at runtime must receive the cstar source
   line number** of the corresponding AST node (that is how §9.3's `<line>`
   is produced).
 - Reads of Global/Local nodes must be guarded by the used-before-assignment
@@ -2475,7 +2478,7 @@ registry and is reclaimed by the collector once unreachable (§7.3).
 | `examples/**` | local example programs (git-ignored, not in the repository) |
 | `editors/vscode/**` | VSCode extension: grammar, autocomplete, snippets, diagnostics |
 | `SPEC.md`, `README.md`, `CHANGELOG.md`, `docs/**` | documentation (index: [docs/README.md](docs/README.md)) |
-| `build/pentest` | the CLI binary |
+| `build/cstar` | the CLI binary (`build/pentest` is a legacy alias link until v0.4) |
 
 ### 11.6 Cache
 
@@ -2495,7 +2498,7 @@ cached binary directly; exit code propagates (§10).
 docs/history/design.md §7 also describes **Approach B**: frontend → LLVM IR → LLVM
 optimization/codegen → link runtime. Approach B gives direct control over
 code generation but requires a heavier frontend/backend integration. The
-toolchain does not use it; it is the documented path if Pentest later needs
+toolchain does not use it; it is the documented path if cstar later needs
 more control over code generation (§13).
 
 ### 11.8 Performance mechanisms (0.2.1)
@@ -2606,7 +2609,7 @@ Still open beyond those stages:
 ## 14. Modules and imports (Stage 2D)
 
 > **Status:** implemented and normative in the unreleased tree
-> (`pentest --version` still prints `0.2.1`). This section was appended after
+> (`cstar --version` still prints `0.2.1`). This section was appended after
 > §13, so existing section numbers are unchanged.
 
 Imports are resolved, expanded and renamed **before semantic analysis and

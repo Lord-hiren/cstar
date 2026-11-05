@@ -22,7 +22,7 @@ pointers to the regression tests. What remains open:
 | # | Area | Summary | Severity |
 |---|---|---|---|
 | [7](#7-format-zero-padding-plus-grouping-does-not-regroup) | builtins | `format(42, "08,")` → `00000042`, Python `0,000,042` | low — narrow spec corner |
-| [8](#8-a-cache-less-run-leaves-its-binary-in-the-temp-dir) | driver | a run that cannot cache leaves `$TMPDIR/pentest-XXXXXX/program` | low — cosmetic litter |
+| [8](#8-a-cache-less-run-leaves-its-binary-in-the-temp-dir) | driver | a run that cannot cache leaves `$TMPDIR/cstar-XXXXXX/program` | low — cosmetic litter |
 | [9](#9-text-concatenation-in-a-loop-is-quadratic) | runtime | `s += "x"` in a loop is O(n²) (no refcount-based in-place resize) | medium — common pattern, easy workaround |
 | [10](#10-float-vector-modulo-returns-wrong-values) | runtime | `fvec([5.0]) % fvec([2.0])` → `[2.5]` (wrong values) instead of a `TypeError` | medium — silent wrong results |
 
@@ -36,7 +36,7 @@ pointers to the regression tests. What remains open:
 print(format(42, "08,"), format(1234567, "012,"), format(42, "06,"))
 ```
 
-Python prints `0,000,042 0,001,234,567 00,042`; Pentest prints
+Python prints `0,000,042 0,001,234,567 00,042`; cstar prints
 `00000042 0001,234,567 000042`. (`format(1234567, "+012,")` happens to
 coincide: `+001,234,567`.)
 
@@ -59,17 +59,17 @@ separators into the zero-padded digit run.
 
 ## 8. A cache-less run leaves its binary in the temp dir
 
-**Repro** — any `pentest run` while caching is unavailable (no `sha256sum`
+**Repro** — any `cstar run` while caching is unavailable (no `sha256sum`
 on `PATH`, or an unwritable cache directory):
 
 ```bash
 t=$(mktemp -d)
-echo 'print("hi")' > "$t/hello.pen"
-PATH=/tmp/onlyclang TMPDIR="$t" build/pentest run "$t/hello.pen"
-ls "$t"/pentest-*/   # program
+echo 'print("hi")' > "$t/hello.cst"
+PATH=/tmp/onlyclang TMPDIR="$t" build/cstar run "$t/hello.cst"
+ls "$t"/cstar-*/   # program
 ```
 
-**Observed** — `$TMPDIR/pentest-XXXXXX/program` remains after the program
+**Observed** — `$TMPDIR/cstar-XXXXXX/program` remains after the program
 exits. The generated sources are removed; only the executable stays.
 
 **Why.** Without a usable cache the driver compiles into the temp directory
@@ -82,7 +82,7 @@ does not hold. In the normal configuration (cache keyed and writable) the
 executable goes to the cache and the scratch directory is fully removed.
 
 **Workaround.** Keep `sha256sum` installed and the cache directory writable;
-otherwise `rm -rf "${TMPDIR:-/tmp}"/pentest-*` afterwards.
+otherwise `rm -rf "${TMPDIR:-/tmp}"/cstar-*` afterwards.
 
 ---
 
@@ -102,7 +102,7 @@ print(len(s))
 ≈ 0.63 s on the reference machine; CPython does the same program in ≈ 0.05 s.
 
 **Why.** CPython's `s += x` resizes the string's buffer **in place** when the
-buffer's refcount is 1. Pentest has no per-buffer refcounts, and an in-place
+buffer's refcount is 1. cstar has no per-buffer refcounts, and an in-place
 append would be unsound whenever a second value shares the buffer
 (`s2 = s; s += "a"; s2 += "b"` would corrupt what `s2` sees). So every `+`
 allocates a fresh GC buffer and copies both operands: O(n) per step, O(n²)
