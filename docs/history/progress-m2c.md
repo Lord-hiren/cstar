@@ -1,7 +1,10 @@
 # M2 Stage 2C — GC, Exceptions, Classes Progress
 
 > **Historical record.** Written while Stage 2C was landed; counts and
-> "remaining" items describe that moment (the current suite is 368 checks).
+> "remaining" items describe that moment (for the current suite see
+> [building and testing](../development/building-and-testing.md)). Internal
+> names have since been renamed (`pentest_rt` → `cstar_rt`, `pt_`/`PT_` →
+> `cs_`/`CS_`, `__ptm` → `__csm`); this page keeps the old ones.
 > See the [history overview](README.md).
 
 **Scope of this document:** a working record of Stage 2C — the garbage

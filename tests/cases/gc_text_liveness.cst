@@ -1,7 +1,7 @@
-# 2C GC: heap TEXT/BYTES buffers must be registered as PT_GC_TEXT /
-# PT_GC_BYTES blocks so a collection marks them through the payload set.
-# Regression: those blocks were tagged with the *value* tag (PT_STRING /
-# PT_BYTES), the collector never saw them, and any collection that ran
+# 2C GC: heap TEXT/BYTES buffers must be registered as CS_GC_TEXT /
+# CS_GC_BYTES blocks so a collection marks them through the payload set.
+# Regression: those blocks were tagged with the *value* tag (CS_STRING /
+# CS_BYTES), the collector never saw them, and any collection that ran
 # while a concatenated string was still referenced freed it — a silent
 # use-after-free (ASan-clean only since the fix). The checks below push
 # past the 1 MiB auto-GC threshold and force collect() explicitly; the

@@ -900,7 +900,7 @@ variable, or redeclared — so `callable(print)`, `type(abs)` or
 - the original fifteen take **no** named arguments at all
   (`builtin '<n>' does not take named arguments`).
 
-Unfilled optional slots arrive at the runtime as `pt_missing()` and are
+Unfilled optional slots arrive at the runtime as `cs_missing()` and are
 defaulted there, exactly like Python's `None`-sentinel conventions.
 
 #### 5.11.2 The original fifteen
@@ -951,7 +951,7 @@ defaulted there, exactly like Python's `None`-sentinel conventions.
 #### 5.11.3 The Python-parity builtins (0.2.1)
 
 Forty-three of Python's builtin names, each compiled to **one direct
-`pt_builtin_*` call** (§5.11.4, docs/performance/optimization.md). Slot names double
+`cs_builtin_*` call** (§5.11.4, docs/performance/optimization.md). Slot names double
 as named-argument keys (`round(number=1.5, ndigits=0)`); `…?` marks an
 optional slot. `max`/`min` accept an unbounded positional list plus
 named `key`/`default`; `map`/`zip` take positionals only; `dict` takes
@@ -1027,11 +1027,11 @@ Every §5.11.3 call lowers to a single direct C call with constant
 arguments — no dispatch table, no dynamic lookup, nothing emitted for
 builtins the program does not use (docs/performance/optimization.md):
 
-- fixed-slot calls pass `(pt_value){slot…}` positionally after compile-time
+- fixed-slot calls pass `(cs_value){slot…}` positionally after compile-time
   binding; variadics (`map`/`zip`/`max`/`min`) pass a C11 compound-literal
-  `(const pt_value[]){…}` plus `(npos, npos, key, default, line)`;
-- `globals`/`locals`/`vars`/`dir` emit a `pt_name_slot` compound-literal
-  **at the call site** (kind 0 boxed value — `PT_UNSET` skipped, kind 1
+  `(const cs_value[]){…}` plus `(npos, npos, key, default, line)`;
+- `globals`/`locals`/`vars`/`dir` emit a `cs_name_slot` compound-literal
+  **at the call site** (kind 0 boxed value — `CS_UNSET` skipped, kind 1
   native `int64` + assignment-guard flag, kind 2 top-level function meta)
   — no reflection over live frames is ever performed;
 - a set of **allocation-free** builtins is elided from GC safe points
@@ -1040,8 +1040,8 @@ builtins the program does not use (docs/performance/optimization.md):
   positionals and no `key`/`default`): they cannot allocate, so no
   collector probe is emitted around them;
 - native-int lanes keep pure-`int` subexpressions unboxed end to end:
-  `abs(x)` → `pt_nabs(x)`, two-argument `pow` → `pt_npow(a, b, line)`,
-  two-positional `min`/`max` → `pt_nmin`/`pt_nmax`, and one-argument
+  `abs(x)` → `cs_nabs(x)`, two-argument `pow` → `cs_npow(a, b, line)`,
+  two-positional `min`/`max` → `cs_nmin`/`cs_nmax`, and one-argument
   `round(x)` compiles to **its argument unchanged** (an `int` with no
   `ndigits` is the identity) — no call, no boxing, no allocation;
 - only `sorted`/`map`/`filter`/`max`/`min` root intermediates (the two
@@ -2142,9 +2142,9 @@ cstar --version | -v                    # prints: cstar 0.2.1
   On a cache hit the cached binary is executed directly and its exit code
   propagates.
 - **Compile pipeline:** the driver writes the generated `gen.c` plus the
-  embedded runtime sources `pentest_rt.h`/`pentest_rt.c` (embedded in the
+  embedded runtime sources `cstar_rt.h`/`cstar_rt.c` (embedded in the
   `cstar` binary via `build/runtime_embed.h`) into a temp dir, then runs
-  `clang -std=c11 -O3 -march=native -o <out> gen.c pentest_rt.c -lm -lcurl`. The
+  `clang -std=c11 -O3 -march=native -o <out> gen.c cstar_rt.c -lm -lcurl`. The
   runtime translation unit is identical for every program, so `make`
   precompiles it with those same flags and embeds the object (plus the build
   host's `/proc/cpuinfo` `flags` line) in the binary: a first-ever
@@ -2156,7 +2156,7 @@ cstar --version | -v                    # prints: cstar 0.2.1
   compile fast. If `clang` is missing → clear error, exit 1.
 - **Arguments:** extra args after the file path are passed to the program as
   `argv[1..]`. The generated program hands them to the runtime via
-  `pt_init(argc, argv, <source path as invoked>, pt_g_roots, N)` (§11.3);
+  `cs_init(argc, argv, <source path as invoked>, cs_g_roots, N)` (§11.3);
   no builtin reads them (none of the seventy builtins takes `argv`).
 - Linux x86_64 only.
 
@@ -2203,27 +2203,27 @@ see §11.7.)
    flags for the fifteen legacy builtins (§3.5), and the reserved-name
    set of the Python-parity builtins from `src/builtins.h` (§5.11.3).
 6. **Code generation** — `generate_c(program, out_c_path)` writes `gen.c`.
-7. **`clang`** — compiles `gen.c` + `pentest_rt.c` to the executable.
+7. **`clang`** — compiles `gen.c` + `cstar_rt.c` to the executable.
 8. **Cache/exec** — for `run`, the binary is stored under the content-hash
    key and exec'd (§10). The key covers the entry source **and every
    imported module's source** (§11.6).
 
 ### 11.3 Generated-C contract
 
-`generate_c` writes C11 that includes `"pentest_rt.h"` and, compiled together
-with `pentest_rt.c`, produces the program. Required structure:
+`generate_c` writes C11 that includes `"cstar_rt.h"` and, compiled together
+with `cstar_rt.c`, produces the program. Required structure:
 
 ```c
-#include "pentest_rt.h"
-static pt_value pt_g_<name>;              /* one per Program.globals; zero-init = unset */
-static pt_value pt_g_roots[N];            /* 2C: one root pointer per global, &pt_g_<name> */
+#include "cstar_rt.h"
+static cs_value cs_g_<name>;              /* one per Program.globals; zero-init = unset */
+static cs_value cs_g_roots[N];            /* 2C: one root pointer per global, &cs_g_<name> */
 /* 2B uniform function ABI (M2-2B contract §13): */
-static pt_value pt_fn_<name>(pt_value* bound, pt_cell** env);  /* forward decls, ALL functions */
-static pt_value pt_fn_<name>(pt_value* bound, pt_cell** env) { ... }  /* definitions, decl order */
-static void pt_main_block(void) { ... }                      /* if Program.has_main */
+static cs_value cs_fn_<name>(cs_value* bound, cs_cell** env);  /* forward decls, ALL functions */
+static cs_value cs_fn_<name>(cs_value* bound, cs_cell** env) { ... }  /* definitions, decl order */
+static void cs_main_block(void) { ... }                      /* if Program.has_main */
 int main(int argc, char** argv) {
-    pt_init(argc, argv, "<file path as invoked>", pt_g_roots, N);  /* path + args + GC roots */
-    /* top-level flow: statements in source order; at main()'s position: pt_main_block(); */
+    cs_init(argc, argv, "<file path as invoked>", cs_g_roots, N);  /* path + args + GC roots */
+    /* top-level flow: statements in source order; at main()'s position: cs_main_block(); */
     return 0;
 }
 ```
@@ -2232,36 +2232,36 @@ Rules():
 
 - Name mangling is done by the semantic pass (`FuncDecl.c_name`); the import
   linker has already renamed imported declarations to internal
-  `__ptm<id>_<name>` identifiers (§14.4), so the generated C is oblivious to
+  `__csm<id>_<name>` identifiers (§14.4), so the generated C is oblivious to
   module boundaries.
 - Imported modules are **flattened** into the entry AST before code
   generation: module top-level code runs in import order from `main`, and an
   imported module's `main:` block is not emitted.
-- **Every function** has the uniform ABI `pt_value f(pt_value* bound,
-  pt_cell** env)`: `bound[i]` holds the pre-bound argument for parameter
-  `i` or the `PT_MISSING` sentinel; a call site with a known callee
+- **Every function** has the uniform ABI `cs_value f(cs_value* bound,
+  cs_cell** env)`: `bound[i]` holds the pre-bound argument for parameter
+  `i` or the `CS_MISSING` sentinel; a call site with a known callee
   stack-allocates and fills `bound`, and the callee's entry code
   materializes defaults (in parameter order, **at call time**) and the
   empty vararg/kwarg list/map before the body runs. Top-level,
   env-less functions are called with `env = NULL`; nested functions
   receive their closure's `env` (heap cells, §7.2).
-- Function values carry a `pt_funmeta` (display name, parameter names,
+- Function values carry a `cs_funmeta` (display name, parameter names,
   required count, default mask, vararg/kwarg flags, entry pointer) plus
-  the `env` vector; dynamic calls bind through `pt_call(fnv, …)` and raise
+  the `env` vector; dynamic calls bind through `cs_call(fnv, …)` and raise
   the §9.3 binding errors when the callee was not statically known.
-- Locals: bound parameters are materialized into `pt_value pt_l_<name>`;
+- Locals: bound parameters are materialized into `cs_value cs_l_<name>`;
   other locals are
-  declared at function entry as `pt_value pt_l_<name> = <unset value>;`;
-  captured (boxed) locals live in heap `pt_cell`s.
-- `print` calls emit a local array plus `pt_print(arr, n, line)`;
+  declared at function entry as `cs_value cs_l_<name> = <unset value>;`;
+  captured (boxed) locals live in heap `cs_cell`s.
+- `print` calls emit a local array plus `cs_print(arr, n, line)`;
   collections/bytes literals, indexing, slicing, destructuring, comma-join
-  and the §5.11 builtins lower to their `pt_*` runtime operations; method
-  calls lower to `pt_call_method(obj, name, args, nargs, argnames, nnamed,
+  and the §5.11 builtins lower to their `cs_*` runtime operations; method
+  calls lower to `cs_call_method(obj, name, args, nargs, argnames, nnamed,
   line)` (the positional-only form passes no names, §5.12); attribute reads
-  and writes lower to `pt_getattr` / `pt_setattr`; `is`/`is not` lower to
-  `pt_bool(±pt_identical(a, b, line))`.
-- A `class` statement lowers to `pt_class_new(name, line)` bound to the
-  global, then one `pt_class_add_method(cls, name, fn, line)` per method
+  and writes lower to `cs_getattr` / `cs_setattr`; `is`/`is not` lower to
+  `cs_bool(±cs_identical(a, b, line))`.
+- A `class` statement lowers to `cs_class_new(name, line)` bound to the
+  global, then one `cs_class_add_method(cls, name, fn, line)` per method
   (methods are ordinary functions in the global function table, reached
   only through the class).
 - Control-flow constructs lower to C control flow: conditions are tested
@@ -2270,7 +2270,7 @@ Rules():
   UB (any other iterable uses the runtime iteration protocol), `and`/`or`/
   the conditional expression keep their lazy right side, `switch` lowers
   to a first-match chain (M2-2A contract §11), and `try`/`except`/
-  `finally` lowers to a C scope holding a `pt_handler` (a `setjmp` landing
+  `finally` lowers to a C scope holding a `cs_handler` (a `setjmp` landing
   pad) — nested try-blocks compose the CATCH/FINALLY pairs (§6.10).
 - Generated temporaries are cleared at statement boundaries so the
   collector can reclaim dropped values (§7.3).
@@ -2284,7 +2284,7 @@ Rules():
 
 ### 11.4 Runtime library responsibilities
 
-`runtime/pentest_rt.{h,c}` owns the `pt_value` layout and the exact `pt_*`
+`runtime/cstar_rt.{h,c}` owns the `cs_value` layout and the exact `cs_*`
 API (implementation freedom inside that contract). It must provide:
 
 - constructors for `None`/`int`/`float`/`bool`/text-literal/bytes-literal/
@@ -2294,28 +2294,28 @@ API (implementation freedom inside that contract). It must provide:
   instance, bound-method and exception-class values (§5.12, §6.10);
 - the arithmetic, bitwise, power, comparison, membership and truthiness
   operations of §5–§6, with line reporting, and the identity test
-  `pt_identical` (§5.13);
+  `cs_identical` (§5.13);
 - indexing (negative + range checks), index assignment, Python-normalized
   slicing, the iteration protocol over every iterable, total equality,
   hashing + insertion-ordered map/set storage, and the display/`str()`
   forms of §5.6;
-- the §5.10 method dispatch `pt_call_method(...)` (positional **and**
-  named arguments), attribute get/set `pt_getattr`/`pt_setattr`, class
-  construction/dispatch (`pt_class_new`/`pt_class_add_method`/
-  `pt_class_call`), and the §5.11 builtins;
-- the dynamic-call binder `pt_call(...)` (positional/named/vararg/kwarg
+- the §5.10 method dispatch `cs_call_method(...)` (positional **and**
+  named arguments), attribute get/set `cs_getattr`/`cs_setattr`, class
+  construction/dispatch (`cs_class_new`/`cs_class_add_method`/
+  `cs_class_call`), and the §5.11 builtins;
+- the dynamic-call binder `cs_call(...)` (positional/named/vararg/kwarg
   binding with the §9.3 messages) behind indirect calls, class
   construction and bound-method invocation;
-- `pt_print` implementing §5.6 exactly (including the shortest-round-trip
+- `cs_print` implementing §5.6 exactly (including the shortest-round-trip
   float rule and the `range(...)` format);
 - the used-before-assignment guard (NameError messages of §9.3);
 - the runtime iteration protocol behind `for` and unpacking (§6.6, §4.4);
-- `pt_init(argc, argv, src_path, roots, nroots)` — stores the path + args
+- `cs_init(argc, argv, src_path, roots, nroots)` — stores the path + args
   and registers the program-global GC root vector (§7.3), then creates the
   twelve builtin exception-class singletons;
 - the exception machinery of §6.10: the handler stack
-  (`pt_try_enter`/`pt_throw`/rethrow), bound-vector cleanup on unwind, the
-  `pt_runtime_error_as(cls, line, ...)` raiser (all 9.3 sites are mapped
+  (`cs_try_enter`/`cs_throw`/rethrow), bound-vector cleanup on unwind, the
+  `cs_runtime_error_as(cls, line, ...)` raiser (all 9.3 sites are mapped
   to a class), and the uncaught printer that emits
   `<file>:<line>: runtime error: <message>` and exits 1;
 - the mark & sweep collector of §7.3: block registry, root marking,
@@ -2339,7 +2339,7 @@ registry and is reclaimed by the collector once unreachable (§7.3).
 | `src/lexer.{h,cpp}`, `src/parser.{h,cpp}`, `src/semantic.{h,cpp}` | frontend |
 | `src/modules.{h,cpp}` | import resolution, flattening, mangling, selective-loading prune (§14) |
 | `src/codegen.cpp` | C code generator (backend) |
-| `runtime/pentest_rt.{h,c}` | C11 runtime library (backend) |
+| `runtime/cstar_rt.{h,c}` | C11 runtime library (backend) |
 | `src/main.cpp` | CLI driver |
 | `Makefile`, `tools/embed.cpp` | build; precompiles the runtime and embeds it with the sources into `build/runtime_embed.h` (pure C++, no other tooling) |
 | `tests/**` | test harness + cases |
@@ -2383,7 +2383,7 @@ cannot change results, and how it is validated. In brief:
   lane too (the bind writes the induction variable directly — 14.4× on
   a 20M-iteration `abs`/`%` loop), with exact edge parity (wrap, div/mod
   signs, `MIN/-1`) part of the contract.
-- **Dynamic numeric fast paths** — static-inline `pt_add_f` … `pt_ne_f`
+- **Dynamic numeric fast paths** — static-inline `cs_add_f` … `cs_ne_f`
   operators in the runtime header, identical tag checks with out-of-line
   fallback (~35% faster dynamic loops).
 - **GC safe-point elision** — allocation-free loop bodies emit no
@@ -2546,7 +2546,7 @@ re-entered).
 - Every top-level binding of a module — functions, classes, and globals
   assigned at module top level or in its `main:` (which is not executed, see
   §14.4, but still declares names) — is renamed to a module-unique internal
-  name `__ptm<id>_<name>`. References inside the module are rewritten
+  name `__csm<id>_<name>`. References inside the module are rewritten
   consistently, so modules never collide with each other or with the entry
   file. This is invisible in generated diagnostics, which keep original
   names.

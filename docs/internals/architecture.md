@@ -29,7 +29,7 @@ performance decision is made at the point where C is emitted
     │                    the runtime object embedded by `make`, or a cached
     │                    rt-<key>.o;  clang -O3 -march=native  gen.c  …  -lm -lcurl
     ▼
- native executable  ──links──►  runtime/pentest_rt.{c,h}  (libc, libm, libcurl)
+ native executable  ──links──►  runtime/cstar_rt.{c,h}  (libc, libm, libcurl)
 ```
 
 A program with no imports returns from `link_imports` immediately, so the
@@ -51,13 +51,13 @@ Sizes are approximate lines as of `0.2.1`.
 | `src/parser.{h,cpp}` | ~1570 | recursive descent over the EBNF in SPEC §4; precedence climbing; comma-join and destructuring; the contextual `variable.<q> <n>` atom |
 | `src/ast.h` | ~340 | the AST shared by frontend and backend: `Expr`, `AssignTarget`, `Stmt`, `FuncDecl`, `MainDecl`, `TopLevel`, `Program`, plus the semantic annotations |
 | `src/semantic.{h,cpp}` | ~2090 | the five-phase semantic pass (below) |
-| `src/modules.{h,cpp}` | ~1100 | import linker: specifier resolution, cycle detection, `__ptm<id>_<name>` mangling, flattening, reachability prune |
+| `src/modules.{h,cpp}` | ~1100 | import linker: specifier resolution, cycle detection, `__csm<id>_<name>` mangling, flattening, reachability prune |
 | `src/builtins.h` | ~120 | the Python-parity builtin table: slots, arity, variadic/dict/slice forms; stub and rejected-name predicates |
 | `src/codegen.{h,cpp}` | ~4070 | the C emitter and its analyses (native-int lane, definite assignment, allocation-free proof) |
 | `src/diagnostics.{h,cpp}` | ~85 | `Diagnostics`: located/unlocated errors with caret display; error counting |
 | `src/frontend.h` | ~25 | the two entry points: `parse_source` and `semantic_check` |
-| `runtime/pentest_rt.h` | ~1000 | the runtime's public contract: `pt_value`, tags, constructors, the function ABI, GC and exception API, inline fast paths |
-| `runtime/pentest_rt.c` | ~5850 | the runtime implementation |
+| `runtime/cstar_rt.h` | ~1000 | the runtime's public contract: `cs_value`, tags, constructors, the function ABI, GC and exception API, inline fast paths |
+| `runtime/cstar_rt.c` | ~5850 | the runtime implementation |
 | `tools/embed.cpp` | ~140 | build-time helper: turns the runtime sources, the precompiled object and the build host's CPU fingerprint into `build/runtime_embed.h` |
 | `Makefile` | — | `clang++ -std=c++17 -Wall -Wextra -O2`; dependency files; precompiles the runtime and embeds it |
 
@@ -94,7 +94,7 @@ declaration or the `main:` block), plus what the semantic pass fills in:
   access ([cross-scope access](../reference/cross-scope-access.md)).
 
 `FuncDecl` carries parameters/defaults/vararg/kwarg, the body, and annotations:
-mangled `c_name` (`pt_fn_<name>`), ordered `locals`, which params/locals are
+mangled `c_name` (`cs_fn_<name>`), ordered `locals`, which params/locals are
 **cells** (captured by a nested function, so heap-boxed), `captures`, whether
 it is nested or a method, and the static arity bounds (`min_args`/`max_args`)
 used for compile-time call checking. Names are resolved to a `VarRes`
@@ -122,7 +122,7 @@ declared *later* in the file.
 * **Errors are first-class.** Every operation that can fail receives its source
   line number as a constant; runtime errors become exception instances and the
   uncaught printer reproduces the exact `<file>:<line>: runtime error:` format.
-* **The runtime is embedded.** `build/pentest` carries `pentest_rt.{c,h}` inside
+* **The runtime is embedded.** `build/cstar` carries `cstar_rt.{c,h}` inside
   it and writes them out per compile. A single self-contained binary is the whole
   toolchain besides `clang`.
 * **Conservative lanes.** Each optimisation lane exits on anything it cannot

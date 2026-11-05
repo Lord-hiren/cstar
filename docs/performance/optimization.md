@@ -29,7 +29,7 @@ performance ever changes a program's output (byte-compat contract, §9).
 
 **What.** A variable whose every write is provably an integer expression
 is kept as a raw `int64_t` pair (value + guard flag) instead of a tagged
-`pt_value`, and loops over such slots lower to straight C — `while`
+`cs_value`, and loops over such slots lower to straight C — `while`
 becomes a C `while`, no tag checks, no dispatch.
 
 **How it is proven.** The semantic/codegen analysis tracks per-slot
@@ -77,9 +77,9 @@ division/modulo sign rules, and `MIN / -1` (`tests/cases/nint_edges`,
 ## 2. Dynamic numeric fast paths (`_f` operators)
 
 Dynamic (untagged-lane) arithmetic on numeric values used to pay a
-cross-object call per operation. Now `runtime/pentest_rt.h` defines
-static-inline fast paths — `pt_add_f` … `pt_mod_f`, `pt_neg_f`,
-`pt_lt_f` … `pt_ge_f`, `pt_eq_f`, `pt_ne_f` — emitted directly by the
+cross-object call per operation. Now `runtime/cstar_rt.h` defines
+static-inline fast paths — `cs_add_f` … `cs_mod_f`, `cs_neg_f`,
+`cs_lt_f` … `cs_ge_f`, `cs_eq_f`, `cs_ne_f` — emitted directly by the
 code generator for numeric-shaped operands. Each performs the *identical*
 tag checks as the out-of-line fallback and falls back to it on any
 mismatch, so behavior is bit-for-bit unchanged; only the call is gone on
@@ -106,8 +106,8 @@ by default; the optimization only removes checks that could never fire.
 
 ## 4. Header-level inlining of the guards
 
-`pt_guard` (unset-slot read check) and `pt_truthy` (condition
-normalization) are `static inline` in `pentest_rt.h`. An ordinary guarded
+`cs_guard` (unset-slot read check) and `cs_truthy` (condition
+normalization) are `static inline` in `cstar_rt.h`. An ordinary guarded
 read costs one compare-and-branch with no call; this is what keeps
 non-nativized reads — including every `variable.` qualified read (§7) —
 cheap enough that no further special casing is needed.
@@ -119,8 +119,8 @@ independent caches under `$XDG_CACHE_HOME/pentest` (fallback `~/.cache/pentest`)
 cover everything emitted per program or per machine:
 
 * **Embedded runtime object (build time)** — `make` compiles
-  `runtime/pentest_rt.c` with exactly the on-demand flags
-  (`clang -std=c11 -O3 -march=native -c`) into `build/pentest_rt.o` and embeds
+  `runtime/cstar_rt.c` with exactly the on-demand flags
+  (`clang -std=c11 -O3 -march=native -c`) into `build/cstar_rt.o` and embeds
   it next to the runtime sources, together with the build host's
   `/proc/cpuinfo` `flags` line. A cold cache installs and links that object, so
   the first-ever `run`/`build` is dominated by gen.c's own clang run
@@ -157,7 +157,7 @@ cover everything emitted per program or per machine:
 ## 7. Cross-scope access: pin poisoning
 
 A binding reachable through `variable.<qualifier>` (see
-`VARIABLE-ACCESS.md` §4) is *pinned* to one dynamic `pt_value` storage,
+`VARIABLE-ACCESS.md` §4) is *pinned* to one dynamic `cs_value` storage,
 so it — and any global reached that way — is **poisoned out of the
 native-int lane**. The qualified path reads the dynamic slot; the
 ordinary path must read the same slot, and poisoning is how "one
@@ -217,14 +217,14 @@ See `SPEC.md` §12 for the full limitations ledger.
 
 ## 11. Python-parity builtins — the zero-junk call contract
 
-The `0.2.1` builtin set (SPEC §5.11, ~50 `pt_builtin_*` entries in
-`runtime/pentest_rt.c`) is held to the same standard as the lane: every
+The `0.2.1` builtin set (SPEC §5.11, ~50 `cs_builtin_*` entries in
+`runtime/cstar_rt.c`) is held to the same standard as the lane: every
 call is a **direct C call with compile-time-known shape**, and running a
 builtin allocates nothing beyond its own result.
 
 * **No dispatch, no checks at runtime.** `src/builtins.h` drives
   compile-time arity and named-argument validation (SPEC §5.11.1), so the
-  emitted call is `pt_builtin_sorted(…)` — no table lookup, no wrapper,
+  emitted call is `cs_builtin_sorted(…)` — no table lookup, no wrapper,
   and builtins the program does not use emit nothing at all.
 * **Scalar paths allocate NOTHING.** `abs`/`round`/`pow`/`min`/`max`/
   `sum`/`len`/`ord`/`hash`/`divmod`/`isinstance`/`format` and friends
@@ -235,11 +235,11 @@ builtin allocates nothing beyond its own result.
   `filter`/`enumerate`/`reversed`/`list`/`tuple`/`sorted`/`dict` grow a
   single result buffer (one amortized growth path, no intermediate
   collections); variadic arguments and the `globals()`/`locals()`/`vars()`
-  `dir()` name tables are C11 compound literals and `pt_name_slot` rows
+  `dir()` name tables are C11 compound literals and `cs_name_slot` rows
   **at the call site** — no temporaries, no reflection over live frames.
 * **The native lane absorbs the numeric builtins** (§1): over proven-int
   operands `abs`/`round` (1 arg)/`pow` (2 args)/`min`/`max` (2 positional)
-  lower to `pt_nabs`/`pt_npow`/`pt_nmin`/`pt_nmax` — and with `for`
+  lower to `cs_nabs`/`cs_npow`/`cs_nmin`/`cs_nmax` — and with `for`
   targets over open-coded `range()` now lane-members (§1), the canonical
   `acc += (abs(i - n)) % k` loop is pure `int64` arithmetic end to end:
   measured **94 ms vs 1361 ms (14.4×)** on 20M iterations, min-of-3
@@ -248,7 +248,7 @@ builtin allocates nothing beyond its own result.
   `$TMPDIR` (the compiler deletes `gen.c` after linking) and inspect the
   emitted C — every call site visible, nothing hidden behind macros.
 
-`runtime/pentest_rt.c` cites this section from its parity-builtins
+`runtime/cstar_rt.c` cites this section from its parity-builtins
 header comment.
 
 ## 12. SIMD vector types and expression fusion (`fvec` / `ivec`)
@@ -261,7 +261,7 @@ scalar instructions.
 (int64) are real object-model types (SPEC-facing rules in the
 [builtins guide](../guide/builtins.md#simd-vectors-five-fvec-ivec-and-friends)),
 whose operators are written as explicit clang vector extensions —
-`pt_vd`/`pt_vi` lane types, `PT_VW` = 8/4/2 lanes under
+`cs_vd`/`cs_vi` lane types, `CS_VW` = 8/4/2 lanes under
 `__AVX512F__`/`__AVX2__`/baseline, `memcpy` lane loads, splat macros —
 plus a scalar tail. Two reasons for explicit lanes over hoping the
 auto-vectorizer runs: generated code must produce the same results with
@@ -315,7 +315,7 @@ Two more structural fusions, aimed at the two workloads where the dynamic
 route paid per-operation heap traffic: formatted file I/O (`io`) and
 instance-field traversal (`ptrlist`).
 
-**Text-chain fusion (`pt_sb` builder).** `f.write((str(i)) + " " + (str(v)) +
+**Text-chain fusion (`cs_sb` builder).** `f.write((str(i)) + " " + (str(v)) +
 "\n")` is the canonical record loop; the dynamic route built it as five
 GC-block allocations (two `str()` conversions + three concatenations)
 plus a transient `malloc` per conversion and a growing-priority copy per
@@ -323,15 +323,15 @@ plus a transient `malloc` per conversion and a growing-priority copy per
 parts are **all provably text** — string literals and `str()` calls, and
 nothing else (a bare operand could carry a non-text value, so the
 dynamic path keeps its exact operand-type error) — and emits one
-`pt_sb` stack buffer instead: literals copy straight in, proven-int
-`str()` arguments format straight in via `pt_sb_puti` (the display
+`cs_sb` stack buffer instead: literals copy straight in, proven-int
+`str()` arguments format straight in via `cs_sb_puti` (the display
 path's digit code — `str(int)`'s exact spelling, no heap text ever), and
 other `str()` results materialize once and append. Two tails: a value
-chain becomes **one** heap text (`pt_sb_finish`), and
-`f.write(<chain>)` hands the buffer to `pt_file_write_buf` — **one
+chain becomes **one** heap text (`cs_sb_finish`), and
+`f.write(<chain>)` hands the buffer to `cs_file_write_buf` — **one
 `fwrite`, zero heap traffic**, the file-side equivalent of the print
 fast path, with the receiver's checks in the dynamic branch's order (a
-non-file receiver rebuilds the text and goes through `pt_call_method`,
+non-file receiver rebuilds the text and goes through `cs_call_method`,
 so every error is byte-identical). An all-literal/all-int-lane chain
 also reports `alloc_free` (§3), so the loop back-edge safe point elides.
 Measured on `io` (600k formatted records × write/close/reopen/read ×4
@@ -346,14 +346,14 @@ chunked `fread` wherever no byte ever has to be pushed back
 (`readline`/`read(size)` keep the precise byte loop — `getc_unlocked`).
 
 **Instance inline fields.** The object model charges every `Node` three
-mallocs (`pt_obj` block + `attrs.e` + `attrs.slots`), and a traversal
+mallocs (`cs_obj` block + `attrs.e` + `attrs.slots`), and a traversal
 step paid the corresponding serialized dependent misses plus a full
-hash-and-probe per attribute read. `pt_instance_new` now allocates the
-first `PT_INST_INLINE` (= 2) fields **in the instance's own GC block**
-(a tail beyond `pt_obj`, which itself stays small for every other kind):
-one allocation per instance, and `pt_getattr`'s common path is a linear
+hash-and-probe per attribute read. `cs_instance_new` now allocates the
+first `CS_INST_INLINE` (= 2) fields **in the instance's own GC block**
+(a tail beyond `cs_obj`, which itself stays small for every other kind):
+one allocation per instance, and `cs_getattr`'s common path is a linear
 scan over ≤ 2 entries whose keys compare by storage pointer
-(`pt_value_eq`'s new same-buffer fast path — the `pt_text_lit` name
+(`cs_value_eq`'s new same-buffer fast path — the `cs_text_lit` name
 literals merge to one `.rodata` pointer per program). The inline area is
 append-only (a delete tombstones, never reuses), so `vars()`/`dir()`
 keep exact insertion order across inline+spill; a third field spills
@@ -363,7 +363,7 @@ one miss per node instead of three allocations and as many misses per
 step.
 
 **Loop-body temp-clear DCE.** Emission is A-normalized: every temp is
-assigned before its next read, so the statement-tail `pt_unset()` store
+assigned before its next read, so the statement-tail `cs_unset()` store
 is a dead store on a loop's back-edge path — and a shadow-frame slot
 holding a stale pointer is only ever *marked* at a collection, never
 swept-then-read. Inside loop bodies the clear is therefore skipped
@@ -374,7 +374,7 @@ part of what took `ptrlist`'s cache-resident instruction cost from
 1.50 s (the remaining distance to C is DRAM: the traversal touches
 ~2 dependent misses per step against C's one 16-byte struct load).
 
-**Cross-tag `==`/`!=` fast path.** `pt_eq_f`/`pt_ne_f` answer any
+**Cross-tag `==`/`!=` fast path.** `cs_eq_f`/`cs_ne_f` answer any
 different-tag pair (except the int/float mixture, which compares by
 value) inline — `cur != None` in a traversal loop is two tag loads and a
 branch, not an out-of-line operator call.
@@ -391,7 +391,7 @@ A/B output, interleaved min-of-N, C-twin parity of all 37 outputs).
 A chained `if` over equality comparisons against int literals compiles
 to a C `switch` on the proven-int scrutinee (`native_switch_ok()` is
 the proof gate — every arm is an int-literal comparison and every
-`else` is a plain default), instead of the `pt_truthy(pt_eq_f(...))`
+`else` is a plain default), instead of the `cs_truthy(cs_eq_f(...))`
 ladder. `divmod`'s operands and result stay in the native lane.
 `call_direct` fell out of the *joint* fixpoint: slot lanes and
 int-lane twin viability are proven together (each shrinks the other —
@@ -400,11 +400,11 @@ could be proven int-returning), so a call-shaped accumulator keeps its
 lane.
 
 **Wave 2 — instance-method inline cache + C-stack bound vectors.**
-`pt_call_method`/`pt_class_call` resolve a hot `p.step(i)` through a
+`cs_call_method`/`cs_class_call` resolve a hot `p.step(i)` through a
 guarded cache (class + name → function, four guards, entries pinned as
 GC roots) *before* the getattr/bound-method machinery: no hash lookup,
 no bound-method allocation, no `malloc` for the self+args vector.
-Calls with ≤ 64 bound slots (`PT_CALL_STACK_MAX`) build the §13 bound
+Calls with ≤ 64 bound slots (`CS_CALL_STACK_MAX`) build the §13 bound
 vector on the C stack — exact-arity paths skip the binder entirely and
 wider functions keep the heap vector so deep recursion cannot overflow
 the C stack.
@@ -412,7 +412,7 @@ the C stack.
 **Wave 3 — allocator/GC: swept-block reuse.** Swept blocks of the
 churn-prone kinds (cells, lists, tuples, functions, iterators,
 fvec/ivec objects) park in exact-(size, kind) buckets and are handed
-straight back out by `pt_gc_new_full` (see `docs/internals/runtime.md`):
+straight back out by `cs_gc_new_full` (see `docs/internals/runtime.md`):
 no `malloc`/`free` round trip per cell or list object in a churn loop.
 
 **Wave 4 — text: in-place growth and memoized code-point queries.**
@@ -422,17 +422,17 @@ Code-point queries (`unicode_scan`/`text_find`) memoize per
 (payload, length, generation) in the tset instead of re-scanning.
 
 **Wave 5 — the float lane.** The same fixpoint discipline as §1's
-int lane, one level up: slots proven to hold only `PT_FLOAT`
+int lane, one level up: slots proven to hold only `CS_FLOAT`
 (literals, lane reads, unary `-`, and `+ - * /` where the operands are
 float-shaped, with int operands converted by the identical C cast the
 runtime's numeric fast path performs) run as plain `double` in
 generated code. `float_loop`: 2.02×.
 
 **Wave 6 — guard elimination.** A definite-assignment walk proves which
-slot reads can never observe `PT_UNSET` (params are filled with real
-values or `PT_MISSING` by every bound-vector source; locals/globals
+slot reads can never observe `CS_UNSET` (params are filled with real
+values or `CS_MISSING` by every bound-vector source; locals/globals
 follow the conservative join of `analyze_definite_assign`) and drops
-their used-before-assignment `pt_guard` — plus the used-flag store on
+their used-before-assignment `cs_guard` — plus the used-flag store on
 the write side for definitely-assigned native slots, which also unpins
 loop counters from the stack. `class_ops` −19%.
 
@@ -458,7 +458,7 @@ other cases at parity — deltas below the ~10% code-layout envelope of
 §9 are not attributable to the change.
 
 **Wave 9 — slice copy-on-write + lazy spans, and exact mixed numeric lanes.**
-Lists and tuples now share a `pt_seqbuf` and carry a view stride; a slice is
+Lists and tuples now share a `cs_seqbuf` and carry a view stride; a slice is
 an O(1) view (strided and negative strides included) and every write
 detaches. Sequence objects allocate only the tag + `as.seq` prefix, index and
 length fast paths are header-inline, and index normalization is branchless.
@@ -471,7 +471,7 @@ reads (shared raw `items`/`stride`/`len` facts; a second span with equal raw
 bounds is derived as `ceil(base.count/step)`). Mixed numeric code keeps the
 int and float lanes: `float(<int64>)` is the exact cast, `int(<float>)`
 retains its range guard, mixed comparisons use the exact int64/double
-ordering helper, and `pt_nfmul`'s empty-asm barrier prevents FMA contraction
+ordering helper, and `cs_nfmul`'s empty-asm barrier prevents FMA contraction
 (two-rounding parity).
 
 `slice_ops` 192.5 → 3.06 ms (C 2.73, 1.12×; was 55.95×); `mixed_num` 1717 →

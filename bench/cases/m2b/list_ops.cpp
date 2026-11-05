@@ -1,7 +1,7 @@
 // list_ops.cpp — C++ twin of bench/cases/m2b/list_ops.pen
 // Stage-2B-only workload (M1 has no lists): 200,000 appends of i*3+1,
 // one full sum pass (for-over-list), then len/index reads. The Pentest
-// list holds tagged pt_value cells (16-byte value + cell overhead); the
+// list holds tagged cs_value cells (16-byte value + cell overhead); the
 // twin uses vector<int64_t>. Mutating methods return None on the Pentest
 // side (no return-value dispatch modeled here).
 #include <cstdint>

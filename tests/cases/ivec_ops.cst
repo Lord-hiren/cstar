@@ -1,5 +1,5 @@
-# Elementwise ivec arithmetic: two's-complement wrap (exactly pt_wrap_*),
-# C-style truncating division/modulo (exactly pt_div/pt_mod), scalar
+# Elementwise ivec arithmetic: two's-complement wrap (exactly cs_wrap_*),
+# C-style truncating division/modulo (exactly cs_div/cs_mod), scalar
 # broadcasts on either side, and int reduction agreement.
 
 a = ivec([1, 2, 3, 4, 5])
@@ -30,7 +30,7 @@ print(ivec([-7, 7]) % 2)
 print(7 / ivec([2]))
 print(ivec([-7, 7]) - 7)
 
-# INT64_MIN / -1 and INT64_MIN % -1 follow pt_div/pt_mod
+# INT64_MIN / -1 and INT64_MIN % -1 follow cs_div/cs_mod
 print(ivec([0 - 9223372036854775807 - 1]) / ivec([-1]))
 print(ivec([0 - 9223372036854775807 - 1]) % ivec([-1]))
 

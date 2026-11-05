@@ -3,7 +3,7 @@
 // steps (chain K=2048 x N=6336 on the Pentest side), seed 1.0, identical
 // IEEE-754 op sequence, identical output bytes.
 // The float formatting below is a line-for-line replica of the Pentest M1
-// runtime's pt_fmt_float (docs/contracts/m1-semantics.md §4 shortest round-trip rule),
+// runtime's cs_fmt_float (docs/contracts/m1-semantics.md §4 shortest round-trip rule),
 // so printed text matches byte-for-byte.
 #include <cmath>
 #include <cstdint>

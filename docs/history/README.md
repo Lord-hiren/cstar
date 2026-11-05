@@ -13,8 +13,10 @@ and the original plan. For a per-version list of what changed, see the
 | [progress-m2c.md](progress-m2c.md) | working record of Stage 2C (GC, exceptions, classes): what landed per sector, ratified decisions, defects found, test inventory |
 
 These are **records, not specifications**. Where one says "remaining" or quotes a
-test count, it describes the moment it was written. The current suite is 368
-checks ([building and testing](../development/building-and-testing.md)).
+test count, it describes the moment it was written; for the current suite see
+[building and testing](../development/building-and-testing.md). They also keep
+the internal names of their time: `pentest_rt` is now `cstar_rt`, the
+`pt_`/`PT_` prefixes are `cs_`/`CS_`, and `__ptm` module names are `__csm`.
 
 ## Timeline
 

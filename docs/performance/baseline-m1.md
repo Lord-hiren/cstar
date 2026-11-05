@@ -3,7 +3,9 @@
 > **Historical record** (`pentest 0.1.0-m1`). Part of the
 > [performance documentation](README.md); reproduce with `bench/run.sh`
 > ([benchmarking](../development/benchmarking.md)). Current mechanisms:
-> [optimization.md](optimization.md).
+> [optimization.md](optimization.md). Internal names have since been renamed
+> (`pentest_rt` → `cstar_rt`, `pt_`/`PT_` → `cs_`/`CS_`); this page keeps the
+> old ones.
 
 Status: **measured on the frozen M1 compiler** (`bench/tools/pentest-m1`,
 `pentest 0.1.0-m1`, copied from `build/pentest` before Milestone 2 work began).

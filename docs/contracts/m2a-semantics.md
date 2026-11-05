@@ -295,35 +295,35 @@ Format unchanged: `<file>:<line>: runtime error: <message>`.
 
 Type names: `unset None int float bool string` (+ `range` when 2B adds more).
 
-## 10. Runtime API additions (runtime/pentest_rt.{h,c})
+## 10. Runtime API additions (runtime/cstar_rt.{h,c})
 
 All M1 APIs unchanged. Additions (C11, libc+libm only):
 
 ```c
-/* PT_RANGE tag: value holds int64 start/stop/step (contract exposes fields). */
-pt_value pt_range3(pt_value start, pt_value stop, pt_value step, int line);
+/* CS_RANGE tag: value holds int64 start/stop/step (contract exposes fields). */
+cs_value cs_range3(cs_value start, cs_value stop, cs_value step, int line);
 /* Validates args (int-only, nonzero step) with §9 messages. */
 
-bool pt_truthy(pt_value v, int line);            /* §4; total */
-pt_value pt_pow(pt_value a, pt_value b, int line);      /* §3.1 */
-pt_value pt_band(pt_value a, pt_value b, int line);     /* §3.2 */
-pt_value pt_bor(pt_value a, pt_value b, int line);
-pt_value pt_bxor(pt_value a, pt_value b, int line);
-pt_value pt_shl(pt_value a, pt_value b, int line);
-pt_value pt_shr(pt_value a, pt_value b, int line);
-pt_value pt_bnot(pt_value a, int line);
+bool cs_truthy(cs_value v, int line);            /* §4; total */
+cs_value cs_pow(cs_value a, cs_value b, int line);      /* §3.1 */
+cs_value cs_band(cs_value a, cs_value b, int line);     /* §3.2 */
+cs_value cs_bor(cs_value a, cs_value b, int line);
+cs_value cs_bxor(cs_value a, cs_value b, int line);
+cs_value cs_shl(cs_value a, cs_value b, int line);
+cs_value cs_shr(cs_value a, cs_value b, int line);
+cs_value cs_bnot(cs_value a, int line);
 
-bool pt_contains(pt_value item, pt_value container, int line);  /* §3.4 */
+bool cs_contains(cs_value item, cs_value container, int line);  /* §3.4 */
 
 /* Minimal iteration protocol for `for` (range + string in 2A; 2B extends). */
-typedef struct pt_iter { /* kind + range state + string cursor */ int kind; } pt_iter;
-pt_iter pt_iter_open(pt_value v, int line);        /* §5 not-iterable error */
-bool pt_iter_next(pt_iter* it, pt_value* out);     /* false at exhaustion */
+typedef struct cs_iter { /* kind + range state + string cursor */ int kind; } cs_iter;
+cs_iter cs_iter_open(cs_value v, int line);        /* §5 not-iterable error */
+bool cs_iter_next(cs_iter* it, cs_value* out);     /* false at exhaustion */
 ```
 
-`pt_print` gains the `range` format `range(<start>, <stop>, <step>)`.
+`cs_print` gains the `range` format `range(<start>, <stop>, <step>)`.
 Range values compare with total `==`/`!=` **structurally** (start, stop and
-step all equal) — ratified integrator decision; `pt_type_name` of a range is
+step all equal) — ratified integrator decision; `cs_type_name` of a range is
 `range`.
 All arithmetic stays free of C undefined behavior (wrap via uint64_t as M1).
 
@@ -332,17 +332,17 @@ All arithmetic stays free of C undefined behavior (wrap via uint64_t as M1).
 Structure, mangling, guards, line passing and compile command are unchanged.
 New requirements:
 
-- `if`/`elif`/`else` → C `if`/`else if`/`else` on `pt_truthy(cond, line)`.
-- `while` → C `while (pt_truthy(cond, line))`; `break`/`continue` map 1:1.
+- `if`/`elif`/`else` → C `if`/`else if`/`else` on `cs_truthy(cond, line)`.
+- `while` → C `while (cs_truthy(cond, line))`; `break`/`continue` map 1:1.
 - `for` over a **direct `range(...)` call** is open-coded: validate via
-  `pt_range3`, then iterate int64 induction variables with **no signed
+  `cs_range3`, then iterate int64 induction variables with **no signed
   overflow UB** (unsigned accumulation or explicit overflow guard; loop must
-  terminate per §6). Any other iterable → `pt_iter_open`/`pt_iter_next`.
+  terminate per §6). Any other iterable → `cs_iter_open`/`cs_iter_next`.
 - `and`/`or`/ternary → C conditional expressions (lazy right side):
-  `and` → `(pt_truthy(l,lno) ? pt_bool(pt_truthy(r,lno)) : pt_bool(false))`;
-  `or` → `(pt_truthy(l,lno) ? pt_bool(true) : pt_bool(pt_truthy(r,lno)))`;
-  ternary → `(pt_truthy(c,lno) ? t : e)`.
-- `switch` → if/else chain of `pt_eq(scrut, label_value, ...)` in source
+  `and` → `(cs_truthy(l,lno) ? cs_bool(cs_truthy(r,lno)) : cs_bool(false))`;
+  `or` → `(cs_truthy(l,lno) ? cs_bool(true) : cs_bool(cs_truthy(r,lno)))`;
+  ternary → `(cs_truthy(c,lno) ? t : e)`.
+- `switch` → if/else chain of `cs_eq(scrut, label_value, ...)` in source
   order (optimization later; semantics: first match ends).
 - Compound assign → read target, apply op runtime call, write back.
 - Loop variable read guards: the loop assigns before each body execution;
@@ -358,7 +358,7 @@ src/diagnostics.{h,cpp}                                   (contract — integrat
 src/lexer.{h,cpp} src/parser.{h,cpp}                      (agent: frontend syntax)
 src/semantic.{h,cpp}                                      (agent: semantic pass)
 src/codegen.cpp                                           (agent: C backend)
-runtime/pentest_rt.{h,c}                                  (agent: runtime)
+runtime/cstar_rt.{h,c}                                  (agent: runtime)
 src/main.cpp Makefile tools/embed.cpp                     (integrator, if needed)
 tests/** examples/** bench/** docs/performance/baseline-m1.md          (test/bench agents, later)
 SPEC.md README.md docs/contracts/m1-semantics.md                    (integrator, at the end)
@@ -368,7 +368,7 @@ editors/vscode/**                                         (integrator, at the en
 Agents must not run `make` in the project root (build/pentest is shared);
 syntax-check single files with
 `clang++ -std=c++17 -Wall -Wextra -fsyntax-only -Isrc src/<file>.cpp`
-(respectively `clang -std=c11 -fsyntax-only runtime/pentest_rt.c`) and keep
+(respectively `clang -std=c11 -fsyntax-only runtime/cstar_rt.c`) and keep
 scratch work in /tmp. Contract files are read-only for agents: report
 suspected contract bugs instead of editing.
 

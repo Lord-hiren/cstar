@@ -4,7 +4,7 @@
 // output. The Pentest side is now a REAL while loop (Stage 2B) instead of
 // the M1 K x N call chain, so this pair measures the loop-construct gain.
 // int64 wraparound is computed through uint64_t (defined behavior,
-// identical to the Pentest runtime's pt_wrap_*).
+// identical to the Pentest runtime's cs_wrap_*).
 #include <cstdint>
 #include <cstdio>
 

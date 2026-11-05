@@ -2,7 +2,7 @@
 // Stage-2B-only workload (M1 has no function values/closures): 300,000
 // iterations of (closure creation + two calls through the function value,
 // one with a default arg and one with a named arg). On the Pentest side
-// each call goes through pt_call/funmeta with a captured cell read; the
+// each call goes through cs_call/funmeta with a captured cell read; the
 // twin models the same algorithm with a noinline captured struct call —
 // C++ closures are pure compile-time constructs, so the gap below is the
 // measured cost of the dynamic function-value machinery.

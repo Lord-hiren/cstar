@@ -3,7 +3,7 @@
 // on an int64 accumulator) followed by (accumulator reset + the string_ops
 // period-5 chain: 25 periods of 4 literal appends on the unwind, reset to the
 // 8-byte seed after every period except the last, 100 concatenations with the
-// pt_concat allocation pattern, final string 72 bytes).  Final line:
+// cs_concat allocation pattern, final string 72 bytes).  Final line:
 // "<int> <72-byte string>".  As in string_ops, the C++ twin frees previous
 // buffers while M1 leaks them (~12 MB leaked by this program).
 #include <cstdint>

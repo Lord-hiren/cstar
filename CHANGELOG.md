@@ -38,6 +38,14 @@ versions are the strings reported by `pentest --version`. For the narrative see
 - The editor extension knows the SIMD vector builtins `fvec`, `ivec`,
   `fvec_fill`, `ivec_fill` and `dot` (highlighting, completion, hover, reserved
   names); it now covers all 78 builtins the compiler reserves.
+- **Internal names are cstar.** The runtime is `runtime/cstar_rt.{h,c}` (was
+  `pentest_rt`); runtime and generated-C names use the `cs_`/`CS_` prefixes
+  (was `pt_`/`PT_`, e.g. `cs_value`); the compiler's C++ namespace is `cstar`;
+  imported declarations are mangled `__csm<id>_<name>` (was `__ptm`). Older
+  entries below keep the old names. A pure rename: every test program gives
+  byte-identical output, and the generated C differs only in names.
+- `http_get`/`http_post` send `User-Agent: jev-pipeline/1.0 (cstar)` (was
+  `(pentest)`).
 
 ### Tooling
 - GitHub Actions CI (`.github/workflows/ci.yml`): a warning-free build,

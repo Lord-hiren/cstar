@@ -1,5 +1,5 @@
 # fvec/ivec error surfaces: every message must match the runtime's scalar
-# wording conventions (pt_bad_binary format, ValueError length checks,
+# wording conventions (cs_bad_binary format, ValueError length checks,
 # IndexError per type name, per-element division errors at the statement
 # line) — and fused kernels must raise IDENTICALLY to the dynamic path.
 

@@ -255,9 +255,9 @@ pentest --version | -v              # prints: pentest 0.1.0-m1
   through a pipe; if `sha256sum` is unavailable → no caching, always compile.
   On cache hit, exec the cached binary directly (exit code propagates).
 - Compile pipeline: write generated `gen.c` plus the embedded runtime sources
-  `pentest_rt.h`/`pentest_rt.c` (embedded in the `pentest` binary via
+  `cstar_rt.h`/`cstar_rt.c` (embedded in the `cstar` binary via
   `build/runtime_embed.h`) into a temp dir, then run
-  `clang -std=c11 -O2 -o <out> gen.c pentest_rt.c -lm`.
+  `clang -std=c11 -O2 -o <out> gen.c cstar_rt.c -lm`.
   If `clang` is missing → clear error, exit 1.
 - Exit codes: 0 success; 1 compile/semantic/runtime/clang errors;
   2 usage errors.
@@ -266,38 +266,38 @@ pentest --version | -v              # prints: pentest 0.1.0-m1
 
 ## 10. Generated-C contract
 
-`generate_c(program, out_c_path)` writes C11 that includes `"pentest_rt.h"`
-and, when compiled together with `pentest_rt.c`, produces the program.
+`generate_c(program, out_c_path)` writes C11 that includes `"cstar_rt.h"`
+and, when compiled together with `cstar_rt.c`, produces the program.
 Required structure:
 
 ```c
-#include "pentest_rt.h"
-static pt_value pt_g_<name>;              /* one per Program.globals; zero-init = unset */
-static pt_value pt_fn_<name>(pt_value pt_l_<param>, ...);   /* forward decls, ALL functions */
-static pt_value pt_fn_<name>(...) { ... }                    /* definitions, decl order */
-static void pt_main_block(void) { ... }                      /* if Program.has_main */
+#include "cstar_rt.h"
+static cs_value cs_g_<name>;              /* one per Program.globals; zero-init = unset */
+static cs_value cs_fn_<name>(cs_value cs_l_<param>, ...);   /* forward decls, ALL functions */
+static cs_value cs_fn_<name>(...) { ... }                    /* definitions, decl order */
+static void cs_main_block(void) { ... }                      /* if Program.has_main */
 int main(int argc, char** argv) {
-    pt_init(argc, argv, "<file path as invoked>");           /* stores path + args */
-    /* top-level flow: statements in source order; at main()'s position: pt_main_block(); */
+    cs_init(argc, argv, "<file path as invoked>");           /* stores path + args */
+    /* top-level flow: statements in source order; at main()'s position: cs_main_block(); */
     return 0;
 }
 ```
 
 - Name mangling is done by the semantic pass (`FuncDecl.c_name`).
-- Locals: C parameters are named `pt_l_<name>` directly; other locals are
-  declared at function entry as `pt_value pt_l_<name> = <unset value>;`.
-- `print` calls emit a local array + `pt_print(arr, n, line)`.
+- Locals: C parameters are named `cs_l_<name>` directly; other locals are
+  declared at function entry as `cs_value cs_l_<name> = <unset value>;`.
+- `print` calls emit a local array + `cs_print(arr, n, line)`.
 - Every operation that can fail at runtime must receive the Pentest source
   line number of the corresponding AST node.
 - Reads of Global/Local nodes must be guarded by the used-before-assignment
   check with the proper name and scope kind.
 - All function forward declarations appear before any definition so forward
   calls and mutual recursion work.
-- The runtime library owns `pt_value` layout and the exact `pt_*` API
+- The runtime library owns `cs_value` layout and the exact `cs_*` API
   (implementation freedom), but must provide: constructors for None/int/
   float/bool/string-literal, the arithmetic/comparison ops above with line
-  reporting, `pt_print`, the used-before-assignment guard,
-  `pt_init(argc, argv, src_path)`, and the runtime error reporter that
+  reporting, `cs_print`, the used-before-assignment guard,
+  `cs_init(argc, argv, src_path)`, and the runtime error reporter that
   prints §8's format and exits 1. Runtime requires only libc + libm.
 - Float-to-string must implement §4's shortest-round-trip rule.
 - Strings are immutable; literals may be static; concatenation may leak
@@ -309,7 +309,7 @@ int main(int argc, char** argv) {
 src/ast.h              src/diagnostics.h      src/diagnostics.cpp   (core contract)
 src/frontend.h         src/codegen.h          (interface contract)
 src/lexer.{h,cpp} src/parser.{h,cpp} src/semantic.{h,cpp}   (frontend)
-src/codegen.cpp        runtime/pentest_rt.{h,c}             (backend)
+src/codegen.cpp        runtime/cstar_rt.{h,c}             (backend)
 src/main.cpp           Makefile  tools/embed.cpp  tests/**  examples/**   (CLI/build/tests)
 SPEC.md                README.md              (docs)
 build/pentest          (the CLI binary)

@@ -11,9 +11,9 @@ make test         # runs tests/run_tests.sh
 Compiler flags are `clang++ -std=c++17 -Wall -Wextra -O2 -Isrc -Ibuild`, with
 `-MMD -MP` dependency files so header edits rebuild what they should. The only
 generated source is `build/runtime_embed.h`, produced by `build/embed`
-(compiled from `tools/embed.cpp`). It embeds `runtime/pentest_rt.{c,h}`, the
-precompiled runtime object `build/pentest_rt.o` and the build host's
-`/proc/cpuinfo` `flags` line (`build/pentest_rt.cpu`) — so **any edit to the
+(compiled from `tools/embed.cpp`). It embeds `runtime/cstar_rt.{c,h}`, the
+precompiled runtime object `build/cstar_rt.o` and the build host's
+`/proc/cpuinfo` `flags` line (`build/cstar_rt.cpu`) — so **any edit to the
 runtime rebuilds the object, the header and every translation unit that
 includes it**, and changes the runtime-object cache key.
 

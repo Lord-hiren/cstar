@@ -4,7 +4,7 @@
 // seed.  The C++ chain is a single noinline passthrough called in a loop
 // (same call count as the .pen K-deep chain repeated N times); the empty asm
 // barrier is a zero-cost optimizer fence (the Pentest side is fenced by its
-// external pt_guard calls) that stops the optimizer from hoisting/DCE-ing
+// external cs_guard calls) that stops the optimizer from hoisting/DCE-ing
 // the pure call.
 #include <cstdint>
 #include <cstdio>

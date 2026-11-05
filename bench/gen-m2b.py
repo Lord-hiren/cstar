@@ -19,7 +19,7 @@ Two case families:
 Every case has an identical C++ twin in bench/cases/m2b/<name>.cpp: same
 arithmetic sequence, same data types (int64 two's-complement wrap ==
 uint64_t; % and < signed on both sides), same output bytes. Float formatting
-in the twins is a line-for-line copy of runtime/pentest_rt.c pt_fmt_float
+in the twins is a line-for-line copy of runtime/cstar_rt.c cs_fmt_float
 (unchanged from M1). Fully deterministic: no randomness anywhere.
 
 Run:  python3 bench/gen-m2b.py        (writes bench/cases/m2b/<name>.pen)
@@ -211,7 +211,7 @@ def gen_text_ops():
 def gen_closure_ops():
     # Stage-2B-only: closure creation + calls through a function value.
     # make_adder builds a closure capturing n; calling it goes through a
-    # dynamic function value (pt_call / funmeta), the function-sector hot path.
+    # dynamic function value (cs_call / funmeta), the function-sector hot path.
     write("closure_ops", [
         "# closure_ops: %d closure creations + calls through function values" % CLOSURE_N,
         "# (capture cell read + dynamic dispatch per call).",
@@ -232,7 +232,7 @@ def gen_closure_ops():
 
 def gen_dispatch_ops():
     # Stage-2B-only: call a function value stored in a list/map (indirect
-    # pt_call), plus named-arg + vararg/kwarg binding cost.
+    # cs_call), plus named-arg + vararg/kwarg binding cost.
     write("dispatch_ops", [
         "# dispatch_ops: %d indirect calls through a function value held in a" % DISPATCH_N,
         "# map, mixing positional / named / *args / **kwargs binding.",

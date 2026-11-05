@@ -111,13 +111,13 @@ Usage errors print `error: <reason>` followed by the usage text on stderr.
    imported declarations, prune unreachable imported code in `run`/`build`
    mode (`src/modules.cpp`; skipped entirely when the program has no imports);
 3. semantic analysis (all in-process);
-4. generate `gen.c` and write it, with the embedded `pentest_rt.c` /
-   `pentest_rt.h`, into `$TMPDIR/pentest-XXXXXX/` (`/tmp` by default);
+4. generate `gen.c` and write it, with the embedded `cstar_rt.c` /
+   `cstar_rt.h`, into `$TMPDIR/cstar-XXXXXX/` (`/tmp` by default);
 5. obtain the runtime object: install the precompiled object embedded by
    `make` when the host CPU fingerprint matches, otherwise compile it to
    `rt-<key>.o` (`clang -std=c11 -O3 -march=native -c …`);
 6. link: `clang -std=c11 -O3 -march=native -o <out> gen.c <runtime.o> -lm`
-   (or `gen.c pentest_rt.c` when neither object is available);
+   (or `gen.c cstar_rt.c` when neither object is available);
 7. for `run`: store under the program key and `exec` it.
 
 If `clang` is not on `PATH` the driver prints

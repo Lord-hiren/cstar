@@ -29,7 +29,7 @@ generators; weak references; modules/imports (2D); static typing.
 ### 1.1 Algorithm *(ratified)*
 
 Non-moving **mark&sweep** over a registry of every heap allocation, with
-precise roots. No reference counting — although `pt_obj.refcount` was
+precise roots. No reference counting — although `cs_obj.refcount` was
 reserved for RC, RC would require incref/decref discipline through every
 generated temp, every bound-vector slot and every runtime op's internals
 (error-prone and pervasive); mark&sweep needs only *root registration*,
@@ -44,27 +44,27 @@ marked}`) covers every leak class 2B measured:
 
 | kind | payload | trace |
 |---|---|---|
-| `PT_LIST PT_MAP PT_SET PT_TUPLE PT_FUNCTION` (+ 2C: class/instance/exception/bound-method) | `pt_obj` | per-tag members (seq items, table entries, fun env cells, …) |
+| `CS_LIST CS_MAP CS_SET CS_TUPLE CS_FUNCTION` (+ 2C: class/instance/exception/bound-method) | `cs_obj` | per-tag members (seq items, table entries, fun env cells, …) |
 | text buffer | bytes after the prefix | leaf |
 | bytes buffer | bytes after the prefix | leaf |
-| closure cell (`pt_cell`) | the cell's `pt_value` | the value |
-| env array (`pt_cell**`) | **not** registered — owned by its `PT_FUNCTION` object and freed with it | (cells inside are individually registered) |
+| closure cell (`cs_cell`) | the cell's `cs_value` | the value |
+| env array (`cs_cell**`) | **not** registered — owned by its `CS_FUNCTION` object and freed with it | (cells inside are individually registered) |
 
 Member arrays (`seq.items`, `table.e`, `table.slots`) are owned by their
 object, reallocated in place, and freed with the owner at sweep.
 Realloc never happens during a collection (see 1.4 safe points), so
 member pointers are always coherent at mark time. Static string
-literals (`PT_STR`) and builtin class singletons are immortal: never
+literals (`CS_STR`) and builtin class singletons are immortal: never
 registered, never freed.
 
-`pt_text_alloc` / `pt_bytes_alloc` / `pt_cell_alloc` route through the
-prefix allocator; existing `pt_obj_new` gains registry linkage.
+`cs_text_alloc` / `cs_bytes_alloc` / `cs_cell_alloc` route through the
+prefix allocator; existing `cs_obj_new` gains registry linkage.
 
 ### 1.3 Roots *(ratified)*
 
-1. **Globals**: codegen emits `static pt_value* const pt_g_roots[] = { &pt_g_a, ... };`
-   (or a NULL/0 pair) handed to `pt_init`.
-2. **Shadow frames**: every generated function (and `pt_main_block`)
+1. **Globals**: codegen emits `static cs_value* const cs_g_roots[] = { &cs_g_a, ... };`
+   (or a NULL/0 pair) handed to `cs_init`.
+2. **Shadow frames**: every generated function (and `cs_main_block`)
    declares *all* locals **and all temporaries at function top**
    (temp declarations are hoisted from mid-body) and registers their
    addresses in a shadow-stack frame at entry, popping at exit. Because
@@ -78,7 +78,7 @@ prefix allocator; existing `pt_obj_new` gains registry linkage.
    `bound` vector from its first line until slot materialization completes
    — covering the binder's `*args`/`**kwargs` (dynamic) *and* the static
    `barr[]` compound literal uniformly, since neither is addressable from
-   the caller's registered slots. (The `pt_call` binder additionally frees
+   the caller's registered slots. (The `cs_call` binder additionally frees
    its bound vector after the call — a 2B leak closed here.)
 5. **Builtin singletons** (exception class values).
 
@@ -88,12 +88,12 @@ Allocations count bytes; when the total exceeds a threshold that doubles
 after each sweep, the *next safe point* collects. Safe points are emitted
 by codegen where **all live values sit in registered slots**: function
 entries, loop back-edges (`while`/`for`), and top-level statement
-boundaries in `pt_main_block` and C `main`. The runtime never collects
+boundaries in `cs_main_block` and C `main`. The runtime never collects
 mid-operation, so no runtime op needs protection except the callback case
 in 1.3(4).
 
 **Statement-end temp clearing (implementation rule):** after each
-statement, the emitter assigns `pt_unset()` to every temp that statement
+statement, the emitter assigns `cs_unset()` to every temp that statement
 created. Without this, a stale temp slot would keep the last-evaluated
 values (and everything they reference, cycles included) reachable until
 the slot was reused or the frame exited — reclamation would not be
@@ -132,7 +132,7 @@ singleton class value (`ValueError`, `TypeError`, `NameError`,
 `ZeroDivisionError`, `IndexError`, `KeyError`, `AttributeError`,
 `RuntimeError`, …); instances carry `.type` (text), `.message` (text)
 and the raise-site line (not exposed). Mapping rule: every
-`pt_runtime_error` site adopts the closest Python-style class; the
+`cs_runtime_error` site adopts the closest Python-style class; the
 message strings are **unchanged**. Uncaught exceptions print
 `<src>:<line>: runtime error: <message>` to stderr and exit 1 —
 byte-identical to 2B for every existing case.
@@ -159,9 +159,9 @@ If no clause matches, the exception continues unwinding (after
 
 setjmp/longjmp (C11, no threads): the runtime keeps a handler stack of
 `{jmp_buf, shadow-frame depth, kind (CATCH/FINALLY), pending value}`.
-`pt_throw` pops entries above nothing, restoring the shadow stack to
+`cs_throw` pops entries above nothing, restoring the shadow stack to
 the entry's depth, then `longjmp`s into the landing pad, which re-raises
-(`pt_rethrow`) when the entry is FINALLY (after running its block) or
+(`cs_rethrow`) when the entry is FINALLY (after running its block) or
 when no except clause matched. Nesting composes: a try with both
 excepts and a finally lowers to nested trys (inner: except logic,
 outer: finally).
@@ -178,7 +178,7 @@ the handler stack).
 - `finally` runs on: normal completion, `break/continue/return` out of
   the try, and exception unwind. Always exactly once per entry path.
 - Errors in `except` matching expressions propagate normally.
-- `pt_runtime_error` keeps its signature but now *throws* the mapped
+- `cs_runtime_error` keeps its signature but now *throws* the mapped
   class; the uncaught printer produces the 2B byte format.
 
 ## 3. Classes and object identity

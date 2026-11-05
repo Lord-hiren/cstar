@@ -264,8 +264,8 @@ Rules:
      **boxed**: all reads/writes in the owner go through the cell; the
      owner's `local_is_cell`/`param_is_cell` flags record boxing.
   5. **Calls to nested functions by bare name** go through the local's
-     function value (dynamic `pt_call`); there is no static fast path for
-     nested/capturing functions. Static direct calls (`pt_fn_x(...)`
+     function value (dynamic `cs_call`); there is no static fast path for
+     nested/capturing functions. Static direct calls (`cs_fn_x(...)`
      without env) are used only for top-level, env-less functions. Arity
      and named-argument checks remain STATIC whenever the callee
      declaration is known (including nested callees).
@@ -377,8 +377,8 @@ map set tuple function`.
 
 ## 13. Generated-C / runtime contract additions
 
-- **Heap objects** (`list/map/set/tuple/function`) are `pt_obj*` behind a
-  header with a reserved refcount field (unused in 2B). pt_value's union
+- **Heap objects** (`list/map/set/tuple/function`) are `cs_obj*` behind a
+  header with a reserved refcount field (unused in 2B). cs_value's union
   gains a pointer slot for heap objects; text/bytes stay pointer+length
   inline (immutable). 2B **leaks** heap objects (no reclamation) — documented
   limitation, scheduled for 2C.
@@ -386,42 +386,42 @@ map set tuple function`.
   check), slicing (full Python normalization), iteration protocol extended to
   all iterables, membership extended, hashing + total-equality map/set,
   display/`str()` for every type, the §8 builtins, and runtime method
-  dispatch `pt_call_method(obj, name, args, n, line)`.
+  dispatch `cs_call_method(obj, name, args, n, line)`.
 - **Function values / bindings / closures — normative ABI (SEM, CGEN and RT
   must agree; §6 nested model applies):**
   - Every generated function has the **uniform ABI**
-    `pt_value pt_fn_x(pt_value* bound, pt_cell** env)`; top-level functions
-    are called with `env = NULL`. `pt_cell` is `{ pt_value v; }`, heap.
+    `cs_value cs_fn_x(cs_value* bound, cs_cell** env)`; top-level functions
+    are called with `env = NULL`. `cs_cell` is `{ cs_value v; }`, heap.
   - The callee receives a **bound vector**: `bound[i]` is either a value or
-    the sentinel `PT_MISSING`. Entry code (a) evaluates `PT_MISSING`
+    the sentinel `CS_MISSING`. Entry code (a) evaluates `CS_MISSING`
     defaults **in parameter order** (a default may reference globals and
     earlier `bound` params), (b) when `has_vararg` and the slot is
-    `PT_MISSING`, builds an empty list (else uses the binder's list),
+    `CS_MISSING`, builds an empty list (else uses the binder's list),
     (c) when `has_kwarg`, likewise an empty map. Then normal body semantics
     apply (boxed locals are the cells, not the bound vector — copy bound →
     cell/local at entry; a boxed param's cell is allocated in the prologue
     and initialized from `bound`).
   - **Static call site** (callee known, positional-only): stack-allocate
-    `pt_value bound[N]`, fill supplied positionals left-to-right, put
-    `PT_MISSING` in omitted default slots, call `pt_fn_x(bound, env)`
+    `cs_value bound[N]`, fill supplied positionals left-to-right, put
+    `CS_MISSING` in omitted default slots, call `cs_fn_x(bound, env)`
     directly (`env` = NULL at top level). Named args on a static call are
     placed into their slots at the call site (semantic has verified names).
   - **Dynamic call**: evaluate all argument values and their name strings,
-    then `pt_call(fnv, posvals, npos, argnames, nnamed, line)`; the runtime
-    binder uses the function's `pt_funmeta` to fill a bound vector and
+    then `cs_call(fnv, posvals, npos, argnames, nnamed, line)`; the runtime
+    binder uses the function's `cs_funmeta` to fill a bound vector and
     raises the §11 binding errors at RUNTIME when the callee was not known
     statically (missing required, unknown name, duplicate binding). Calling
     a non-function → `object of type '<t>' is not callable`.
-  - `pt_funmeta` (carried by every function value): function display name,
+  - `cs_funmeta` (carried by every function value): function display name,
     param names + count, required count, per-param has-default mask,
     has_vararg/has_kwarg, and the fn pointer.
-  - **Function value** = `{ pt_funmeta* meta; pt_cell** env; }` tagged
+  - **Function value** = `{ cs_funmeta* meta; cs_cell** env; }` tagged
     `function`. Function equality (if exercised) is by meta identity.
   - `global` targets static global storage; `nonlocal` writes the captured
     cell; builtins stay direct static calls.
 - Codegen keeps M1/2A structure; the Call node's authoritative callee is an
   expression (`callee_expr`); bare-ident fast path and builtin detection
-  retained. Method calls lower to `pt_call_method`. Index-assign evaluates
+  retained. Method calls lower to `cs_call_method`. Index-assign evaluates
   object+index once into temporaries.
 - Every failing op receives its AST node's Pentest source line (M1 rule).
 
@@ -433,13 +433,13 @@ src/diagnostics.*                                          (contract — integra
 src/lexer.{h,cpp}  src/parser.{h,cpp}                       (frontend syntax)
 src/semantic.{h,cpp}                                       (semantic + capture analysis)
 src/codegen.cpp                                            (C backend + closures)
-runtime/pentest_rt.{h,c}                                   (collections + functions + builtins)
+runtime/cstar_rt.{h,c}                                   (collections + functions + builtins)
 src/main.cpp Makefile tools/embed.cpp                      (integrator)
 tests/** bench/** editors/vscode/** SPEC.md README.md      (test/docs/vscode agents, later)
 ```
 Agents must not run `make`; syntax-check single files
 (`clang++ -std=c++17 -Wall -Wextra -fsyntax-only -Isrc src/<f>.cpp`,
-`clang -std=c11 -fsyntax-only runtime/pentest_rt.c`) and scratch-test in
+`clang -std=c11 -fsyntax-only runtime/cstar_rt.c`) and scratch-test in
 /tmp. Contract files are read-only to agents; report suspected bugs.
 
 ## 15. Test plan (Stage 2B acceptance — contract for the test agent)

@@ -3,7 +3,9 @@
 > **Historical record** (`pentest 0.2.0-m2b`, before the garbage collector and
 > before the `0.2.1` optimisation lane). Part of the
 > [performance documentation](README.md). Current mechanisms:
-> [optimization.md](optimization.md).
+> [optimization.md](optimization.md). Internal names have since been renamed
+> (`pentest_rt` → `cstar_rt`, `pt_`/`PT_` → `cs_`/`CS_`); this page keeps the
+> old ones.
 
 Recorded by `bench/run-m2b.sh` (results file: `bench/results/m2b-baseline.md`,
 run 4 = the recorded baseline). Methodology identical to

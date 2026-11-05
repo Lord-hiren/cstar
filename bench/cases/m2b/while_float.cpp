@@ -2,8 +2,8 @@
 // Same algorithm as the M1 float_loop twin: x = x * 1.0000001 + 0.5 in
 // double precision, 12,976,128 steps, seed 1.0, identical IEEE-754 op
 // sequence, identical output bytes. The Pentest side is a real while loop.
-// fmt_float is a line-for-line replica of runtime/pentest_rt.c
-// pt_fmt_float (shortest round-trip rule, unchanged from M1).
+// fmt_float is a line-for-line replica of runtime/cstar_rt.c
+// cs_fmt_float (shortest round-trip rule, unchanged from M1).
 #include <cmath>
 #include <cstdint>
 #include <cstdio>

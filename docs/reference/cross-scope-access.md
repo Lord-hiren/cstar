@@ -97,8 +97,8 @@ codegen then allocates its storage as a **program-lifetime static
 instead of a frame slot**. Two shapes, decided by whether some closure
 also captures the binding:
 
-* **Plain pin** — `static pt_cell pt_p_<c_name>_<name>;` at file scope.
-* **Pinned cell** — `static pt_cell* pt_px_<c_name>_<name>;` pointing at
+* **Plain pin** — `static cs_cell cs_p_<c_name>_<name>;` at file scope.
+* **Pinned cell** — `static cs_cell* cs_px_<c_name>_<name>;` pointing at
   a heap cell created once at program entry (§4.3).
 
 Either way the binding follows these rules:
@@ -115,13 +115,13 @@ Either way the binding follows these rules:
   qualified path and the ordinary path are one storage by construction.
 * **Unset stays honest.** A pin starts unset; reading it before the
   owner's first assignment raises the ordinary
-  `used before assignment` runtime error (same `pt_guard`, same message
+  `used before assignment` runtime error (same `cs_guard`, same message
   as any slot read — including reads through `variable.`).
 * **Values persist across invocations.** After the owner's first
   assignment, the pin keeps its value until rebound — re-entering the
   owner does not reset it.
 * **One storage ⇒ one lane.** The qualified path reads the dynamic
-  `pt_value` slot, so the binding — and any global reached through
+  `cs_value` slot, so the binding — and any global reached through
   `variable.global` — is poisoned out of the native-int lane: the
   ordinary path must read the same slot. Conservative by one slot,
   exactly like every other poison (see
@@ -132,7 +132,7 @@ Either way the binding follows these rules:
 Closures must share cells through env slots that point at *registered
 GC blocks*, never at static memory — hence the indirection of the
 pinned-cell shape. A pinned binding that is also captured does not
-allocate per invocation: entry aliases the owner's `pt_cell_<name>` to
+allocate per invocation: entry aliases the owner's `cs_cell_<name>` to
 the immortal pinned cell created once before any function runs, and that
 cell is registered in the collector's pinned-cell table, **rooted at
 every collection for the whole program**. So closures from every
@@ -143,7 +143,7 @@ the program-lifetime rule of §4.2 holds uniformly.
 
 * **Reads** (`emit_expr`, `ExprKind::VarQual`): the pinned static (or
   the module global, for `variable.global`) is read directly —
-  `pt_guard(<storage>, "<name>", …)`, the same guard and message as an
+  `cs_guard(<storage>, "<name>", …)`, the same guard and message as an
   ordinary read of that storage, no frame lookup of any kind.
 * **Plain/compound stores** (`AssignTarget::Kind::VarQual`): stored
   into the pinned static (or module global) directly; compound forms

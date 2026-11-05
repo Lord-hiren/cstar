@@ -23,10 +23,10 @@ Lab: `examples/sqli_lab.py` on `http://127.0.0.1:8080`.
    the handshake; all later calls skip it (that is the ~10× above).
 2. **One direct C call per builtin.** No dispatch table, no dynamic lookup;
    builtins a program never calls emit nothing. `url_encode` is a single
-   `pt_builtin_url_encode` call — sub-microsecond per call.
+   `cs_builtin_url_encode` call — sub-microsecond per call.
 3. **Single growable response buffer.** Response bytes accumulate in one
-   `pt_buf`; the result is built with one `pt_text_from_buf` — no per-chunk
-   `pt_value` allocation.
+   `cs_buf`; the result is built with one `cs_text_from_buf` — no per-chunk
+   `cs_value` allocation.
 4. **Native compile.** `clang -std=c11 -O3 -march=native -lcurl` — the loop
    around 200 requests is straight C, no interpreter.
 

@@ -143,7 +143,7 @@ PENTEST_PATH=/opt/pentest/lib:/srv/shared build/pentest run scan.pen
   function, as usual.
 * **Module globals stay qualified.** Importers never see a module's globals
   unqualified; they are rewritten to module-unique internal names (visible in
-  generated C as `__ptm<id>_<name>`), so two modules may each define `PREFIX`
+  generated C as `__csm<id>_<name>`), so two modules may each define `PREFIX`
   with no interaction.
 
 ## Selective loading: you only pay for what you name

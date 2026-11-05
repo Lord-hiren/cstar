@@ -50,7 +50,7 @@ REPS="${BENCH_REPS:-7}"
 REBUILD="${BENCH_REBUILD:-0}"
 CXX="${CXX:-clang++}"
 CXXFLAGS="-std=c++17 -O2"
-PEN_CLANG_FLAGS="clang -std=c11 -O2 -o <out> gen.c pentest_rt.c -lm"
+PEN_CLANG_FLAGS="clang -std=c11 -O2 -o <out> gen.c cstar_rt.c -lm"
 
 command -v "$CXX" >/dev/null || { echo "error: $CXX not found" >&2; exit 1; }
 [ -x "$PENTEST" ] || { echo "error: $PENTEST missing — build it with make" >&2; exit 1; }

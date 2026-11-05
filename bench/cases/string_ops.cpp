@@ -4,7 +4,7 @@
 // accumulate on the unwind) with a reset to the 8-byte seed "seed0000" after
 // every period except the last, so the final string is 72 bytes; 6000 chains.
 // Every append allocates la+lb+1, copies both halves and NUL-terminates: the
-// exact allocation/copy pattern of the Pentest runtime's pt_concat, with the
+// exact allocation/copy pattern of the Pentest runtime's cs_concat, with the
 // identical sequence of intermediate string lengths (8->24->40->56->72 per
 // period; 100 concatenations per chain).  Difference: this twin frees the
 // previous buffer; M1 has no GC and leaks every intermediate (~29 MB leaked

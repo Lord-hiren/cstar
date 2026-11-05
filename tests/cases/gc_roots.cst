@@ -1,6 +1,6 @@
 # gc_roots — a collection must not reclaim reachable objects that carry
-# no traceable members: PT_FILE (an open handle) and PT_ITERATOR (boxed
-# iteration state). Both tags were missing from pt_gc_mark_value, so the
+# no traceable members: CS_FILE (an open handle) and CS_ITERATOR (boxed
+# iteration state). Both tags were missing from cs_gc_mark_value, so the
 # first collection swept every live file (closing its handle) and every
 # live iterator (freeing its source and its source list) — found by the
 # hpcbench io workload, which holds a file open across megabytes of

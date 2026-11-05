@@ -206,7 +206,7 @@ error, `2` usage error. Full reference: [CLI](docs/guide/cli.md).
 | Path | Contents |
 |---|---|
 | `src/` | the compiler: driver, lexer, parser, import linker (`modules.cpp`), semantic pass, C code generator, diagnostics |
-| `runtime/` | the C11 runtime (`pentest_rt.{h,c}`) linked into every program |
+| `runtime/` | the C11 runtime (`cstar_rt.{h,c}`) linked into every program |
 | `tests/` | the harness (`run_tests.sh`), 365 cases in `tests/cases/`, and `check_docs.py` |
 | `editors/vscode/` | the VSCode extension |
 | `bench/` | benchmark runners, generated cases, C++ twins, recorded results |

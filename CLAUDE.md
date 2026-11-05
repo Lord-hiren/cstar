@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-cstar (formerly Pentest) is a Python-like language for security tooling. The `cstar` toolchain (C++17, `src/`; `pentest` remains an alias of the same driver until v0.4) translates a `.cst` program (legacy `.pen`/`.pent` are accepted until v0.4) into **one C11 translation unit**, compiles it with `clang -O3 -march=native`, and links it against a C11 runtime (`runtime/pentest_rt.{h,c}`). There is no IR and no optimiser pass: every performance decision is made where C is emitted.
+cstar (formerly Pentest) is a Python-like language for security tooling. The `cstar` toolchain (C++17, `src/`; `pentest` remains an alias of the same driver until v0.4) translates a `.cst` program (legacy `.pen`/`.pent` are accepted until v0.4) into **one C11 translation unit**, compiles it with `clang -O3 -march=native`, and links it against a C11 runtime (`runtime/cstar_rt.{h,c}`). There is no IR and no optimiser pass: every performance decision is made where C is emitted.
 
 **Linux x86_64 only.** You need `clang`/`clang++`, GNU `make`, `sha256sum`, `/proc/cpuinfo` and the libcurl dev headers (the runtime's `http_get`/`http_post` builtins use libcurl; `Makefile` and `src/main.cpp` link `-lcurl`).
 
@@ -55,7 +55,7 @@ Before a change lands, `make && make test` and `node editors/vscode/test/smoke.j
 ```
 src/lexer.cpp     tokens, INDENT/DEDENT, comments, literals           — stops at FIRST error
 src/parser.cpp    recursive descent → AST (src/ast.h)                 — stops at FIRST error
-src/modules.cpp   link_imports: resolve, reject cycles, mangle (__ptm<id>_<name>),
+src/modules.cpp   link_imports: resolve, reject cycles, mangle (__csm<id>_<name>),
                   flatten into entry AST; run/build prune unused imported decls,
                   `check` (strict) validates all of them; no-op with no imports
 src/semantic.cpp  5 phases — reports ALL errors
@@ -64,9 +64,9 @@ src/main.cpp      CLI, temp dir, sha256sum cache key, runtime-object cache, clan
 ```
 
 - **Semantic phases** (in order): declaration discovery (this is why forward references work), globals, top-level/`main:` statements, function bodies (locals, capture analysis/cell boxing, static arity checks), then cross-scope `variable.<q> name` resolution. The last runs after everything else so it can target functions declared later in the file.
-- **Callee identity and builtin shapes are resolved at compile time.** Arity and named-argument errors are compile errors. Each builtin becomes one direct `pt_builtin_*` C call, driven by the table in `src/builtins.h`. Builtins the program doesn't use emit nothing.
-- **Runtime embedding:** `tools/embed.cpp` produces `build/runtime_embed.h` from the runtime sources, a precompiled `build/pentest_rt.o` and the build host's `/proc/cpuinfo` flags line, which acts as an ISA fingerprint. As a result, **any runtime edit rebuilds every TU** and re-keys the runtime cache. If the CPU doesn't match, the driver falls back to `$XDG_CACHE_HOME/cstar/rt-<key>.o`. Module search: importing file's folder, CWD, `$CSTAR_PATH`, then the legacy `$PENTEST_PATH`.
-- **Runtime model:** `pt_value` is a 16-byte tagged union passed by value. Memory is managed by a non-moving mark & sweep GC whose roots are shadow-stack frames (`pt_frame_begin`), registered globals and a protect stack. Runtime errors become exception instances. Every failing operation is passed its source line, so an uncaught error prints `file:line: runtime error: …`.
+- **Callee identity and builtin shapes are resolved at compile time.** Arity and named-argument errors are compile errors. Each builtin becomes one direct `cs_builtin_*` C call, driven by the table in `src/builtins.h`. Builtins the program doesn't use emit nothing.
+- **Runtime embedding:** `tools/embed.cpp` produces `build/runtime_embed.h` from the runtime sources, a precompiled `build/cstar_rt.o` and the build host's `/proc/cpuinfo` flags line, which acts as an ISA fingerprint. As a result, **any runtime edit rebuilds every TU** and re-keys the runtime cache. If the CPU doesn't match, the driver falls back to `$XDG_CACHE_HOME/cstar/rt-<key>.o`. Module search: importing file's folder, CWD, `$CSTAR_PATH`, then the legacy `$PENTEST_PATH`.
+- **Runtime model:** `cs_value` is a 16-byte tagged union passed by value. Memory is managed by a non-moving mark & sweep GC whose roots are shadow-stack frames (`cs_frame_begin`), registered globals and a protect stack. Runtime errors become exception instances. Every failing operation is passed its source line, so an uncaught error prints `file:line: runtime error: …`.
 - **Codegen invariants** (`docs/internals/code-generation.md` § "Rules the generator must keep"):
   - forward declarations come before all definitions;
   - every failing op gets its line number;
