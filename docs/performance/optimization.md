@@ -417,7 +417,25 @@ no `malloc`/`free` round trip per cell or list object in a churn loop.
 
 **Wave 4 — text: in-place growth and memoized code-point queries.**
 `s = s + chunk` loops (`text_build`) concatenate amortized in place
-(`cat_grow` — capacity doubling, byte-identical results): 2.2×.
+(`cat_grow` — capacity doubling, byte-identical results): 2.2×. The codegen
+admits an append (`s += x` or `s = s + x`) only when the slot provably owns
+its buffer (`analyze_text_cats` in `src/codegen.cpp`):
+
+* the slot is written only by text/bytes literals and its own appends, and it
+  is not a parameter, a captured cell, a pinned cross-scope slot, or reachable
+  through a name table (`globals()`, `vars()`, …) or a `variable.` access;
+* every read of it is the append's own operand, **non-retaining** (a
+  comparison, `in`, `is`, `and`/`or`/`not`, a `+` operand, `print`/`len`/
+  `bool`/`int`/`float`/`hash`, `.find`/`.starts_with`/`.ends_with`, or a bare
+  `if s:` / `while s:` condition), or **terminal** — no append to the slot can
+  run after it in that activation (no later append and no shared loop, or a
+  `return` outside any try-with-finally; for a global, only top-level code).
+
+So building text inside a function and then returning, printing or testing it
+is amortized — known issue #9, fixed in v0.3. Text still copies on every
+append when the slot is written from another value (`s = prefix`), is a
+parameter, is captured by an inner function, or escapes (`t = s`, `f(s)`)
+while appends continue; build with a list and `"".join(parts)` there.
 Code-point queries (`unicode_scan`/`text_find`) memoize per
 (payload, length, generation) in the tset instead of re-scanning.
 

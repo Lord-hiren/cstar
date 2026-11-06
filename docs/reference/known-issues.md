@@ -17,13 +17,14 @@ wrong class, the SIGPIPE death without `sha256sum`, left-counting
 text for `Exception`/`RuntimeError`) are **fixed** — as are the GC
 use-after-free on heap text/bytes buffers and `print`'s per-argument heap
 allocation found afterwards — see the `Fixed` section of the changelog for
-pointers to the regression tests. What remains open:
+pointers to the regression tests. Known issue 9 (text built in a loop was
+quadratic) is fixed too, with the regression case `txt_build_amortized`.
+What remains open:
 
 | # | Area | Summary | Severity |
 |---|---|---|---|
 | [7](#7-format-zero-padding-plus-grouping-does-not-regroup) | builtins | `format(42, "08,")` → `00000042`, Python `0,000,042` | low — narrow spec corner |
 | [8](#8-a-cache-less-run-leaves-its-binary-in-the-temp-dir) | driver | a run that cannot cache leaves `$TMPDIR/cstar-XXXXXX/program` | low — cosmetic litter |
-| [9](#9-text-concatenation-in-a-loop-is-quadratic) | runtime | `s += "x"` in a loop is O(n²) (no refcount-based in-place resize) | medium — common pattern, easy workaround |
 | [10](#10-float-vector-modulo-returns-wrong-values) | runtime | `fvec([5.0]) % fvec([2.0])` → `[2.5]` (wrong values) instead of a `TypeError` | medium — silent wrong results |
 
 ---
@@ -83,44 +84,6 @@ executable goes to the cache and the scratch directory is fully removed.
 
 **Workaround.** Keep `sha256sum` installed and the cache directory writable;
 otherwise `rm -rf "${TMPDIR:-/tmp}"/cstar-*` afterwards.
-
----
-
-## 9. Text concatenation in a loop is quadratic
-
-**Repro**
-
-```python
-s = ""
-i = 0
-while i < 100000:
-    s += "x"
-    i += 1
-print(len(s))
-```
-
-≈ 0.63 s on the reference machine; CPython does the same program in ≈ 0.05 s.
-
-**Why.** CPython's `s += x` resizes the string's buffer **in place** when the
-buffer's refcount is 1. cstar has no per-buffer refcounts, and an in-place
-append would be unsound whenever a second value shares the buffer
-(`s2 = s; s += "a"; s2 += "b"` would corrupt what `s2` sees). So every `+`
-allocates a fresh GC buffer and copies both operands: O(n) per step, O(n²)
-over the loop, plus GC churn for the dead intermediates (reclaimed correctly
-since the text-kind fix above). The same cost class as Java `String` and
-Ruby `String` concatenation.
-
-**Workaround.** Append to a list and join — `join` pre-sizes and copies once
-(O(n), ≈ 7× faster for the repro above):
-
-```python
-parts = []
-i = 0
-while i < 100000:
-    parts.append("x")
-    i += 1
-s = "".join(parts)
-```
 
 ---
 

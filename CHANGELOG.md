@@ -389,6 +389,14 @@ the Unreleased section use the names of their time. For the narrative see
   document.
 
 ### Fixed
+- **Text built with `s += x` / `s = s + x` inside a function was quadratic**
+  (known issue #9). The in-place append only applied when the text was used
+  through `len()`, so returning, printing or testing it made every append
+  copy the whole text. The compiler now also accepts reads that cannot keep
+  the buffer (comparisons, `in`, `print`, `.ends_with`, …) and reads after
+  the last append (such as `return s`): 400,000 appends in a function went
+  from 4.9 s to 0.01 s. Sharing patterns keep copy semantics; regression case
+  `txt_build_amortized` and harness check `text_build_grow`.
 - **Vector lane buffers were invisible to the GC, so arithmetic loops leaked
   them and re-faulted a fresh buffer every statement.** `pt_gc_bytes` only
   counted the ~250 B `pt_obj` header, never the (up to 64 MB) lane buffer, so
