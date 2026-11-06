@@ -16,10 +16,10 @@ See: .paul/PROJECT.md (updated 2026-11-05 after Phase 2)
 ## Current Position
 
 Milestone: v0.3 cstar Foundation (v0.3.0)
-Phase: 3 of 4 (Fix known issues) — Not started
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-11-05 — Phase 2 complete (5/5 plans), transitioned to Phase 3
+Phase: 3 of 4 (Fix known issues) — Planning
+Plan: 03-01 created, awaiting approval
+Status: PLAN created, ready for APPLY
+Last activity: 2026-11-06 — Created .paul/phases/03-fix-known-issues/03-01-PLAN.md
 
 Progress:
 - Milestone: [███████░░░] 73% (8 of 11 plans; 2 of 4 phases)
@@ -30,7 +30,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ○        ○        ○     [Ready to plan Phase 3]
+  ✓        ○        ○     [Plan 03-01 created, awaiting approval]
 ```
 
 ## Accumulated Context
@@ -69,16 +69,16 @@ Full decision log: PROJECT.md → Key Decisions.
 ### Git State
 
 Last commit: 9552911 docs(02-05): guides, README and doc tools say cstar (+ metadata commits 5cd85d9 and the Phase 2 transition commit)
-Branch: phase-2-rename (from phase-1-dev-environment; local only); Phase 3 gets its own branch from here
+Branch: phase-3-known-issues (from phase-2-rename; local only)
 main: 6c82d72 (local and remote, unchanged)
 Feature branches merged: none (merge into main and push only when you ask)
 
 ## Session Continuity
 
-Last session: 2026-11-05
-Stopped at: Phase 2 complete, ready to plan Phase 3
-Next action: /paul:plan for Phase 3 (03-01 in-place text growth #9; 03-02 #7, #8, #10)
-Resume file: .paul/ROADMAP.md
+Last session: 2026-11-06
+Stopped at: Plan 03-01 created
+Next action: Review and approve plan, then run /paul:apply .paul/phases/03-fix-known-issues/03-01-PLAN.md
+Resume file: .paul/phases/03-fix-known-issues/03-01-PLAN.md
 
 ---
 *STATE.md — Updated after every significant action*
