@@ -9,12 +9,13 @@
 #   * <name>.err  (optional) — every line must appear as a substring of
 #     stderr; when absent, stderr must be empty;
 #   * <name>.exit (optional) — expected exit code, default 0.
-# Plus eleven CLI-level extra checks: `check` on a valid case, `check` on a
+# Plus twelve CLI-level extra checks: `check` on a valid case, `check` on a
 # compile-error case, `build` + direct execution of a valid case, `.cst`
 # acceptance (run, bare form, default build name), the legacy `.pen`/`.pent`
 # extensions, a `sha256sum`-less PATH (caching disabled, never SIGPIPE),
 # strict and valid `check` on imports, the legacy `pentest` alias, the
-# `index.cst` default entry, and CSTAR_PATH / legacy PENTEST_PATH.
+# `index.cst` default entry, CSTAR_PATH / legacy PENTEST_PATH, and the
+# in-place text append in the generated C (text_build_grow).
 
 set -u
 
@@ -378,6 +379,40 @@ if [ -n "$detail" ]; then
   report_fail "$n" "module_path" "$detail"
 else
   report_pass "$n" "module_path"
+fi
+
+# Extra check (k): the in-place text append (codegen analyze_text_cats) fires
+# for a function that builds text and returns it, and stays off when an
+# alias of the text outlives a later append (known issue #9). The driver
+# deletes gen.c after linking, so a clang shim copies it out.
+n=$((n + 1))
+detail=""
+real_clang="$(command -v clang)"
+mkdir -p "$work/tb/shim"
+printf '#!/bin/sh\nfor a in "$@"; do case "$a" in */gen.c) cp "$a" "$TB_GENC" ;; esac; done\nexec "%s" "$@"\n' \
+  "$real_clang" >"$work/tb/shim/clang"
+chmod +x "$work/tb/shim/clang"
+printf 'build(n):\n    s = ""\n    for i in range(n):\n        if s:\n            s += ","\n        s += str(i)\n    return s\nprint(build(3))\n' \
+  >"$work/tb/grow.cst"
+printf 'f(n):\n    s = ""\n    keep = ""\n    for i in range(n):\n        s += "x"\n        keep = s\n    return keep\nprint(f(3))\n' \
+  >"$work/tb/alias.cst"
+tb_run() {  # tb_run PROG GEN_C -> the built program's stdout
+  TB_GENC="$2" PATH="$work/tb/shim:$PATH" "$cstar" build "$1" -o "$work/tb/prog" \
+    >/dev/null 2>&1 && "$work/tb/prog"
+}
+tb1="$(tb_run "$work/tb/grow.cst" "$work/tb/grow.c")"
+tb2="$(tb_run "$work/tb/alias.cst" "$work/tb/alias.c")"
+[ "$tb1" = "0,1,2" ] || detail+="  build-and-return output: expected '0,1,2', got '$tb1'"$'\n'
+[ "$tb2" = "xxx" ] || detail+="  alias output: expected 'xxx', got '$tb2'"$'\n'
+grep -q 'cs_text_cat2(' "$work/tb/grow.c" 2>/dev/null ||
+  detail+="  build-and-return did not get the in-place append (cs_text_cat2)"$'\n'
+if [ ! -f "$work/tb/alias.c" ] || grep -q 'cs_text_cat2(' "$work/tb/alias.c"; then
+  detail+="  an alias between appends must keep the copying append"$'\n'
+fi
+if [ -n "$detail" ]; then
+  report_fail "$n" "text_build_grow" "$detail"
+else
+  report_pass "$n" "text_build_grow"
 fi
 
 echo "passed: $pass failed: $fail"

@@ -1,0 +1,104 @@
+# txt_build_amortized: text built inside functions grows in place (known issue #9) with exact results, and shared values keep copy semantics (SPEC §5.7, §5.13).
+
+build(n):
+    s = ""
+    for i in range(n):
+        s += "x"
+    return s
+
+csv(items):
+    s = ""
+    for it in items:
+        if s:
+            s += ","
+        s = s + str(it)
+    return s
+
+first_long(words, limit):
+    s = ""
+    for w in words:
+        s += w
+        if len(s) > limit:
+            return s
+    return s
+
+grid(n):
+    out = ""
+    for r in range(n):
+        for c in range(n):
+            if c > 0 and not out.ends_with(","):
+                out += ","
+            out += str(r * n + c)
+            if out.find("zz") >= 0 or out == "never":
+                print("never")
+        out += ";"
+    return out
+
+bb(n):
+    b = b""
+    for i in range(n):
+        b += b"ab"
+    return b
+
+rep(n):
+    if n == 0:
+        return ""
+    s = ""
+    for i in range(n):
+        s += "*"
+    return s + rep(n - 1)
+
+big(n):
+    s = ""
+    i = 0
+    while i < n:
+        s += "abc"
+        if i % 50000 == 0:
+            collect()
+        i += 1
+    return s
+
+print(len(build(5)), build(3))
+print(csv([1, 2, 3]), csv([]) == "")
+print(first_long(["ab", "cd", "ef", "gh"], 5))
+print(grid(2))
+print(bb(3))
+print(rep(3))
+x = big(200000)
+print(len(x), x[0:6], x[len(x) - 3:len(x)])
+
+# Shared values keep copy semantics (these slots keep the copying append).
+alias_then_append():
+    s = "ab"
+    s += "c"
+    t = s
+    s += "d"
+    print(t, s, t is s)
+alias_then_append()
+
+store = []
+remember(v):
+    store.append(v)
+kept(n):
+    s = ""
+    for i in range(n):
+        s += "x"
+        remember(s)
+    return s
+print(kept(3), store)
+
+fin():
+    s = ""
+    try:
+        s += "a"
+        return s
+    finally:
+        s += "b"
+print(fin())
+
+# A global built at top level, then shared.
+g = ""
+for i in range(5):
+    g += str(i)
+h = g
+print(g, h is g)

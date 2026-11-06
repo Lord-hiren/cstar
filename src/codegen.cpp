@@ -4006,18 +4006,49 @@ void Emitter::analyze_native_fvecs() {
 //                 literals decline as well: they mark the slot as something
 //                 other than text, keeping dynamic int counters on the
 //                 inline cs_add_f fast path;
-//   reads         every read is either the candidate's own concat operand
-//                 (the `s` in `s = s + ...`, evaluated before the append
-//                 and consumed by it — including `s = s + s` and `s += s`)
-//                 or a single positional len() argument (which retains
-//                 nothing past the call). Anything else — `t = s`, `f(s)`,
-//                 `return s`, a method receiver, a loop iterable, a
-//                 container key/index, a condition — could carry the buffer
-//                 past the append: under copy-every-time semantics `t is s`
-//                 diverges right there, and a retained interior value could
-//                 even point at a block the grow path dropped. Reads inside
-//                 pattern targets (object/index positions) are reads too;
-//                 only pattern LEAVES are writes, handled by the write rule;
+//   reads         every read is one of:
+//                 (a) the candidate's own concat operand (the `s` in
+//                     `s = s + ...`, evaluated before the append and consumed
+//                     by it — including `s = s + s` and `s += s`);
+//                 (b) NON-RETAINING — its result cannot reference the buffer:
+//                     a direct operand of == != < <= > >= in is `is not`, of
+//                     and/or/not, or of a `+` (text `+` always allocates a
+//                     fresh block: cs_add -> cs_concat); a positional argument
+//                     of print/len/bool/int/float/hash; the receiver or an
+//                     argument of .find/.starts_with/.ends_with; or an
+//                     if/elif/while/ternary condition that is the bare slot
+//                     (truthiness). A ternary's result branches are NOT
+//                     exempt: they hand the operand itself onwards;
+//                 (c) TERMINAL — no candidate of the slot can execute after
+//                     it in the same activation: no candidate at a later-or-
+//                     equal statement index (pre-order) and none sharing an
+//                     enclosing loop with it (control flow is structured: only
+//                     a loop runs an earlier statement again; handlers and
+//                     finally bodies follow their try textually), or, for a
+//                     local, the read is inside a `return` outside every try
+//                     that has a finally body (the frame ends before any
+//                     further append). For a GLOBAL slot (c) applies only when
+//                     the read and every candidate are top-level code (a
+//                     function can run at any time); a default-parameter
+//                     expression is never terminal.
+//                 Any other read — `t = s` or `f(s)` with an append still to
+//                 come, a method receiver, a loop iterable, a container key/
+//                 index — could carry the buffer past a later append: under
+//                 copy-every-time semantics `t is s` diverges right there, and
+//                 a retained interior value could even point at a block the
+//                 grow path dropped. Reads inside pattern targets (object/
+//                 index positions) are reads too; only pattern LEAVES are
+//                 writes, handled by the write rule. Why (b) and (c) cannot
+//                 let a second appender share the buffer: the write rule
+//                 admits only literals and the slot's own appends, so no
+//                 OTHER admitted slot can ever hold this block — an escaping
+//                 value lands in a slot whose writes are not all literals,
+//                 which therefore never appends in place; after a terminal
+//                 read this slot never appends again in this activation,
+//                 and a non-retaining read leaves nothing that names the
+//                 buffer. Bytes a value can see are never rewritten, `is`
+//                 compares pointer AND length, and C-string consumers check
+//                 the NUL at p[len] before trusting it;
 //   scope tables  no globals()/locals()/vars()/dir() name table (which
 //                 hands out the slot's STORAGE, not a copy) exists in
 //                 reach — program-wide for globals, the function's own
@@ -4032,8 +4063,26 @@ void Emitter::analyze_native_fvecs() {
 // store, the append path does not allocate, and the fresh-block path
 // allocates through cs_gc_new_full, which never collects. Doubt = not in
 // catok_ = the exact pre-existing emission (cs_add_f -> cs_concat).
+// Where a candidate or a read sits, for the TERMINAL-read rule (c): the
+// pre-order index of its statement (-1: a default-parameter expression, never
+// terminal), the ids of its enclosing loops, and whether it is top-level code.
+struct CatPos {
+  int idx = -1;
+  std::vector<int> loops;
+  bool top = false;
+};
+
+// A read that is neither a self-read (a) nor non-retaining (b): decided at
+// validation — terminal (c) or disqualifying.
+struct CatRead {
+  CatPos pos;
+  bool ret_terminal = false;  // in a `return` outside every try-with-finally
+};
+
 struct CatInfo {
   std::vector<const Stmt*> cands;  // candidate statements for this slot
+  std::vector<CatPos> cand_pos;    // parallel to cands
+  std::vector<CatRead> reads;      // reads awaiting the terminal check
   bool text_lit = false;     // an immediate Text/Bytes literal write exists
   bool non_text_lit = false; // an immediate non-text literal write exists
   bool bad_write = false;    // a write that is neither candidate nor literal
@@ -4048,8 +4097,29 @@ struct CatScan {
   bool name_table = false;              // a scope-name table exists anywhere
   std::set<const FuncDecl*> name_table_fn;  // fn trees containing one
   const FuncDecl* fn = nullptr;             // function currently walked
-  std::set<const Expr*> exempt;  // allowed self-read operand nodes
+  std::set<const Expr*> exempt;  // allowed reads: (a) self-reads, (b) non-retaining
+  // Position tracking for rule (c).
+  int idx_ctr = 0;              // pre-order statement counter (whole scan)
+  int cur_idx = 0;              // index of the statement being walked
+  std::vector<int> loops;       // enclosing loop ids, innermost last
+  int loop_ctr = 0;
+  int try_fin_depth = 0;        // enclosing try statements that have a finally
+  bool in_return = false;       // walking a `return` expression
+  bool in_default = false;      // walking a default-parameter expression
 };
+
+static CatPos cat_pos(const CatScan& c) {
+  CatPos p;
+  p.idx = c.in_default ? -1 : c.cur_idx;
+  p.loops = c.loops;
+  p.top = (c.fn == nullptr);
+  return p;
+}
+
+// Rule (b): mark a bare slot read in a non-retaining position as allowed.
+static void cat_exempt_var(CatScan& c, const Expr* e) {
+  if (e && e->kind == ExprKind::Var) c.exempt.insert(e);
+}
 
 static CatInfo& cat_slot(CatScan& c, const std::string& name, VarRes res) {
   return c.keys[CatKey{res == VarRes::Global ? nullptr : c.fn, name}];
@@ -4099,9 +4169,10 @@ static void cat_write(CatScan& c, const std::string& name, VarRes res,
   }
 }
 
-// A read of a slot (an ExprKind::Var in value position). Allowed reads are
-// pre-marked node-for-node in cat_scan's exempt set (the candidate's own
-// concat operand, a len() argument); everything else is disqualifying.
+// A read of a slot (an ExprKind::Var in value position). Allowed reads (a)
+// and (b) are pre-marked node-for-node in the exempt set; every other read is
+// recorded with its position and decided at validation: terminal (c) or
+// disqualifying.
 static void cat_read(CatScan& c, const Expr& e) {
   if (c.exempt.count(&e)) return;
   if (e.res != VarRes::Global && e.res != VarRes::Local && e.res != VarRes::Param)
@@ -4109,7 +4180,10 @@ static void cat_read(CatScan& c, const Expr& e) {
   CatInfo& in = cat_slot(c, e.name, e.res);
   if (e.is_cell) in.structural = true;
   if (e.res == VarRes::Param) in.structural = true;
-  in.bad_read = true;
+  CatRead r;
+  r.pos = cat_pos(c);
+  r.ret_terminal = c.in_return && c.try_fin_depth == 0 && !c.in_default;
+  in.reads.push_back(r);
 }
 
 static void cat_expr(CatScan& c, const Expr& e) {
@@ -4123,17 +4197,21 @@ static void cat_expr(CatScan& c, const Expr& e) {
       c.varqual_names.insert(e.name);
       return;
     case ExprKind::Call: {
-      if (e.is_builtin) {
-        const std::string& n = e.builtin_name;
+      if (e.is_builtin || e.is_builtin_print) {
+        const std::string n = e.is_builtin_print ? std::string("print") : e.builtin_name;
         if (n == "globals" || n == "locals" || n == "vars" || n == "dir") {
           c.name_table = true;
           if (c.fn) c.name_table_fn.insert(c.fn);
         }
-        // Allowed read: len(<slot>) — one positional argument, and the
-        // call retains nothing past its integer result.
-        if (n == "len" && e.args.size() == 1u &&
-            (e.arg_names.empty() || e.arg_names[0].empty()) && e.args[0])
-          c.exempt.insert(e.args[0].get());
+        // Rule (b): positional arguments of builtins that retain nothing
+        // past a non-text result (print -> None, len/int/hash -> int,
+        // bool -> bool, float -> float).
+        if (n == "print" || n == "len" || n == "bool" || n == "int" ||
+            n == "float" || n == "hash") {
+          for (size_t i = 0; i < e.args.size(); ++i)
+            if (i >= e.arg_names.size() || e.arg_names[i].empty())
+              cat_exempt_var(c, e.args[i].get());
+        }
       }
       if (e.callee_expr) cat_expr(c, *e.callee_expr);
       for (const auto& a : e.args)
@@ -4141,24 +4219,50 @@ static void cat_expr(CatScan& c, const Expr& e) {
       return;
     }
     case ExprKind::Unary:
+      if (e.op == "not") cat_exempt_var(c, e.lhs.get());  // rule (b): bool
       if (e.lhs) cat_expr(c, *e.lhs);
       return;
     case ExprKind::Binary:
+      // Rule (b): comparison / identity / membership yield a bool; text `+`
+      // always copies both operands into a fresh block.
+      if (e.op == "==" || e.op == "!=" || e.op == "<" || e.op == "<=" ||
+          e.op == ">" || e.op == ">=" || e.op == "in" || e.op == "is" ||
+          e.op == "is not" || e.op == "+") {
+        cat_exempt_var(c, e.lhs.get());
+        cat_exempt_var(c, e.rhs.get());
+      }
+      if (e.lhs) cat_expr(c, *e.lhs);
+      if (e.rhs) cat_expr(c, *e.rhs);
+      return;
     case ExprKind::Logical:
+      cat_exempt_var(c, e.lhs.get());  // rule (b): and/or return bool
+      cat_exempt_var(c, e.rhs.get());
       if (e.lhs) cat_expr(c, *e.lhs);
       if (e.rhs) cat_expr(c, *e.rhs);
       return;
     case ExprKind::Ternary:
+      cat_exempt_var(c, e.lhs.get());  // rule (b): the condition only
       if (e.lhs) cat_expr(c, *e.lhs);
       if (e.rhs) cat_expr(c, *e.rhs);
       if (e.third) cat_expr(c, *e.third);
+      return;
+    case ExprKind::MethodCall:
+      // Rule (b): text queries with non-text results read the receiver and
+      // their arguments and retain neither.
+      if (e.method == "find" || e.method == "starts_with" ||
+          e.method == "ends_with") {
+        cat_exempt_var(c, e.lhs.get());
+        for (const auto& el : e.elems) cat_exempt_var(c, el.get());
+      }
+      if (e.lhs) cat_expr(c, *e.lhs);  // method receiver = a read
+      for (const auto& el : e.elems)
+        if (el) cat_expr(c, *el);
       return;
     case ExprKind::ListLit:
     case ExprKind::SetLit:
     case ExprKind::TupleLit:
     case ExprKind::Join:
-    case ExprKind::MethodCall:
-      if (e.lhs) cat_expr(c, *e.lhs);  // method receiver = a read
+      if (e.lhs) cat_expr(c, *e.lhs);
       for (const auto& el : e.elems)
         if (el) cat_expr(c, *el);
       return;
@@ -4226,6 +4330,12 @@ static bool cat_candidate(const Stmt& s) {
 }
 
 static void cat_stmt(CatScan& c, const Stmt& s) {
+  // Pre-order index for rule (c). A compound statement's own expressions are
+  // positioned at its index, which is <= every nested statement's: placing a
+  // read EARLIER than it really runs only makes more candidates count as
+  // "after" it — the conservative direction.
+  const int my = ++c.idx_ctr;
+  c.cur_idx = my;
   switch (s.kind) {
     case StmtKind::Assign: {
       const bool cand = cat_candidate(s);
@@ -4236,6 +4346,7 @@ static void cat_stmt(CatScan& c, const Stmt& s) {
           if (s.is_cell || s.res == VarRes::Param) in.structural = true;
           if (s.op.empty() && s.expr->lhs->is_cell) in.structural = true;
           in.cands.push_back(&s);
+          in.cand_pos.push_back(cat_pos(c));
         }
         cat_write(c, s.name, s.res, s.is_cell, s.expr.get(), cand);
       } else {
@@ -4259,37 +4370,53 @@ static void cat_stmt(CatScan& c, const Stmt& s) {
       c.exempt.clear();  // statements hold no nested statements
       break;
     }
-    case StmtKind::For:
-      if (s.expr) cat_expr(c, *s.expr);  // the iterable is a read
+    case StmtKind::For: {
+      if (s.expr) cat_expr(c, *s.expr);  // the iterable: once, before the loop
       cat_write(c, s.name, s.res, s.is_cell, nullptr, /*cand=*/false);
+      c.loops.push_back(++c.loop_ctr);
       cat_stmts(c, s.body);
+      c.loops.pop_back();
       break;
+    }
     case StmtKind::Try: {
+      const bool fin = !s.finally_body.empty();
+      if (fin) ++c.try_fin_depth;  // a `return` anywhere inside still runs it
       cat_stmts(c, s.body);
       for (const ExceptArm& a : s.arms) {
+        c.cur_idx = my;
         if (a.cond) cat_expr(c, *a.cond);
         if (!a.name.empty())
           cat_write(c, a.name, a.res, a.is_cell, nullptr, /*cand=*/false);
         cat_stmts(c, a.body);
       }
       cat_stmts(c, s.finally_body);
+      if (fin) --c.try_fin_depth;
       break;
     }
     case StmtKind::If:
-      for (const auto& cond : s.conds)
+      for (const auto& cond : s.conds) {
+        cat_exempt_var(c, cond.get());  // rule (b): truthiness of the bare slot
         if (cond) cat_expr(c, *cond);
+      }
       for (const auto& b : s.bodies) cat_stmts(c, b);
       cat_stmts(c, s.else_body);
       break;
     case StmtKind::While:
+      c.loops.push_back(++c.loop_ctr);  // the condition re-runs every iteration
+      cat_exempt_var(c, s.expr.get());  // rule (b): truthiness of the bare slot
       if (s.expr) cat_expr(c, *s.expr);
       cat_stmts(c, s.body);
+      c.loops.pop_back();
       break;
     case StmtKind::Switch:
       if (s.expr) cat_expr(c, *s.expr);
       for (const auto& arm : s.cases) cat_stmts(c, arm.body);
       break;
     case StmtKind::Return:
+      c.in_return = true;  // rule (c): the frame ends after this expression
+      if (s.expr) cat_expr(c, *s.expr);
+      c.in_return = false;
+      break;
     case StmtKind::Raise:
     case StmtKind::ExprStmt:
       if (s.expr) cat_expr(c, *s.expr);
@@ -4309,6 +4436,27 @@ static void cat_stmts(CatScan& c, const std::vector<Stmt>& body) {
   for (const Stmt& st : body) cat_stmt(c, st);
 }
 
+static bool cat_shares_loop(const std::vector<int>& a, const std::vector<int>& b) {
+  for (int x : a)
+    for (int y : b)
+      if (x == y) return true;
+  return false;
+}
+
+// Rule (c): can no candidate of the slot run after this read in the same
+// activation?
+static bool cat_terminal(const CatRead& r, const CatInfo& in, bool global) {
+  if (!global && r.ret_terminal) return true;  // the frame ends right after
+  if (r.pos.idx < 0) return false;             // default-parameter expression
+  if (global && !r.pos.top) return false;      // a function runs at any time
+  for (const CatPos& cp : in.cand_pos) {
+    if (global && !cp.top) return false;
+    if (cp.idx >= r.pos.idx) return false;     // textually later (or same stmt)
+    if (cat_shares_loop(cp.loops, r.pos.loops)) return false;  // loop back-edge
+  }
+  return true;
+}
+
 void Emitter::analyze_text_cats() {
   CatScan c;
   for (const TopLevel& t : prog_.items) {
@@ -4319,8 +4467,10 @@ void Emitter::analyze_text_cats() {
   }
   for (const FuncDecl* f : all_functions()) {
     c.fn = f;
+    c.in_default = true;  // rule (c): default expressions are never terminal
     for (const ExprPtr& d : f->defaults)
       if (d) cat_expr(c, *d);
+    c.in_default = false;
     cat_stmts(c, f->body);
   }
 
@@ -4328,6 +4478,13 @@ void Emitter::analyze_text_cats() {
   for (auto& entry : c.keys) {
     CatInfo& in = entry.second;
     if (in.cands.empty()) continue;
+    // Rule (c): every recorded read must be terminal, or the slot is out.
+    const bool global = (entry.first.first == nullptr);
+    for (const CatRead& r : in.reads)
+      if (!cat_terminal(r, in, global)) {
+        in.bad_read = true;
+        break;
+      }
     if (in.structural || in.bad_read || in.bad_write || in.non_text_lit)
       continue;
     if (!in.text_lit) continue;  // no Text/Bytes evidence for the slot
