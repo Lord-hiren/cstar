@@ -16,21 +16,21 @@ See: .paul/PROJECT.md (updated 2026-11-05 after Phase 2)
 ## Current Position
 
 Milestone: v0.3 cstar Foundation (v0.3.0)
-Phase: 3 of 4 (Fix known issues) — Planning
-Plan: 03-01 created, awaiting approval
-Status: PLAN created, ready for APPLY
-Last activity: 2026-11-06 — Created .paul/phases/03-fix-known-issues/03-01-PLAN.md
+Phase: 3 of 4 (Fix known issues) — In Progress
+Plan: 03-01 complete
+Status: Ready for next PLAN (03-02: #7, #8, #10)
+Last activity: 2026-11-06 — Unified 03-01 (known issue #9 fixed; text built in functions is amortized)
 
 Progress:
-- Milestone: [███████░░░] 73% (8 of 11 plans; 2 of 4 phases)
-- Phase 3: [░░░░░░░░░░] 0% (0 of 2 plans)
+- Milestone: [████████░░] 82% (9 of 11 plans; 2 of 4 phases)
+- Phase 3: [█████░░░░░] 50% (1 of 2 plans)
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ○        ○     [Plan 03-01 created, awaiting approval]
+  ✓        ✓        ✓     [Loop complete - ready for next PLAN]
 ```
 
 ## Accumulated Context
@@ -47,6 +47,8 @@ PLAN ──▶ APPLY ──▶ UNIFY
 | Internal names are `cstar_rt.{h,c}`, `cs_`/`CS_`, `namespace cstar`, `__csm<id>_` | Phase 2 | Phase 3 runtime work uses these names |
 | When writing the SPEC exposes a bug, SPEC states the intended rule and the bug becomes a known issue (`fvec %` → #10) | Phase 2 | Phase 3 fixes #10 to match SPEC §5.11.9 |
 | Human-verify checkpoints are automated by Claude where possible | Phase 2 | Fewer manual steps for you |
+| 2026-11-06: no `Co-Authored-By` trailer on commits (removed from history at your request) | Phase 3 | Commit messages carry no Claude attribution |
+| 2026-11-06: #9 fixed by widening the codegen ownership proof (non-retaining + terminal reads), runtime unchanged; the writes rule stays strict | Phase 3 | `s = prefix` builders still copy (documented) |
 
 Full decision log: PROJECT.md → Key Decisions.
 
@@ -68,7 +70,7 @@ Full decision log: PROJECT.md → Key Decisions.
 
 ### Git State
 
-Last commit: 9552911 docs(02-05): guides, README and doc tools say cstar (+ metadata commits 5cd85d9 and the Phase 2 transition commit)
+Last commit: 10a47c4 docs(03-01): close known issue #9 (+ plan metadata commit)
 Branch: phase-3-known-issues (from phase-2-rename; local only)
 main: 6c82d72 (local and remote, unchanged)
 Feature branches merged: none (merge into main and push only when you ask)
@@ -76,9 +78,9 @@ Feature branches merged: none (merge into main and push only when you ask)
 ## Session Continuity
 
 Last session: 2026-11-06
-Stopped at: Plan 03-01 created
-Next action: Review and approve plan, then run /paul:apply .paul/phases/03-fix-known-issues/03-01-PLAN.md
-Resume file: .paul/phases/03-fix-known-issues/03-01-PLAN.md
+Stopped at: Plan 03-01 unified
+Next action: /paul:plan for 03-02 (#7 format regrouping, #8 cache-less temp cleanup, #10 fvec %)
+Resume file: .paul/phases/03-fix-known-issues/03-01-SUMMARY.md
 
 ---
 *STATE.md — Updated after every significant action*

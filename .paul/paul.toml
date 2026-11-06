@@ -18,18 +18,16 @@ phases = 4
 number = 3
 name = "Fix known issues"
 status = "in_progress"
-plans_completed = 0
+plans_completed = 1
 
 [loop]
-position = "PLAN"
-plan = "03-01"
-plan_path = "phases/03-fix-known-issues/03-01-PLAN.md"
+position = "IDLE"
 
 [satellite]
 groom = true
 
 [stats]
-total_plans = 8
+total_plans = 9
 total_phases = 36
 phases_completed = 2
-last_activity = "2026-11-06T03:57:37Z"
+last_activity = "2026-11-06T04:26:00Z"

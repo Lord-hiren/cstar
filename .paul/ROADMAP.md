@@ -41,7 +41,7 @@ Phases: 2 of 4 complete
 |-------|------|-------|--------|-----------|
 | 1 | Dev environment & repo hygiene | 3/3 | ✅ Complete | 2026-11-04 |
 | 2 | Rename to cstar | 5/5 | ✅ Complete | 2026-11-05 |
-| 3 | Fix known issues | 0/2 | Planning | - |
+| 3 | Fix known issues | 1/2 | In progress | - |
 | 4 | Release v0.3.0 | 1 | Not started | - |
 
 ## Phase Details
@@ -105,7 +105,7 @@ VSCode extension and docs.
 - #10: `%` on an `fvec` returns wrong values instead of a `TypeError` (found in 02-05; SPEC §5.11.9 has the rule)
 
 **Plans:**
-- [ ] 03-01: In-place text growth (#9)
+- [x] 03-01: In-place text growth (#9) — 2026-11-06
 - [ ] 03-02: `format` regrouping (#7), cache-less cleanup (#8) and `fvec %` (#10)
 
 ### Phase 4: Release v0.3.0
