@@ -284,10 +284,12 @@ still runs. You cannot call it, return from it, or declare a function named `mai
   check before using the result as text.
 * Program arguments (`cstar run prog.cst a b`) reach the process but **no
   builtin can read them yet**.
-* `format()` with the `,` option **and** zero-padding (`"08,"`-style specs)
-  pads the already-grouped string instead of regrouping a padded digit run —
-  `format(42, "08,")` gives `00000042` where Python gives `0,000,042` — see
-  [known issues](../reference/known-issues.md) §7.
+* `format()` treats `bool` as text, not as a number: `format(True, "5")`
+  gives `True ` and `format(True, "d")` is a `ValueError`, where Python
+  prints `    1` and `1`. Use `int(flag)` when you want the digit. Every
+  other spec matches Python, zero-padded grouping included
+  (`format(42, "08,")` → `0,000,042`); the few remaining differences are
+  in SPEC §5.11.5 item 16.
 
 ## Tooling
 

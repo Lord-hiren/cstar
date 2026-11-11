@@ -102,10 +102,11 @@ Usage errors print `error: <reason>` followed by the usage text on stderr.
   editing any imported file re-keys the program too. The module files
   themselves are never needed again after compilation.
 * The hash is computed by piping to `sha256sum`. If it cannot run (missing
-  binary, minimal container), the driver disables caching and every `run`
-  compiles — and, because the run then executes its binary in place, the
-  scratch directory keeps `program` behind (see
-  [known issue 8](../reference/known-issues.md#8-a-cache-less-run-leaves-its-binary-in-the-temp-dir)).
+  binary, minimal container), or the cache directory cannot be created, the
+  driver disables caching and every `run` compiles. The program is then
+  built in the scratch directory, which the driver removes (binary
+  included) just before the program starts — it runs from an open file
+  descriptor — so a cache-less run leaves nothing in `$TMPDIR`.
 * It is always safe to delete the directory.
 
 ## The compile pipeline, as the driver runs it
@@ -122,7 +123,10 @@ Usage errors print `error: <reason>` followed by the usage text on stderr.
    `rt-<key>.o` (`clang -std=c11 -O3 -march=native -c …`);
 6. link: `clang -std=c11 -O3 -march=native -o <out> gen.c <runtime.o> -lm -lcurl`
    (or `gen.c cstar_rt.c` when neither object is available);
-7. for `run`: store under the program key and `exec` it.
+7. for `run`: store under the program key and `exec` it — or, with no
+   usable cache, unlink the binary and the scratch directory and `exec` it
+   from the still-open file descriptor (`fexecve`), so nothing is left
+   behind.
 
 If `clang` is not on `PATH` the driver prints
 `error: 'clang' was not found on PATH; the cstar toolchain requires clang to

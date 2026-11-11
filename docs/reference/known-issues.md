@@ -17,99 +17,17 @@ wrong class, the SIGPIPE death without `sha256sum`, left-counting
 text for `Exception`/`RuntimeError`) are **fixed** — as are the GC
 use-after-free on heap text/bytes buffers and `print`'s per-argument heap
 allocation found afterwards — see the `Fixed` section of the changelog for
-pointers to the regression tests. Known issue 9 (text built in a loop was
-quadratic) is fixed too, with the regression case `txt_build_amortized`.
-What remains open:
+pointers to the regression tests. So are the four issues recorded after
+them, each with a regression test:
 
-| # | Area | Summary | Severity |
-|---|---|---|---|
-| [7](#7-format-zero-padding-plus-grouping-does-not-regroup) | builtins | `format(42, "08,")` → `00000042`, Python `0,000,042` | low — narrow spec corner |
-| [8](#8-a-cache-less-run-leaves-its-binary-in-the-temp-dir) | driver | a run that cannot cache leaves `$TMPDIR/cstar-XXXXXX/program` | low — cosmetic litter |
-| [10](#10-float-vector-modulo-returns-wrong-values) | runtime | `fvec([5.0]) % fvec([2.0])` → `[2.5]` (wrong values) instead of a `TypeError` | medium — silent wrong results |
+| # | Was | Regression test |
+|---|---|---|
+| 7 | `format(42, "08,")` gave `00000042` (Python `0,000,042`); the same padding step also misplaced a float's `-` sign, ignored explicit fills next to the `0` flag and counted bytes instead of code points | case `bi_py_format_pad` |
+| 8 | a `run` that could not cache left `$TMPDIR/cstar-XXXXXX/program` behind | harness check `cacheless_cleanup` |
+| 9 | text built with `s += x` inside a function was quadratic | case `txt_build_amortized`, harness check `text_build_grow` |
+| 10 | `fvec % x` returned wrong values instead of a `TypeError` | case `rt_fvec_mod` |
 
----
-
-## 7. `format` zero-padding plus grouping does not regroup
-
-**Repro**
-
-```python
-print(format(42, "08,"), format(1234567, "012,"), format(42, "06,"))
-```
-
-Python prints `0,000,042 0,001,234,567 00,042`; cstar prints
-`00000042 0001,234,567 000042`. (`format(1234567, "+012,")` happens to
-coincide: `+001,234,567`.)
-
-**Expected** (SPEC §5.11.3 grammar `[0][width][,]`, Python parity) — with
-zero-padding **and** grouping, Python pads the digit run until the
-eventually-grouped result reaches the width, then groups the padded run;
-the grouped form may overshoot the width (`08,` → eight digits `00000042`
-→ `0,000,042`, ten chars).
-
-**Cause.** Both numeric paths of `cs_format_apply` in
-[runtime/cstar_rt.c](../../runtime/cstar_rt.c) group first into
-`numbuf` and then prepend `width - (len(numbuf))` zero characters to the
-already-grouped string — the commas never move. Plain `","`, `",.2f"` and
-`width[,]` padding without the `0`/`=`-zero path are correct.
-
-**Workaround.** Do the padding yourself: `format` without `,`, then insert
-separators into the zero-padded digit run.
-
----
-
-## 8. A cache-less run leaves its binary in the temp dir
-
-**Repro** — any `cstar run` while caching is unavailable (no `sha256sum`
-on `PATH`, or an unwritable cache directory):
-
-```bash
-t=$(mktemp -d)
-echo 'print("hi")' > "$t/hello.cst"
-PATH=/tmp/onlyclang TMPDIR="$t" build/cstar run "$t/hello.cst"
-ls "$t"/cstar-*/   # program
-```
-
-**Observed** — `$TMPDIR/cstar-XXXXXX/program` remains after the program
-exits. The generated sources are removed; only the executable stays.
-
-**Why.** Without a usable cache the driver compiles into the temp directory
-and `execv`s the binary in place (`try_exec` in `src/main.cpp`): the
-driver's process *becomes* the program, so nothing can clean up afterwards.
-This is deliberate (`remove_sources`: "the rmdir fails harmlessly when the
-compiled executable lives inside dir") but it is the configuration where the
-zero-junk wording of [optimization.md](../performance/optimization.md) §0
-does not hold. In the normal configuration (cache keyed and writable) the
-executable goes to the cache and the scratch directory is fully removed.
-
-**Workaround.** Keep `sha256sum` installed and the cache directory writable;
-otherwise `rm -rf "${TMPDIR:-/tmp}"/cstar-*` afterwards.
-
----
-
-## 10. Float-vector modulo returns wrong values
-
-**Repro**
-
-```python
-print(fvec([5.0, -5.0]) % fvec([2.0, 2.0]), 1.0 % fvec([4.0]), fvec([1.0]) % 0.0)
-```
-
-The program prints `[2.5, -2.5] [4.0] [inf]`: no error, and none of the
-values is a remainder.
-
-**Expected** (SPEC §5.11.9): `%` is not defined for `float`, so on an `fvec`
-it raises the same `TypeError` as the scalar form —
-`unsupported operand types for %: fvec and fvec` (`fvec and float`,
-`float and fvec`). `%` on an `ivec` is correct.
-
-**Cause.** The `fvec` kernels in [runtime/cstar_rt.c](../../runtime/cstar_rt.c)
-switch on `+`, `-`, `*` and send every other operator to their `default`
-branch, and `%` reaches them: `cs_fv_kernel` (vector with vector or with a
-right-hand scalar) divides, `cs_fv_kernel_sl` (left-hand scalar) multiplies.
-
-**Workaround.** None needed in correct programs: cstar has no float modulo.
-For integer-valued data use an `ivec`, whose `%` is exact.
+**No issue is currently open.** New entries keep counting from 11.
 
 ---
 

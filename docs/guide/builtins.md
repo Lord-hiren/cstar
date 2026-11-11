@@ -78,9 +78,8 @@ per-element semantics: `+ - *` (and the compound forms) take another
 vector of the same type or a scalar — `int`/`float` for `fvec` (not
 `bool`), `int`/`bool` for `ivec`; `/` behaves like the scalar operator
 (float zero-divisor and int `MIN / -1` edges included); `%` is for `ivec`
-only — on an `fvec` it is a `TypeError`, like float `%` (the current
-compiler returns wrong values instead: [known issue
-10](../reference/known-issues.md#10-float-vector-modulo-returns-wrong-values)).
+only — on an `fvec` it is a `TypeError`, like float `%`
+(`unsupported operand types for %: fvec and float`).
 Operands must have equal length — `ValueError: fvec length mismatch` —
 and mixing `fvec` with `ivec` is a `TypeError`. Indexing, assignment
 (`v[i] = …`), iteration, `==` (one `bool` for the whole vector), `len()`,

@@ -33,7 +33,7 @@ echo 'print("Hello, cstar!")' > hello.cst
 build/cstar run hello.cst               # compile (cached) and run
 build/cstar build hello.cst && ./hello  # writes ./hello, then runs it
 build/cstar check hello.cst             # parse + analyse only
-make test                               # 378 checks (about a minute)
+make test                               # 381 checks (about a minute)
 ```
 
 ## A taste of the language
@@ -207,7 +207,7 @@ error, `2` usage error. Full reference: [CLI](docs/guide/cli.md).
 |---|---|
 | `src/` | the compiler: driver, lexer, parser, import linker (`modules.cpp`), semantic pass, C code generator, diagnostics |
 | `runtime/` | the C11 runtime (`cstar_rt.{h,c}`) linked into every program |
-| `tests/` | the harness (`run_tests.sh`), 366 cases in `tests/cases/`, and `check_docs.py` |
+| `tests/` | the harness (`run_tests.sh`), 368 cases in `tests/cases/`, and `check_docs.py` |
 | `editors/vscode/` | the VSCode extension |
 | `bench/` | benchmark runners, generated cases, C++ twins, recorded results |
 | `tools/` | `embed.cpp`, which embeds the runtime into the compiler |

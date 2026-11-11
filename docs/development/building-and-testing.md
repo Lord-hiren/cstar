@@ -34,7 +34,7 @@ shows up in `git status`.
 make test         # or: bash tests/run_tests.sh
 ```
 
-Current size: **378 checks = 366 program cases + 12 extra checks**. A full run
+Current size: **381 checks = 368 program cases + 13 extra checks**. A full run
 takes about 30–70 seconds (measured), because every case is a real compile
 (`clang -O3 -march=native`) and run.
 
@@ -54,7 +54,7 @@ case, with stdin taken from `<name>.in` if present, else `/dev/null` (so
 Because `.err` matching is by substring, **quoted error messages in the SPEC are
 normative**: change the wording and cases fail.
 
-Twelve extra CLI-level checks follow the cases:
+Thirteen extra CLI-level checks follow the cases:
 
 | Check | What it proves |
 |---|---|
@@ -70,6 +70,7 @@ Twelve extra CLI-level checks follow the cases:
 | `index_entry` | `run` / `check` / `build` without a file use `./index.cst` |
 | `module_path` | `$CSTAR_PATH`, then the legacy `$PENTEST_PATH` |
 | `text_build_grow` | a function that builds text and returns it gets the in-place append in the generated C; an alias kept between appends does not (known issue #9) |
+| `cacheless_cleanup` | a `run` that cannot cache (no `sha256sum`, or an unusable cache dir) gives a cached run's output and exit code and leaves `$TMPDIR` empty (known issue #8) |
 
 ### Isolation
 

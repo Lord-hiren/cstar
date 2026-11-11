@@ -1303,9 +1303,8 @@ semantics in every lane:
   remainder takes the dividend's sign, a zero divisor raises
   `ZeroDivisionError: modulo by zero`, and `INT64_MIN % -1` → `0`. On an
   `fvec`, as on a scalar `float`, `%` is a `TypeError`
-  (`unsupported operand types for %: fvec and fvec`). The current compiler
-  returns wrong values instead — [known issue
-  #10](docs/reference/known-issues.md#10-float-vector-modulo-returns-wrong-values).
+  (`unsupported operand types for %: fvec and fvec`), decided on the
+  operand types before any length or zero-divisor check.
 - Unequal lengths → `ValueError: fvec length mismatch` (`ivec length
   mismatch`), raised before any lane is computed. Every other operand
   mix — `fvec` with `ivec`, a `bool` with an `fvec`, a `float` with an
@@ -2287,7 +2286,11 @@ cstar --version | -v                    # prints: cstar 0.2.1
   entry and stale executables are never served), computed by invoking
   `sha256sum` through a pipe. If
   `sha256sum` is unavailable, caching is disabled and every `run` compiles.
-  On a cache hit the cached binary is executed directly and its exit code
+  The same holds when the cache directory cannot be created. Without a
+  cache the compiled executable is removed, with its temp dir, just before
+  it starts (it runs from an open descriptor), so a `run` leaves nothing
+  behind; its output and exit code are those of a cached run. On a cache
+  hit the cached binary is executed directly and its exit code
   propagates.
 - **Compile pipeline:** the driver writes the generated `gen.c` plus the
   embedded runtime sources `cstar_rt.h`/`cstar_rt.c` (embedded in the

@@ -27,7 +27,7 @@ node editors/vscode/test/smoke.js      # runs natively on Windows
 
 ```bash
 make                                   # build/cstar + the build/pentest alias (also precompiles + embeds the runtime)
-make test                              # bash tests/run_tests.sh: every tests/cases/*.cst + 12 CLI checks (~30 s)
+make test                              # bash tests/run_tests.sh: every tests/cases/*.cst + 13 CLI checks (~30 s)
 make clean                             # rm -rf build
 
 build/cstar run  prog.cst [args]       # compile (content-hash cached) and run

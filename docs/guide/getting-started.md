@@ -10,7 +10,7 @@ From a fresh checkout to a compiled native executable in a few steps.
 | `clang` and `clang++` | `clang++` builds the toolchain (C++17); `clang` compiles every cstar program (C11, `-O3 -march=native`) at run/build time. **`clang` must be on `PATH` whenever you use `cstar`**, not just when building it | clang 21.1.8 (README states 14+ as the minimum; older versions were not tested here) |
 | GNU `make` | builds the toolchain | — |
 | libcurl dev headers (`libcurl4-openssl-dev` on Ubuntu) | the runtime's HTTP builtins; every program is linked with `-lcurl` | libcurl 8.5.0 |
-| `sha256sum` (GNU coreutils) | optional: keys the compiled-program cache. Without it, caching is disabled and every `run` compiles (which also leaves `program` in `$TMPDIR` — [known issue 8](../reference/known-issues.md#8-a-cache-less-run-leaves-its-binary-in-the-temp-dir)) | coreutils 9.10 |
+| `sha256sum` (GNU coreutils) | optional: keys the compiled-program cache. Without it, caching is disabled and every `run` compiles (and still leaves nothing in `$TMPDIR`) | coreutils 9.10 |
 | `bash` | the test harness only | — |
 | `node` (optional) | the VSCode extension's smoke test | v24 |
 | `python3` (optional) | the benchmark case generators only | 3.x |
