@@ -983,7 +983,7 @@ positional binds **stop** (§5.11.5.10).
 | `divmod(a, b)` | `(quotient, remainder)` using cstar's C99 truncating `/` and `%` (§5.4) — **not** Python's floor semantics (§5.11.5.1); `b == 0` → `ZeroDivisionError` `division by zero`; `INT64_MIN / -1` → `(INT64_MIN, 0)` |
 | `enumerate(iterable, start=0)` | **eager** `list` of `(index, item)` (§5.11.5.7); `start` must be an `int` → `TypeError` `enumerate() start must be an int, not '<t>'` |
 | `filter(function, iterable)` | **eager** `list` of the elements whose item is truthy; `function` may be `None` (filters truthy, like Python); non-callable → `TypeError` `filter() arg 1 must be callable or None` |
-| `format(value, format_spec?)` | the mini-language `[[fill]align][sign][#][0][width][,][.precision][type]` with types `d i u b o x X c e E f F g G % s r`; a typeless int formats as `d` (so `format(42, ">7")` is `"     42"`); typeless int + precision → `ValueError` `Precision not allowed in integer format specifier`; grouping counts from the right (`format(314159, ",")` → `314,159`); `'='`-align pads after the sign |
+| `format(value, format_spec?)` | the mini-language `[[fill]align][sign][#][0][width][,][.precision][type]` with types `d i u b o x X c e E f F g G % s r`; a typeless int formats as `d` (so `format(42, ">7")` is `"     42"`); typeless int + precision → `ValueError` `Precision not allowed in integer format specifier`; grouping counts from the right (`format(314159, ",")` → `314,159`); `'='`-align pads after the sign and after a `0b`/`0o`/`0x` prefix; the fill is any one code point and is recognised whenever the next character is an alignment (`format(5, "<<3")` → `5<<`); the `0` flag sets the fill to `0` unless a fill is given (an explicit fill wins: `format(42, "*>05")` → `***42`) and, for a number with no explicit alignment, the alignment to `=`; with fill `0` and `=`, the digits are zero-extended and regrouped like Python (`format(42, "08,")` → `0,000,042` — one character wider than the width when a separator would lead; `format(-3.5, "08.2f")` → `-0003.50`), and `inf`/`nan` are never grouped; width, precision and fill count code points (`format("héllo", ".3")` → `hél`); the differences from Python are §5.11.5 item 16 |
 | `getattr(obj, name, default?)` | instance field/method; exception `.type`/`.message`; file `.closed`/`.name`; on a hit returns exactly what `obj.name` would (§5.12); on a miss returns `default` if given, else `AttributeError` `'<t>' object has no attribute '<n>'`; `name` must be `text` → `TypeError` `getattr(): attribute name must be str, not '<t>'` |
 | `globals()` | `map` of the globals table snapshotted at the call site: name → current value; not-yet-assigned names are skipped; top-level functions appear as function values |
 | `hasattr(obj, name)` | `bool` — true **iff** `getattr` without a default would not raise (one shared probe) |
@@ -1133,6 +1133,22 @@ documented cases below.
     has no attributes` — class objects expose no attributes in cstar
     (§5.12), so Python's `dir(SomeClass)` method listing has no
     equivalent.
+16. **`format` differs from Python in four places (§5.11.3).** A value
+    that is neither a number nor text — `bool`, `None`, a collection —
+    formats exactly like its display text would (`format(True, "5")` →
+    `True `, `format(True, "05")` → `True0`, `format(None, ">6")` →
+    `  None`). `bool` is not a number (`True == 1` is `False`, §5.5), so
+    an integer type such as `"d"` raises `ValueError` `Unknown format code
+    'd' for object of type 'bool'` where Python formats `1`, and Python's
+    `TypeError` for a non-empty spec on other objects does not occur. The
+    `,` option needs type `d`, `f`, `F` or none — `ValueError` `Format
+    specifier ',' requires type 'd' or 'f'` (Python also accepts `e`, `g`
+    and `%`, and words its `x`/`b`/`o` rejection differently). Options
+    Python rejects for text — a sign, `#`, `=` alignment or `,` with a
+    text value, or a sign, `#` or `,` with `c` — are accepted and ignored
+    (`=` aligns text right). Malformed specs raise `ValueError` with
+    shorter messages (`Invalid format specifier`, or `Unknown format code`
+    for a stray character).
 
 #### 5.11.6 Stubs and unavailable builtins
 

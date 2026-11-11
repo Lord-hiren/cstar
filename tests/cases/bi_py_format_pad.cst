@@ -1,0 +1,95 @@
+# format() padding matches Python (SPEC §5.11.3, known issue #7): zero
+# padding regroups, the sign leads, fill/alignment win over the 0 flag,
+# code points count. Every expected line was produced by Python 3.12.
+
+# zero padding regroups (known issue #7)
+print("[" + format(42, "08,") + "]")
+print("[" + format(1234567, "012,") + "]")
+print("[" + format(42, "06,") + "]")
+print("[" + format(-42, "+08,") + "]")
+print("[" + format(7, "0=10,") + "]")
+print("[" + format(1234.5, "012,.2f") + "]")
+print("[" + format(0.5, " 010,") + "]")
+print("[" + format(0, "05,") + "]")
+print("[" + format(999, "05,") + "]")
+print("[" + format(1000, "06,") + "]")
+print("[" + format(1234567, "015,d") + "]")
+print("[" + format(-1234567, "016,") + "]")
+print("[" + format(9223372036854775807, "030,") + "]")
+print("[" + format(0.1, "09,") + "]")
+print("[" + format(-2.5, "09,") + "]")
+print("[" + format(42, "08,.2f") + "]")
+print("[" + format(-1234.5678, "016,.2f") + "]")
+print("[" + format(-0.0, "08,.1f") + "]")
+
+# the sign stays in front of zero padding
+print("[" + format(-42, "08.2f") + "]")
+print("[" + format(-0.5, "010") + "]")
+print("[" + format(-3.5, "08.2f") + "]")
+print("[" + format(-2.5, "09") + "]")
+print("[" + format(-0.00012, "013.2e") + "]")
+print("[" + format(-0.00012, "09.1%") + "]")
+print("[" + format(0.5, "08.1%") + "]")
+print("[" + format(-0.5, "0=10") + "]")
+print("[" + format(-0.5, "=10") + "]")
+print("[" + format(-0.5, "*=10,") + "]")
+print("[" + format(3.5, "^+10.2f") + "]")
+print("[" + format(0.000123, "015.3e") + "]")
+
+# explicit fill and alignment next to the 0 flag
+print("[" + format(42, "*>05") + "]")
+print("[" + format(-42, "*>09") + "]")
+print("[" + format(42, "_>05.1f") + "]")
+print("[" + format(255, "#>05x") + "]")
+print("[" + format(0, "<010,") + "]")
+print("[" + format(42, "<08") + "]")
+print("[" + format(-42, ">010") + "]")
+print("[" + format(42, "^09") + "]")
+print("[" + format(1234.5, "*^15,.1f") + "]")
+print("[" + format(5, "<<3") + "]")
+print("[" + format(5, ">>3") + "]")
+print("[" + format(5, "=<5") + "]")
+
+# prefixes
+print("[" + format(255, "#010x") + "]")
+print("[" + format(-255, "#012o") + "]")
+print("[" + format(255, "+#012X") + "]")
+print("[" + format(255, "^#11x") + "]")
+print("[" + format(5, "#010b") + "]")
+
+# the 0 flag on text and c
+print("[" + format("ab", "05") + "]")
+print("[" + format("ab", ">05") + "]")
+print("[" + format("ab", "^05") + "]")
+print("[" + format("", "05") + "]")
+print("[" + format(65, "05c") + "]")
+
+# width, precision and fill count code points
+print("[" + format("héllo", ">9") + "]")
+print("[" + format("héllo", "<9") + "]")
+print("[" + format("héllo", "*^9") + "]")
+print("[" + format("日本", ">6") + "]")
+print("[" + format("héllo", ".3") + "]")
+print("[" + format("héllo", ".2") + "]")
+print("[" + format("日本語", "^8.2") + "]")
+print("[" + format(233, "5c") + "]")
+print("[" + format(233, "*^5c") + "]")
+print("[" + format("ab", "é>5") + "]")
+print("[" + format(42, "é^7") + "]")
+print("[" + format(-42, "é=8") + "]")
+
+# inf and nan are never grouped; long results fit
+print("[" + format(float("inf"), "010,") + "]")
+print("[" + format(float("-inf"), "010,.2f") + "]")
+print("[" + format(float("nan"), "08,") + "]")
+print("[" + format(float("1e300"), ",.0f") + "]")
+
+# unchanged forms
+print("[" + format(314159, ",") + "]")
+print("[" + format(1234567, ">12,") + "]")
+print("[" + format(42, "0=+7") + "]")
+print("[" + format(-42, "0=+7") + "]")
+print("[" + format(255, "08x") + "]")
+print("[" + format(42, ">7") + "]")
+print("[" + format(3.14159, ".2f") + "]")
+print("[" + format("abc", "^6") + "]")

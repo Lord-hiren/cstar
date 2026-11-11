@@ -6129,58 +6129,147 @@ static cs_value cs_file_readline(cs_value filev, int has_size, int64_t size,
   }
 }
 
-/* ---- format mini-language (SPEC §5.11.5) ------------------------------ */
+/* ---- format mini-language (SPEC §5.11.3) ------------------------------ */
 
-/* Align already-formatted text inside `width` (align: -1 left, 0 center,
- * 1 right; fill defaults to ' '). */
-static void cs_pad_align(cs_buf* out, const char* s, size_t n, char fill,
-                         int align, size_t width, int line) {
-  size_t pad = (width > n) ? width - n : 0u;
+/* `k` copies of the fill — one code point, 1 to 4 UTF-8 bytes. */
+static void cs_add_fill(cs_buf* out, const char* fill, size_t filln, size_t k,
+                        int line) {
   size_t i;
+  for (i = 0; i < k; i++) cs_buf_addn(out, fill, filln, line);
+}
+
+/* Align already-formatted text inside `width` CODE POINTS (align: -1 left,
+ * 0 center with the odd pad on the right, 1 or 2 right — '=' on a
+ * non-number aligns right). */
+static void cs_pad_align(cs_buf* out, const char* s, size_t n,
+                         const char* fill, size_t filln, int align,
+                         size_t width, int line) {
+  size_t cps = cs_utf8_count(s, n);
+  size_t pad = (width > cps) ? width - cps : 0u;
   if (align > 0) { /* right */
-    for (i = 0; i < pad; i++) cs_buf_addc(out, fill, line);
+    cs_add_fill(out, fill, filln, pad, line);
     cs_buf_addn(out, s, n, line);
   } else if (align < 0) { /* left */
     cs_buf_addn(out, s, n, line);
-    for (i = 0; i < pad; i++) cs_buf_addc(out, fill, line);
+    cs_add_fill(out, fill, filln, pad, line);
   } else { /* center */
     size_t lpad = pad / 2u;
-    for (i = 0; i < lpad; i++) cs_buf_addc(out, fill, line);
+    cs_add_fill(out, fill, filln, lpad, line);
     cs_buf_addn(out, s, n, line);
-    for (i = lpad; i < pad; i++) cs_buf_addc(out, fill, line);
+    cs_add_fill(out, fill, filln, pad - lpad, line);
   }
 }
 
-/* Insert ',' every 3 digits of the INTEGER part, counting from the RIGHT
- * (Python: format(314159, ",") is "314,159"). Fraction and exponent are
- * copied untouched. */
-static void cs_add_grouping(cs_buf* out, const char* s, size_t n, int line) {
-  size_t k, d = 0, from_right;
-  for (k = 0; k < n && s[k] != '.' && s[k] != 'e' && s[k] != 'E'; k++)
-    if (s[k] >= '0' && s[k] <= '9') d++;
-  from_right = d;
-  for (k = 0; k < n; k++) {
-    bool is_digit = (s[k] >= '0' && s[k] <= '9');
-    if (s[k] == '.' || s[k] == 'e' || s[k] == 'E') from_right = 0; /* stop */
-    /* Comma before each digit whose remaining count (itself included) is a
-     * multiple of three — measured from the RIGHT of the integer part.
-     * `from_right < d` skips the very first digit (no leading comma even
-     * when the digit count is a multiple of three). */
-    if (is_digit && from_right > 0u && k > 0u && from_right < d &&
-        (from_right % 3u) == 0u && s[k - 1] != '-' && s[k - 1] != '+')
-      cs_buf_addc(out, ',', line);
-    if (is_digit && from_right > 0u) from_right--;
-    cs_buf_addc(out, s[k], line);
+/* The digit run of a number, zero-extended to at least `min_w` characters
+ * and, when `grouped`, with ',' between groups of three counted from the
+ * right — CPython's _PyUnicode_InsertThousandsGrouping. A separator never
+ * leads: when the zeros would end on one, one more zero follows it, so the
+ * run can be one character wider than min_w (format(42, "08,") is
+ * "0,000,042"). An empty run (inf, nan) stays empty and is never grouped.
+ * Built right to left, then reversed. */
+static void cs_fmt_digits(cs_buf* out, const char* d, size_t nd, size_t min_w,
+                          bool grouped, int line) {
+  cs_buf r;
+  int64_t rem = (int64_t)nd;
+  int64_t mw = (int64_t)min_w;
+  size_t a, b;
+  if (nd == 0u) return;
+  if (!grouped) {
+    for (a = nd; a < min_w; a++) cs_buf_addc(out, '0', line);
+    cs_buf_addn(out, d, nd, line);
+    return;
+  }
+  r.p = NULL;
+  r.len = 0;
+  r.cap = 0;
+  for (;;) {
+    int64_t want = (rem > mw) ? rem : mw;
+    int64_t l = 3, chars, k;
+    if (want < 1) want = 1;
+    if (l > want) l = want;
+    chars = (rem < l) ? rem : l;
+    if (r.len > 0u) cs_buf_addc(&r, ',', line); /* left of the last group */
+    for (k = 0; k < chars; k++) cs_buf_addc(&r, d[rem - 1 - k], line);
+    for (k = chars; k < l; k++) cs_buf_addc(&r, '0', line);
+    rem -= chars;
+    mw -= l;
+    if (rem <= 0 && mw <= 0) break;
+    mw -= 1; /* the separator before the next group */
+  }
+  for (a = 0, b = r.len - 1u; a < b; a++, b--) {
+    char t = r.p[a];
+    r.p[a] = r.p[b];
+    r.p[b] = t;
+  }
+  cs_buf_addn(out, r.p, r.len, line);
+  free(r.p);
+}
+
+/* Lay out a formatted number like CPython's format():
+ *   [lpad][sign][prefix][spad][digits][rest][rpad]
+ * `d`/`nd` is the leading digit run and `rest` what follows it (".5",
+ * "e+03", "%", "inf"); `signc` is 0 or the sign character; `prefix` is ""
+ * or 0b/0o/0x. With fill '0' and '=' alignment the digit run itself takes
+ * up the width (zero-extended, and regrouped when `grouped`); otherwise the
+ * leftover width is fill placed by the alignment ('<' right, '^' split,
+ * '=' between the sign/prefix and the digits, '>' or unset left). */
+static cs_value cs_fmt_number(char signc, const char* prefix, const char* d,
+                              size_t nd, const char* rest, size_t nrest,
+                              bool grouped, const char* fill, size_t filln,
+                              int align, size_t width, int line) {
+  cs_buf run, out;
+  size_t npre = strlen(prefix);
+  size_t fixed = (signc ? 1u : 0u) + npre + nrest; /* all ASCII */
+  size_t min_w = 0, total, pad, lpad = 0, spad = 0, rpad = 0;
+  run.p = NULL;
+  run.len = 0;
+  run.cap = 0;
+  out.p = NULL;
+  out.len = 0;
+  out.cap = 0;
+  if (filln == 1u && fill[0] == '0' && align == 2 && width > fixed)
+    min_w = width - fixed;
+  cs_fmt_digits(&run, d, nd, min_w, grouped, line);
+  total = fixed + run.len;
+  pad = (width > total) ? width - total : 0u;
+  switch (align) {
+    case -1: rpad = pad; break;
+    case 0: lpad = pad / 2u; rpad = pad - lpad; break;
+    case 2: spad = pad; break;
+    default: lpad = pad; break;
+  }
+  cs_add_fill(&out, fill, filln, lpad, line);
+  if (signc) cs_buf_addc(&out, signc, line);
+  cs_buf_addn(&out, prefix, npre, line);
+  cs_add_fill(&out, fill, filln, spad, line);
+  cs_buf_addn(&out, run.p, run.len, line);
+  cs_buf_addn(&out, rest, nrest, line);
+  cs_add_fill(&out, fill, filln, rpad, line);
+  free(run.p);
+  return cs_text_from_buf(&out, line);
+}
+
+/* -3: not an alignment character; else -1 '<', 1 '>', 0 '^', 2 '='. */
+static int cs_fmt_align_of(char c) {
+  switch (c) {
+    case '<': return -1;
+    case '>': return 1;
+    case '^': return 0;
+    case '=': return 2;
+    default: return -3;
   }
 }
 
-/* The format(value, spec) engine — SPEC §5.11.5 documents the supported
+/* The format(value, spec) engine — SPEC §5.11.3 documents the supported
  * subset of Python's mini-language: [[fill]align][sign][#][0][width][,]
- * [.precision][type] with types d i u b o x X c e E f F g G % s r. */
+ * [.precision][type] with types d i u b o x X c e E f F g G % s r, and
+ * §5.11.5 item 16 the differences from Python. */
 static cs_value cs_format_apply(cs_value v, const char* sp, size_t slen,
                                 int line) {
   size_t i = 0;
-  char fill = ' ';
+  char fillb[4] = {' ', 0, 0, 0}; /* one code point, copied out of `sp` */
+  size_t filln = 1;
+  bool fill_given = false, zero_fill;
   int align = -2; /* -2: unset (numbers default right, text left) */
   char sign = 0;
   bool alt = false, zero = false, grouped = false;
@@ -6188,24 +6277,26 @@ static cs_value cs_format_apply(cs_value v, const char* sp, size_t slen,
   bool have_prec = false;
   int64_t prec = 0;
   char typec = 0;
-  char num[160];
   cs_buf out;
   const char* vtype = cs_type_name(v);
 
-  /* [[fill]align] comes first in Python's grammar — before the sign and
-   * flags, so a leading '0' followed by '=' is the FILL, not the zero
-   * flag. align 2 is '=' (sign-aware zero padding, handled by the numeric
-   * paths). */
-  if (i < slen && (sp[i] == '<' || sp[i] == '>' || sp[i] == '^' ||
-                   sp[i] == '=')) {
-    align = (sp[i] == '<') ? -1 : (sp[i] == '>') ? 1 : (sp[i] == '^') ? 0 : 2;
-    i++;
-  } else if (i + 1u < slen && (sp[i + 1] == '<' || sp[i + 1] == '>' ||
-                               sp[i + 1] == '^' || sp[i + 1] == '=')) {
-    fill = sp[i];
-    align = (sp[i + 1] == '<') ? -1 : (sp[i + 1] == '>') ? 1
-                                 : (sp[i + 1] == '^') ? 0 : 2;
-    i += 2;
+  /* [[fill]align] comes first, before the sign and flags. Like Python, the
+   * SECOND code point is checked first: when it is an alignment, the first
+   * is the fill (any code point — format(5, "<<3") is "5<<"); only then is
+   * a leading alignment taken. So a '0' followed by '=' is the FILL, not
+   * the zero flag. align 2 is '='. */
+  if (slen > 0u) {
+    size_t cl = cs_utf8_byte(sp, slen, 1u); /* bytes of the first code point */
+    if (cl < slen && cl <= sizeof fillb && cs_fmt_align_of(sp[cl]) != -3) {
+      memcpy(fillb, sp, cl);
+      filln = cl;
+      fill_given = true;
+      align = cs_fmt_align_of(sp[cl]);
+      i = cl + 1u;
+    } else if (cs_fmt_align_of(sp[0]) != -3) {
+      align = cs_fmt_align_of(sp[0]);
+      i = 1u;
+    }
   }
   /* [[sign][#][0]] — the flags. The ',' grouping option is NOT a flag: it
    * comes after the width (SPEC §5.11.3 grammar), accepted below. */
@@ -6249,6 +6340,14 @@ static cs_value cs_format_apply(cs_value v, const char* sp, size_t slen,
                           "Precision not allowed in integer format specifier");
     typec = 'd';
   }
+  /* The 0 flag (Python): fill '0' unless a fill was given — an explicit
+   * fill wins, and its '0' is then just the first width digit. Each
+   * numeric path below also makes an unset alignment '=' (sign-aware). */
+  zero_fill = zero && !fill_given;
+  if (zero_fill) {
+    fillb[0] = '0';
+    filln = 1;
+  }
 
   out.p = NULL;
   out.len = 0;
@@ -6257,13 +6356,15 @@ static cs_value cs_format_apply(cs_value v, const char* sp, size_t slen,
   if (typec == 's' || typec == 'r' ||
       (typec == 0 && !cs_is_numeric(v))) {
     /* Text-ish: str() for 's'/typeless, repr() for 'r'; precision
-     * truncates (Python does the same for strings). */
+     * truncates to that many code points (Python does the same for
+     * strings — a cut never splits a UTF-8 sequence). */
     cs_value t = (typec == 'r') ? cs_repr_value(v, false, line)
                                 : cs_display_value(v, line);
     const char* p = t.as.s.p;
     size_t n = t.as.s.len;
-    if (have_prec && (int64_t)n > prec) n = (size_t)prec;
-    cs_pad_align(&out, p, n, fill, (align == -2) ? -1 : align, width, line);
+    if (have_prec) n = cs_utf8_byte(p, n, (size_t)prec);
+    cs_pad_align(&out, p, n, fillb, filln, (align == -2) ? -1 : align, width,
+                 line);
     return cs_text_from_buf(&out, line);
   }
 
@@ -6279,7 +6380,8 @@ static cs_value cs_format_apply(cs_value v, const char* sp, size_t slen,
                           "'%lld' is not a valid Unicode code point",
                           (long long)v.as.i);
     cn = cs_utf8_put(ch, (uint32_t)v.as.i);
-    cs_pad_align(&out, ch, cn, fill, (align == -2) ? 1 : align, width, line);
+    cs_pad_align(&out, ch, cn, fillb, filln, (align == -2) ? 1 : align, width,
+                 line);
     return cs_text_from_buf(&out, line);
   }
 
@@ -6288,6 +6390,12 @@ static cs_value cs_format_apply(cs_value v, const char* sp, size_t slen,
       (typec == 0 && cs_is_numeric(v))) {
     double x;
     int nn;
+    /* The digits go to a stack buffer; a longer result (format(1e300,
+     * ".0f") has 301 digits, or a large precision) is redone in a heap
+     * buffer of the exact size instead of failing. */
+    char numst[160];
+    char* num = numst;
+    size_t numcap = sizeof numst;
     if (!cs_is_numeric(v))
       cs_runtime_error_as("ValueError", line,
                           "Unknown format code '%c' for object of type '%s'",
@@ -6297,99 +6405,60 @@ static cs_value cs_format_apply(cs_value v, const char* sp, size_t slen,
       cs_runtime_error_as("ValueError", line,
                           "Format specifier ',' requires type 'd' or 'f'");
     if (!have_prec) prec = 6;
-    switch (typec) {
-      case 'e': nn = snprintf(num, sizeof(num), "%.*e", (int)prec, x); break;
-      case 'E':
-        nn = snprintf(num, sizeof(num), "%.*E", (int)prec, x);
-        break;
-      case 'f':
-      case 0: {
-        if (typec == 0 && !have_prec) {
-          /* Typeless float: the display form (shortest round-trip). */
-          cs_fmt_float(x, num, sizeof(num));
-          nn = (int)strlen(num);
-        } else if (alt) {
-          nn = snprintf(num, sizeof(num), "%#.*f", (int)prec, x);
-        } else {
-          nn = snprintf(num, sizeof(num), "%.*f", (int)prec, x);
-        }
-        break;
-      }
-      case 'F':
-        nn = alt ? snprintf(num, sizeof(num), "%#.*F", (int)prec, x)
-                 : snprintf(num, sizeof(num), "%.*F", (int)prec, x);
-        break;
-      case 'g':
-        nn = snprintf(num, sizeof(num), "%.*g", (int)prec, x);
-        break;
-      case 'G':
-        nn = snprintf(num, sizeof(num), "%.*G", (int)prec, x);
-        break;
-      default: /* '%' scales by 100 */
-        nn = snprintf(num, sizeof(num), "%.*f%%", (int)prec, x * 100.0);
-        break;
-    }
-    if (nn < 0 || (size_t)nn >= sizeof(num))
-      cs_runtime_error(line, "out of memory");
-    {
-      cs_buf numbuf;
-      numbuf.p = NULL;
-      numbuf.len = 0;
-      numbuf.cap = 0;
-      if (grouped) cs_add_grouping(&numbuf, num, (size_t)nn, line);
-      else cs_buf_addn(&numbuf, num, (size_t)nn, line);
-      /* sign — before the digits (Python: format(3.5, "+.1f") == "+3.5") */
-      if ((sign == '+' || sign == ' ') && numbuf.len > 0 &&
-          numbuf.p[0] != '-' && numbuf.p[0] != '+') {
-        cs_buf s2;
-        s2.p = NULL;
-        s2.len = 0;
-        s2.cap = 0;
-        cs_buf_addc(&s2, sign, line);
-        cs_buf_addn(&s2, numbuf.p, numbuf.len, line);
-        free(numbuf.p);
-        numbuf = s2;
-      }
-      /* Sign-aware padding ('0' flag or '=' align) — only when alignment
-       * is unset/right/'='; explicit left/center goes through cs_pad_align
-       * with the fill. '=' pads with the fill char, '0' with '0'. */
-      if ((zero || align == 2) && (align == -2 || align == 1 || align == 2) &&
-          width > numbuf.len) {
-        char zc = (align == 2) ? fill : '0';
-        cs_buf z;
-        z.p = NULL;
-        z.len = 0;
-        z.cap = 0;
-        if (numbuf.len > 0 && (numbuf.p[0] == '+' || numbuf.p[0] == '-' ||
-                               numbuf.p[0] == ' ')) {
-          cs_buf_addc(&z, numbuf.p[0], line);
-          cs_buf_addn(&z, numbuf.p + 1, numbuf.len - 1u, line);
-        } else {
-          cs_buf_addn(&z, numbuf.p, numbuf.len, line);
-        }
-        {
-          cs_buf fin;
-          size_t pad = width - z.len, k;
-          fin.p = NULL;
-          fin.len = 0;
-          fin.cap = 0;
-          if (z.len > 0 && z.p[0] == '+' && sign == '+') {
-            cs_buf_addc(&fin, '+', line);
-            for (k = 0; k < pad; k++) cs_buf_addc(&fin, zc, line);
-            cs_buf_addn(&fin, z.p + 1, z.len - 1u, line);
+    for (;;) {
+      switch (typec) {
+        case 'e': nn = snprintf(num, numcap, "%.*e", (int)prec, x); break;
+        case 'E': nn = snprintf(num, numcap, "%.*E", (int)prec, x); break;
+        case 'f':
+        case 0: {
+          if (typec == 0 && !have_prec) {
+            /* Typeless float: the display form (shortest round-trip,
+             * always short). */
+            cs_fmt_float(x, num, numcap);
+            nn = (int)strlen(num);
+          } else if (alt) {
+            nn = snprintf(num, numcap, "%#.*f", (int)prec, x);
           } else {
-            for (k = 0; k < pad; k++) cs_buf_addc(&fin, zc, line);
-            cs_buf_addn(&fin, z.p, z.len, line);
+            nn = snprintf(num, numcap, "%.*f", (int)prec, x);
           }
-          free(z.p);
-          free(numbuf.p);
-          return cs_text_from_buf(&fin, line);
+          break;
         }
+        case 'F':
+          nn = alt ? snprintf(num, numcap, "%#.*F", (int)prec, x)
+                   : snprintf(num, numcap, "%.*F", (int)prec, x);
+          break;
+        case 'g': nn = snprintf(num, numcap, "%.*g", (int)prec, x); break;
+        case 'G': nn = snprintf(num, numcap, "%.*G", (int)prec, x); break;
+        default: /* '%' scales by 100 */
+          nn = snprintf(num, numcap, "%.*f%%", (int)prec, x * 100.0);
+          break;
       }
-      cs_pad_align(&out, numbuf.p, numbuf.len, fill,
-                   (align == -2) ? 1 : align, width, line);
-      free(numbuf.p);
-      return cs_text_from_buf(&out, line);
+      if (nn < 0) cs_runtime_error(line, "out of memory");
+      if ((size_t)nn < numcap) break;
+      numcap = (size_t)nn + 1u; /* only ever taken once: the size is exact */
+      num = (char*)malloc(numcap);
+      if (num == NULL) cs_runtime_error(line, "out of memory");
+    }
+    {
+      /* Split "-1234.50" into sign, digit run and rest; the sign option
+       * only adds '+'/' ' to a value that has no '-'. */
+      const char* body = num;
+      size_t bn = (size_t)nn, nd = 0;
+      char signc = 0;
+      cs_value r;
+      if (bn > 0u && (body[0] == '-' || body[0] == '+')) {
+        signc = body[0];
+        body++;
+        bn--;
+      } else if (sign == '+' || sign == ' ') {
+        signc = sign;
+      }
+      while (nd < bn && body[nd] >= '0' && body[nd] <= '9') nd++;
+      if (zero_fill && align == -2) align = 2;
+      r = cs_fmt_number(signc, "", body, nd, body + nd, bn - nd, grouped,
+                        fillb, filln, align, width, line);
+      if (num != numst) free(num);
+      return r;
     }
   }
 
@@ -6398,7 +6467,6 @@ static cs_value cs_format_apply(cs_value v, const char* sp, size_t slen,
     uint64_t mag;
     bool neg;
     const char* prefix = "";
-    size_t nn = 0;
     int base = 10;
     bool is_int_type = (typec == 'd' || typec == 'i' || typec == 'u' ||
                         typec == 'b' || typec == 'o' || typec == 'x' ||
@@ -6425,8 +6493,9 @@ static cs_value cs_format_apply(cs_value v, const char* sp, size_t slen,
     }
     {
       static const char* kDig = "0123456789abcdef";
-      char dbuf[72];
-      size_t dn = 0;
+      char dbuf[72], digits[72];
+      size_t dn = 0, k;
+      char signc = neg ? '-' : (sign == '+' || sign == ' ') ? sign : 0;
       do {
         unsigned d = (unsigned)(mag % (uint64_t)base);
         dbuf[dn++] = (typec == 'X') ? (char)((d < 10) ? ('0' + d)
@@ -6434,56 +6503,10 @@ static cs_value cs_format_apply(cs_value v, const char* sp, size_t slen,
                                     : kDig[d];
         mag /= (uint64_t)base;
       } while (mag != 0u);
-      /* sign + prefix + digits (+ grouping) into num[] */
-      if (neg) num[nn++] = '-';
-      else if (sign == '+') num[nn++] = '+';
-      else if (sign == ' ') num[nn++] = ' ';
-      {
-        size_t pl = strlen(prefix), k;
-        for (k = 0; k < pl && nn + 1u < sizeof(num); k++) num[nn++] = prefix[k];
-      }
-      {
-        size_t k;
-        for (k = dn; k > 0 && nn + 1u < sizeof(num); k--) num[nn++] = dbuf[k - 1];
-      }
-      num[nn] = '\0';
-    }
-    {
-      cs_buf numbuf;
-      numbuf.p = NULL;
-      numbuf.len = 0;
-      numbuf.cap = 0;
-      if (grouped) cs_add_grouping(&numbuf, num, nn, line);
-      else cs_buf_addn(&numbuf, num, nn, line);
-      if ((zero || align == 2) && (align == -2 || align == 1 || align == 2) &&
-          width > numbuf.len) {
-        /* '='/'0' placement: sign/prefix stay before the pad. */
-        char zc = (align == 2) ? fill : '0';
-        size_t off = 0;
-        if (numbuf.len > 0 && (numbuf.p[0] == '+' || numbuf.p[0] == '-' ||
-                               numbuf.p[0] == ' '))
-          off = 1;
-        if (numbuf.len >= off + 2u && numbuf.p[off] == '0' &&
-            (numbuf.p[off + 1] == 'x' || numbuf.p[off + 1] == 'X' ||
-             numbuf.p[off + 1] == 'b' || numbuf.p[off + 1] == 'o'))
-          off += 2;
-        {
-          cs_buf fin;
-          size_t pad = width - numbuf.len, k;
-          fin.p = NULL;
-          fin.len = 0;
-          fin.cap = 0;
-          cs_buf_addn(&fin, numbuf.p, off, line);
-          for (k = 0; k < pad; k++) cs_buf_addc(&fin, zc, line);
-          cs_buf_addn(&fin, numbuf.p + off, numbuf.len - off, line);
-          free(numbuf.p);
-          return cs_text_from_buf(&fin, line);
-        }
-      }
-      cs_pad_align(&out, numbuf.p, numbuf.len, fill,
-                   (align == -2) ? 1 : align, width, line);
-      free(numbuf.p);
-      return cs_text_from_buf(&out, line);
+      for (k = 0; k < dn; k++) digits[k] = dbuf[dn - 1u - k];
+      if (zero_fill && align == -2) align = 2;
+      return cs_fmt_number(signc, prefix, digits, dn, "", 0u, grouped, fillb,
+                           filln, align, width, line);
     }
   }
 }
