@@ -106,7 +106,7 @@ VSCode extension and docs.
 
 **Plans:**
 - [x] 03-01: In-place text growth (#9) — 2026-11-06
-- [ ] 03-02: `format` regrouping (#7), cache-less cleanup (#8) and `fvec %` (#10)
+- [ ] 03-02: `format` regrouping (#7) and padding parity, cache-less cleanup (#8) and `fvec %` (#10) — planned 2026-11-11
 
 ### Phase 4: Release v0.3.0
 
@@ -220,4 +220,4 @@ VSCode extension and docs.
 
 ---
 *Roadmap created: 2026-11-04*
-*Last updated: 2026-11-05 (Phase 2 complete)*
+*Last updated: 2026-11-11 (03-02 planned)*

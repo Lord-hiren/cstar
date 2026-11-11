@@ -17,9 +17,9 @@ See: .paul/PROJECT.md (updated 2026-11-05 after Phase 2)
 
 Milestone: v0.3 cstar Foundation (v0.3.0)
 Phase: 3 of 4 (Fix known issues) — In Progress
-Plan: 03-01 complete
-Status: Ready for next PLAN (03-02: #7, #8, #10)
-Last activity: 2026-11-06 — Unified 03-01 (known issue #9 fixed; text built in functions is amortized)
+Plan: 03-02 created, awaiting approval
+Status: PLAN created, ready for APPLY
+Last activity: 2026-11-11 — Created 03-02-PLAN.md (#7 + format padding cluster, #8, #10)
 
 Progress:
 - Milestone: [████████░░] 82% (9 of 11 plans; 2 of 4 phases)
@@ -30,7 +30,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Loop complete - ready for next PLAN]
+  ✓        ○        ○     [Plan created, awaiting approval]
 ```
 
 ## Accumulated Context
@@ -49,6 +49,8 @@ PLAN ──▶ APPLY ──▶ UNIFY
 | Human-verify checkpoints are automated by Claude where possible | Phase 2 | Fewer manual steps for you |
 | 2026-11-06: no `Co-Authored-By` trailer on commits (removed from history at your request) | Phase 3 | Commit messages carry no Claude attribution |
 | 2026-11-06: #9 fixed by widening the codegen ownership proof (non-retaining + terminal reads), runtime unchanged; the writes rule stays strict | Phase 3 | `s = prefix` builders still copy (documented) |
+| 2026-11-11 (03-02 plan): #7 is fixed together with the format padding cluster a Python differential found (one CPython-ported layout; code-point width); bool keeps formatting as text (own type) | Phase 3 | format() matches Python on its whole subset; deviations listed in SPEC §5.11.5 |
+| 2026-11-11 (03-02 plan): #8 via unlink + `fexecve` of the cache-less binary — no fork, the process model is unchanged | Phase 3 | `run` leaves nothing in `$TMPDIR` |
 
 Full decision log: PROJECT.md → Key Decisions.
 
@@ -60,6 +62,7 @@ Full decision log: PROJECT.md → Key Decisions.
 | D-9: CI not yet run on GitHub (branch not pushed); GitHub `main` still has the broken `file_line_edges.out` | 01-03 | S | Whenever you approve a push |
 | D-10: keep the real-VS-Code end-to-end test (45 checks) in the repo as a local-only check | 02-03 | S | Optional; any editor plan |
 | D-11: benchmark tooling (tools/hpcbench, bench/ runners, generators and workloads) still uses `.pen` and `build/pentest` (both work until v0.4) | 02-04/02-05 | S | Before the v0.4 legacy removal |
+| D-13: format error parity — cstar accepts a sign/`=`/`,` on text specs and a sign on `c` (Python raises), and rejects `,` with `e`/`g`/`%` (Python allows); documented as SPEC §5.11.5 deviation 16 in 03-02 | 03-02 plan | S | When convenient (decide: match Python or keep) |
 | D-12: the membership TypeError names the retired `->` operator (`unsupported operand types for ->: …`); normative in m2a/m2b + 7 test expectations — changing it to `in` means contract + SPEC + tests together | 02-05 | S | When convenient (a deliberate wording decision) |
 | Auto-GPU float policy; memory-access scope; "freely code in app" meaning | Init | S | v0.8 / v0.5 / v0.4 planning |
 
@@ -70,17 +73,17 @@ Full decision log: PROJECT.md → Key Decisions.
 
 ### Git State
 
-Last commit: 10a47c4 docs(03-01): close known issue #9 (+ plan metadata commit)
+Last commit: fef9331 docs(03-01): complete plan 03-01 (+ the 03-02 plan commit)
 Branch: phase-3-known-issues (from phase-2-rename; local only)
 main: 6c82d72 (local and remote, unchanged)
 Feature branches merged: none (merge into main and push only when you ask)
 
 ## Session Continuity
 
-Last session: 2026-11-06
-Stopped at: Plan 03-01 unified
-Next action: /paul:plan for 03-02 (#7 format regrouping, #8 cache-less temp cleanup, #10 fvec %)
-Resume file: .paul/phases/03-fix-known-issues/03-01-SUMMARY.md
+Last session: 2026-11-11
+Stopped at: Plan 03-02 created
+Next action: Review and approve the plan, then /paul:apply .paul/phases/03-fix-known-issues/03-02-PLAN.md
+Resume file: .paul/phases/03-fix-known-issues/03-02-PLAN.md
 
 ---
 *STATE.md — Updated after every significant action*
