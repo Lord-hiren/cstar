@@ -1,0 +1,1 @@
+rt_fvec_mod.cst:69: runtime error: unsupported operand types for %: fvec and float

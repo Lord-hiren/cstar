@@ -1,0 +1,70 @@
+# fvec % is a TypeError like float % (SPEC §5.11.9, known issue #10): every
+# operand position, decided on the types before lengths or zero divisors;
+# ivec % stays exact, and the last line is uncaught.
+a = fvec([5.0, -5.0])
+b = fvec([2.0, 2.0])
+try:
+    print(a % b)
+except TypeError as e:
+    print("1", e.message)
+try:
+    print(a % 2.0)
+except TypeError as e:
+    print("2", e.message)
+try:
+    print(1.0 % fvec([4.0]))
+except TypeError as e:
+    print("3", e.message)
+try:
+    print(a % 2)
+except TypeError as e:
+    print("4", e.message)
+try:
+    print(7 % a)
+except TypeError as e:
+    print("5", e.message)
+try:
+    print(fvec([1.0]) % 0.0)
+except TypeError as e:
+    print("6", e.message)
+try:
+    print(fvec([1.0]) % fvec([1.0, 2.0]))
+except TypeError as e:
+    print("7", e.message)
+try:
+    v = fvec([3.0])
+    v %= 2.0
+    print(v)
+except TypeError as e:
+    print("8", e.message)
+try:
+    y = a % b + a
+    print(y)
+except TypeError as e:
+    print("9", e.message)
+try:
+    print(a % ivec([1, 2]))
+except TypeError as e:
+    print("10", e.message)
+try:
+    print(ivec([1, 2]) % a)
+except TypeError as e:
+    print("11", e.message)
+
+# the scalar rule it mirrors
+try:
+    print(5.0 % 2.0)
+except TypeError as e:
+    print("12", e.message)
+
+# ivec % is unchanged; + - * / on fvec still work
+print(ivec([-7, 7]) % ivec([2, 4]), ivec([-7, 7]) % 2)
+print(ivec([0 - 9223372036854775807 - 1]) % ivec([-1]))
+try:
+    print(ivec([1, 2]) % ivec([0, 1]))
+except ZeroDivisionError as e:
+    print("13", e.message)
+print(a + b, a - b, a * b, a / b)
+
+print(fvec([1.0]) % 2.0)
+print("not reached")

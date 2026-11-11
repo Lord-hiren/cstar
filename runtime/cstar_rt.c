@@ -3257,7 +3257,9 @@ static const char* cs_vec_op_str(char op) {
 
 /* fvec elementwise kernel: explicit lanes, scalar tail, `restrict` fresh
  * result (no aliasing with any operand — the result is a new object).
- * bd == NULL selects scalar mode: the right side is the broadcast s. */
+ * bd == NULL selects scalar mode: the right side is the broadcast s.
+ * op is one of + - * / (the `default` branches are '/'): cs_vec_binop
+ * rejects `%` on an fvec before any kernel runs. */
 static void cs_fv_kernel(double* restrict rd, const double* restrict ad,
                          const double* restrict bd, double s, size_t n,
                          char op) {
@@ -3296,7 +3298,8 @@ static void cs_fv_kernel(double* restrict rd, const double* restrict ad,
   }
 }
 
-/* scalar-LEFT kernel (s <op> vec). */
+/* scalar-LEFT kernel (s <op> vec); op is one of + - * / as above (the
+ * `default` branches are '*'). */
 static void cs_fv_kernel_sl(double* restrict rd, double s,
                             const double* restrict bd, size_t n, char op) {
   size_t i = 0;
@@ -3387,6 +3390,12 @@ static cs_value cs_vec_binop(cs_value a, cs_value b, int line, char op) {
   size_t n;
   cs_obj* r;
   sca.tag = CS_UNSET;
+  /* `%` is not defined for float, so not for an fvec either (SPEC §5.11.9):
+   * the scalar TypeError, decided on the types before lengths or zero
+   * divisors are looked at. The fvec kernels below therefore only ever
+   * see + - * /. */
+  if (op == '%' && (a.tag == CS_FVEC || b.tag == CS_FVEC))
+    cs_bad_binary(line, "%", a, b);
   /* Classify: one vector operand (its kind is the result kind), the other
    * side scalar or a same-kind vector. Validation happens before any
    * allocation. */
