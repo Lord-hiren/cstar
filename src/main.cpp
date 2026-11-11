@@ -155,8 +155,10 @@ std::string make_temp_dir() {
   return std::string(buf.data());
 }
 
-// Removes the generated sources from `dir` and best-effort rmdirs it. The
-// rmdir fails harmlessly when the compiled executable lives inside `dir`.
+// Removes the generated sources from `dir`; callers then rmdir it. For a
+// cache-less `run` the executable still lives inside `dir` at that point,
+// so the rmdir fails until exec_unlinked removes both just before the
+// program starts.
 void remove_sources(const std::string& dir) {
   ::unlink((dir + "/gen.c").c_str());
   for (unsigned int i = 0; i < pen_embedded_files_count; ++i) {
@@ -351,6 +353,41 @@ bool try_exec(const std::string& bin, const std::vector<std::string>& extra) {
   }
   argv.push_back(nullptr);
   execv(bin_c, argv.data());
+  return false;
+}
+
+// Runs a cache-less build's executable without leaving it behind (it was
+// known issue #8): `bin` is the only file left in its scratch directory,
+// so open it, unlink it, remove the directory, then exec the open
+// descriptor. The kernel keeps the file alive through the descriptor and
+// then the running image, and frees it when the program exits. The driver
+// is still *replaced* by the program, exactly like try_exec — same pid,
+// argv, environment, stdio, signals and exit status, with no parent left
+// to forward anything; only /proc/self/exe now ends in " (deleted)".
+// O_CLOEXEC is safe because the program is an ELF executable, not a
+// script that would need to reopen the descriptor. Returns false only if
+// the exec failed (errno set); the file and directory are gone either way.
+bool exec_unlinked(const std::string& bin,
+                   const std::vector<std::string>& extra) {
+  int fd = ::open(bin.c_str(), O_RDONLY | O_CLOEXEC);
+  int open_err = errno;
+  ::unlink(bin.c_str());
+  std::size_t slash = bin.rfind('/');
+  if (slash != std::string::npos) ::rmdir(bin.substr(0, slash).c_str());
+  if (fd < 0) {
+    errno = open_err;
+    return false;
+  }
+  std::vector<char*> argv;
+  argv.push_back(const_cast<char*>(bin.c_str()));
+  for (const std::string& s : extra) {
+    argv.push_back(const_cast<char*>(s.c_str()));
+  }
+  argv.push_back(nullptr);
+  ::fexecve(fd, argv.data(), environ);
+  int exec_err = errno;
+  ::close(fd);
+  errno = exec_err;
   return false;
 }
 
@@ -596,7 +633,7 @@ int compile_program(const cstar::Program& program, std::string& in_out_path) {
   }
   if (!rt_obj_tmp.empty()) ::unlink(rt_obj_tmp.c_str());
   remove_sources(dir);
-  ::rmdir(dir.c_str());  // no-op when in_out_path lives inside dir
+  ::rmdir(dir.c_str());  // fails while a cache-less run's program is inside
   return 0;
 }
 
@@ -765,7 +802,11 @@ int main(int argc, char** argv) {
 
   if (mode == Mode::Build) return 0;
 
-  if (!try_exec(out, extra)) {
+  // With a cache the binary stays as the cache entry; without one it was
+  // built into the scratch dir and must not outlive the run.
+  const bool started = cache_bin.empty() ? exec_unlinked(out, extra)
+                                         : try_exec(out, extra);
+  if (!started) {
     std::fprintf(stderr, "error: cannot execute '%s': %s\n", out.c_str(),
                  std::strerror(errno));
     return 1;

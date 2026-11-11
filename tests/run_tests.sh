@@ -9,13 +9,14 @@
 #   * <name>.err  (optional) — every line must appear as a substring of
 #     stderr; when absent, stderr must be empty;
 #   * <name>.exit (optional) — expected exit code, default 0.
-# Plus twelve CLI-level extra checks: `check` on a valid case, `check` on a
+# Plus thirteen CLI-level extra checks: `check` on a valid case, `check` on a
 # compile-error case, `build` + direct execution of a valid case, `.cst`
 # acceptance (run, bare form, default build name), the legacy `.pen`/`.pent`
 # extensions, a `sha256sum`-less PATH (caching disabled, never SIGPIPE),
 # strict and valid `check` on imports, the legacy `pentest` alias, the
-# `index.cst` default entry, CSTAR_PATH / legacy PENTEST_PATH, and the
-# in-place text append in the generated C (text_build_grow).
+# `index.cst` default entry, CSTAR_PATH / legacy PENTEST_PATH, the
+# in-place text append in the generated C (text_build_grow), and a run that
+# cannot cache leaving nothing in $TMPDIR (cacheless_cleanup).
 
 set -u
 
@@ -413,6 +414,49 @@ if [ -n "$detail" ]; then
   report_fail "$n" "text_build_grow" "$detail"
 else
   report_pass "$n" "text_build_grow"
+fi
+
+# Extra check (l): a run that cannot cache leaves nothing in $TMPDIR (known
+# issue #8). Without a cache the driver builds into a scratch dir, then
+# unlinks the binary and the dir and execs it from an open descriptor;
+# stdout, stderr and the exit code must be exactly a cached run's.
+# Scenarios: no sha256sum (a valid case, and a case with an uncaught
+# runtime error), an unusable cache dir with sha256sum present, and the
+# normal cached run as a control.
+n=$((n + 1))
+detail=""
+mkdir -p "$work/cl/bin"
+ln -sf "$(command -v clang)" "$work/cl/bin/clang"
+ln -sf "$(command -v ld)" "$work/cl/bin/ld"
+: >"$work/cl/notadir"  # a regular file, so no cache dir can be made below it
+cl_run() {  # cl_run LABEL PATH XDG_CACHE_HOME CASE_BASE
+  local label="$1" tc="$4" t code want=0 left line
+  t="$(mktemp -d "$work/cl/tmp.XXXXXX")"
+  PATH="$2" TMPDIR="$t" XDG_CACHE_HOME="$3" \
+    "$cstar" run "$tc.cst" </dev/null >"$t.out" 2>"$t.err"
+  code=$?
+  [ -f "$tc.exit" ] && want="$(tr -d '[:space:]' <"$tc.exit")"
+  [ "$code" -eq "$want" ] || detail+="  $label: exit $code, expected $want"$'\n'
+  cmp -s "$tc.out" "$t.out" || detail+="  $label: stdout differs from $tc.out"$'\n'
+  if [ -f "$tc.err" ]; then
+    while IFS= read -r line || [ -n "$line" ]; do
+      [ -z "$line" ] && continue
+      grep -F -q -- "$line" "$t.err" || detail+="  $label: stderr lacks: $line"$'\n'
+    done <"$tc.err"
+  elif [ -s "$t.err" ]; then
+    detail+="  $label: unexpected stderr: $(head -n 3 "$t.err")"$'\n'
+  fi
+  left="$(cd "$t" && find . -mindepth 1 | head -n 5 | tr '\n' ' ')"
+  [ -z "$left" ] || detail+="  $label: left behind in TMPDIR: $left"$'\n'
+}
+cl_run "no sha256sum" "$work/cl/bin" "$work/cl/c1" "${valid_case%.cst}"
+cl_run "no sha256sum, runtime error" "$work/cl/bin" "$work/cl/c2" "tests/cases/rt_div_zero"
+cl_run "unusable cache dir" "$PATH" "$work/cl/notadir/x" "${valid_case%.cst}"
+cl_run "cached run (control)" "$PATH" "$work/cl/c3" "${valid_case%.cst}"
+if [ -n "$detail" ]; then
+  report_fail "$n" "cacheless_cleanup" "$detail"
+else
+  report_pass "$n" "cacheless_cleanup"
 fi
 
 echo "passed: $pass failed: $fail"
