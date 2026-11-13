@@ -23,8 +23,8 @@ and Linux, with servers, packages and low-level memory access built in.
 |-----------|-------|
 | Type | Application (programming language + toolchain) |
 | Version | 0.2.1 (`cstar --version`), plus unreleased work in the tree |
-| Status | Working compiler on Linux (and on Windows through WSL); Phases 1–2 done — the project is cstar everywhere; known-issue fixes (Phase 3) next |
-| Last Updated | 2026-11-05 |
+| Status | Working compiler on Linux (and on Windows through WSL); Phases 1–3 done — the project is cstar everywhere and no known issue is open; release v0.3.0 (Phase 4) next |
+| Last Updated | 2026-11-13 |
 
 ## Requirements
 
@@ -48,10 +48,11 @@ and Linux, with servers, packages and low-level memory access built in.
 - [x] CI workflow for the four gates (warning-free build, tests, smoke test, docs checker) — Phase 1 (not yet run on GitHub)
 - [x] Renamed to cstar everywhere: the `cstar` CLI (`index.cst` default entry, extension-less `build` output, `$CSTAR_PATH`, `~/.cache/cstar`), `.cst` sources, cstar in error messages, the VSCode extension (`cstar-lang.cstar-lang`), internal names (`cstar_rt`, `cs_`), SPEC and all docs; the legacy `pentest` / `.pen` / `.pent` / `$PENTEST_PATH` / `pentest.*` names keep working until v0.4 — Phase 2
 - [x] SPEC specifies all 78 builtins, including the SIMD vectors (§5.11.9) — Phase 2
+- [x] No open known issues, each fix guarded by a test that fails on the old build: text built with `s += x` in functions is amortized (#9); `format()` matches Python on its whole subset — zero-padded regrouping, sign placement, fills, code points (#7 and its cluster); a run without a cache leaves nothing in `$TMPDIR` (#8); `fvec %` raises the scalar `TypeError` (#10) — Phase 3
 
 ### Active (In Progress)
 
-- [ ] v0.3 cstar Foundation — Phases 1–2 done; Phase 3 (known issues #7, #8, #9, #10) and Phase 4 (release v0.3.0) remain
+- [ ] v0.3 cstar Foundation — Phases 1–3 done; Phase 4 (release v0.3.0) remains
 
 ### Planned (Next)
 
@@ -111,12 +112,18 @@ and Linux, with servers, packages and low-level memory access built in.
 | Editor extension `cstar-lang.cstar-lang`, one language id for `.cst`/`.pen`/`.pent` | Existing editor setups keep working | 2026-11-05 | Active |
 | When writing the SPEC exposes a bug, SPEC states the intended rule and the bug becomes a known issue (e.g. #10, `fvec %`) | Normative docs lead the code | 2026-11-05 | Active |
 | Human-verify checkpoints are automated by Claude where possible (e.g. a real VS Code test instance) | Your preference: evidence over manual steps | 2026-11-05 | Active |
+| No `Co-Authored-By` trailer in commit messages (removed from history) | Your request | 2026-11-06 | Active |
+| Performance fixes widen the compiler's proofs before adding runtime machinery (#9: non-retaining and terminal reads) | Outputs stay provably identical; no ABI change | 2026-11-06 | Active |
+| Parity bugs are measured with a differential against the reference (Python) before fixing; `format()` is a port of CPython's layout | #7 was one symptom of seven defects; the oracle also generates the regression output | 2026-11-11 | Active |
+| A value that is neither a number nor text formats as its display text (bool, None, collections); remaining format differences live in SPEC §5.11.5 item 16 | bool is its own type in cstar; one rule instead of special cases | 2026-11-11 | Active |
+| A run without a cache unlinks its binary and `fexecve`s it — the driver is still replaced by the program | No files left behind, exact signals and exit codes; Windows (v0.4) needs its own approach | 2026-11-11 | Active |
 
 ## Success Metrics
 
 | Metric | Target | Current | Status |
 |--------|--------|---------|--------|
-| Test suite | 100% green on Linux and Windows | 376/376, editor 1363/1363, docs 320 links + 53 samples, in a fresh clone (WSL Ubuntu 24.04, 2026-11-05); CI ready, not yet run on GitHub; Windows-native not yet | On track |
+| Test suite | 100% green on Linux and Windows | 381/381, editor 1363/1363, docs 310 links + 53 samples, in a fresh clone (WSL Ubuntu 24.04, 2026-11-11); CI ready, not yet run on GitHub; Windows-native not yet | On track |
+| Open known issues | 0 | 0 (#7–#10 closed in Phase 3) | Met |
 | Loop/printing speed vs C (`-O3 -march=native`) | ≥ 1.0× | 0.96×–1.84× (hpcbench, 2026-10-18) | On track |
 | Object-heavy speed vs C (`ptrlist`) | ≥ 0.8× (proposed) | 0.35× | At risk |
 | Install → first program | One installer, no separate compiler | Needs clang + make on Linux | Not started |
@@ -142,4 +149,4 @@ and Linux, with servers, packages and low-level memory access built in.
 
 ---
 *PROJECT.md — Updated when requirements or context change*
-*Last updated: 2026-11-05 after Phase 2*
+*Last updated: 2026-11-13 after Phase 3*

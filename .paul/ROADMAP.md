@@ -35,13 +35,13 @@ unlocks the next:
 
 **v0.3 cstar Foundation** (v0.3.0)
 Status: In progress
-Phases: 2 of 4 complete
+Phases: 3 of 4 complete
 
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
 | 1 | Dev environment & repo hygiene | 3/3 | ✅ Complete | 2026-11-04 |
 | 2 | Rename to cstar | 5/5 | ✅ Complete | 2026-11-05 |
-| 3 | Fix known issues | 1/2 | In progress | - |
+| 3 | Fix known issues | 2/2 | ✅ Complete | 2026-11-13 |
 | 4 | Release v0.3.0 | 1 | Not started | - |
 
 ## Phase Details
@@ -106,7 +106,7 @@ VSCode extension and docs.
 
 **Plans:**
 - [x] 03-01: In-place text growth (#9) — 2026-11-06
-- [ ] 03-02: `format` regrouping (#7) and padding parity, cache-less cleanup (#8) and `fvec %` (#10) — planned 2026-11-11
+- [x] 03-02: `format` regrouping (#7) and padding parity, cache-less cleanup (#8) and `fvec %` (#10) — 2026-11-11 (no known issue open)
 
 ### Phase 4: Release v0.3.0
 
@@ -220,4 +220,4 @@ VSCode extension and docs.
 
 ---
 *Roadmap created: 2026-11-04*
-*Last updated: 2026-11-11 (03-02 planned)*
+*Last updated: 2026-11-13 (Phase 3 complete)*

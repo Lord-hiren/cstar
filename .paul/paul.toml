@@ -15,10 +15,10 @@ status = "in_progress"
 phases = 4
 
 [phase]
-number = 3
-name = "Fix known issues"
-status = "complete"
-plans_completed = 2
+number = 4
+name = "Release v0.3.0"
+status = "not_started"
+plans_completed = 0
 
 [loop]
 position = "IDLE"
@@ -29,5 +29,5 @@ groom = true
 [stats]
 total_plans = 10
 total_phases = 36
-phases_completed = 2
-last_activity = "2026-11-13T04:38:52Z"
+phases_completed = 3
+last_activity = "2026-11-13T04:41:33Z"

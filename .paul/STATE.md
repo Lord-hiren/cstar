@@ -8,29 +8,29 @@ about: "cstar"
 
 ## Project Reference
 
-See: .paul/PROJECT.md (updated 2026-11-05 after Phase 2)
+See: .paul/PROJECT.md (updated 2026-11-13 after Phase 3)
 
 **Core value:** Write code as freely as JavaScript or Python and get speed that matches or beats C, on Windows and Linux.
-**Current focus:** v0.3 cstar Foundation — Phase 3: Fix known issues
+**Current focus:** v0.3 cstar Foundation — Phase 4: Release v0.3.0
 
 ## Current Position
 
 Milestone: v0.3 cstar Foundation (v0.3.0)
-Phase: 3 of 4 (Fix known issues) — Complete
-Plan: 03-02 complete
-Status: Loop complete; Phase 3 complete, transition next
-Last activity: 2026-11-13 — Unified 03-02 (#7 + format padding cluster, #8, #10 fixed; registry empty)
+Phase: 4 of 4 (Release v0.3.0) — Not started
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-11-13 — Phase 3 complete (no open known issues), transitioned to Phase 4
 
 Progress:
 - Milestone: [█████████░] 91% (10 of 11 plans; 3 of 4 phases)
-- Phase 3: [██████████] 100% (2 of 2 plans)
+- Phase 4: [░░░░░░░░░░] 0% (0 of 1 plans)
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Loop complete - Phase 3 complete]
+  ○        ○        ○     [Ready for next PLAN — Phase 4]
 ```
 
 ## Accumulated Context
@@ -68,12 +68,12 @@ Full decision log: PROJECT.md → Key Decisions.
 
 ### Blockers/Concerns
 
-- Phase 2: `main` (local and on GitHub) is two phases behind the local branch, and CI has never run on
-  GitHub (D-9). Nothing is pushed until you decide to merge and push.
+- Phase 4: `main` (local and on GitHub) is three phases behind the local branches, and CI has never run on
+  GitHub (D-9). Tagging v0.3.0 on GitHub means merging and pushing — only when you approve it.
 
 ### Git State
 
-Last commit: fa0d106 docs(03-02): close known issues #7, #8 and #10 (03-02: 494d546 plan, 8e21755, 546777d, d7dc2ac, fa0d106)
+Last commit: the Phase 3 transition commit (after 8f9160a docs(03-02): complete plan 03-02)
 Branch: phase-3-known-issues (from phase-2-rename; local only)
 main: 6c82d72 (local and remote, unchanged)
 Feature branches merged: none (merge into main and push only when you ask)
@@ -81,9 +81,9 @@ Feature branches merged: none (merge into main and push only when you ask)
 ## Session Continuity
 
 Last session: 2026-11-13
-Stopped at: Plan 03-02 unified (Phase 3 complete)
-Next action: Phase 3 transition, then /paul:plan for Phase 4
-Resume file: .paul/phases/03-fix-known-issues/03-02-SUMMARY.md
+Stopped at: Phase 3 complete, ready to plan Phase 4
+Next action: /paul:plan for Phase 4 (04-01: version bump, changelog, tag)
+Resume file: .paul/ROADMAP.md
 
 ---
 *STATE.md — Updated after every significant action*
