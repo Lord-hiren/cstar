@@ -2,7 +2,7 @@
 
 Status: **informative companion to `SPEC.md` §11.8** (implementation &
 architecture; the SPEC governs if they differ). Part of the
-[performance documentation](README.md). Stage: `0.2.1`. Everything here is a *lowering rule* or a
+[performance documentation](README.md). Stage: `0.3.0`. Everything here is a *lowering rule* or a
 *runtime property*, not a post-processing pass: the code generator emits
 fast code directly, there is no IR rewrite step, and nothing about
 performance ever changes a program's output (byte-compat contract, §9).

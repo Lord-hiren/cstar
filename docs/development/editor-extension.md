@@ -16,7 +16,7 @@ executes code except through the explicit **Run** command.
 
 | File | Role | Size |
 |---|---|---|
-| `package.json` | manifest: id `cstar-lang.cstar-lang`, language id `cstar` for `.cst`/`.pen`/`.pent`, the `cstar.run` command and menus, settings (`cstar.executable`, `cstar.diagnostics`, `cstar.diagnosticsDelay`, plus the deprecated `pentest.*` three), editor defaults for `[cstar]` (4-space indent, tab completion) | version `0.2.1` |
+| `package.json` | manifest: id `cstar-lang.cstar-lang`, language id `cstar` for `.cst`/`.pen`/`.pent`, the `cstar.run` command and menus, settings (`cstar.executable`, `cstar.diagnostics`, `cstar.diagnosticsDelay`, plus the deprecated `pentest.*` three), editor defaults for `[cstar]` (4-space indent, tab completion) | version `0.3.0` |
 | `src/extension.js` | activation, completion, hover, diagnostics runner, Run terminal, comment toggle | ~1,500 lines |
 | `syntaxes/cstar.tmLanguage.json` | the TextMate grammar (`source.cstar`; every scope ends in `.cstar`) | ~200 lines |
 | `snippets/cstar.json` | snippets | 27 prefixes |

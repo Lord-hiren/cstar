@@ -1,4 +1,4 @@
-# Known issues (version 0.2.1)
+# Known issues (version 0.3.0)
 
 Defects and spec deviations that were **reproduced against the real toolchain**
 (this page is the living registry — it holds what is currently open). Each

@@ -2,7 +2,7 @@
 
 A practical walk through the whole cstar language, from `print` to classes,
 exceptions and cross-scope access. Every example on this page is a complete
-program followed by the exact output the `0.2.1` compiler produces for it —
+program followed by the exact output the `0.3.0` compiler produces for it —
 these blocks are executed against the real toolchain whenever the docs are
 verified (see [documentation guide](../development/documentation-guide.md)).
 
@@ -673,7 +673,7 @@ allowed inside it.
 
 ### Modules and imports
 
-Since the Stage 2D work (unreleased in this tree; SPEC §14) a program may be
+Since the Stage 2D work (released in `0.3.0`; SPEC §14) a program may be
 split across files:
 
 ```python
@@ -955,8 +955,8 @@ or loop names. Arity and named arguments are checked at compile time.
 |---|---|
 | Core | `print range len str int float bool type encode decode set collect` |
 | Environment | `input time clock` |
-| Network (unreleased) | `http_get http_post url_encode` |
-| SIMD vectors (unreleased) | `fvec ivec fvec_fill ivec_fill dot` |
+| Network (since 0.3.0) | `http_get http_post url_encode` |
+| SIMD vectors (since 0.3.0) | `fvec ivec fvec_fill ivec_fill dot` |
 | Python-parity (43) | `abs all any ascii bin bytes callable chr delattr dict dir divmod enumerate filter format getattr globals hasattr hash hex id isinstance iter list locals map max min next oct open ord pow repr reversed round setattr slice sorted sum tuple vars zip` |
 | Always-failing stubs (9) | `super property classmethod staticmethod issubclass breakpoint help memoryview object` |
 | Rejected at compile time (3) | `eval exec compile` |
@@ -998,7 +998,7 @@ Implementation details are in [runtime internals](../internals/runtime.md).
 
 ## 16. What cstar deliberately does not have
 
-Beyond the released single-file core, the unreleased Stage 2D work adds
+Beyond the single-file core, the Stage 2D work released in `0.3.0` adds
 imports ([§10](#modules-and-imports)); everything else below is still absent:
 no inheritance, no generators, no lambdas, no string repetition (`"a" * 3`), no
 floor division (`//` is a comment), no multi-line strings, no type annotations,

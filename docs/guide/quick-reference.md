@@ -2,8 +2,8 @@
 
 Every feature of the language on one page: how to declare variables, declare
 and call functions, use collections, classes, exceptions, imports, and every
-builtin. It covers version `0.2.1` plus the unreleased work in this tree
-(imports, HTTP builtins and SIMD vectors).
+builtin. It covers version `0.3.0`, imports, HTTP builtins and SIMD vectors
+included.
 
 > **Name.** The language was called Pentest before v0.3. The command is `cstar`
 > and source files end in `.cst`; the legacy `pentest` command and `.pen`/`.pent`

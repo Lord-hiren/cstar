@@ -1,4 +1,4 @@
-# cstar Language Specification (version 0.2.1)
+# cstar Language Specification (version 0.3.0)
 
 > **Where this fits.** This is the normative language specification. For a
 > gentle introduction start with the [language tour](docs/guide/language-tour.md);
@@ -10,12 +10,12 @@
 
 **Normative status:** This document specifies the cstar language (called
 Pentest before v0.3; the legacy names keep working until v0.4) as of
-Milestone 2 Stages 2A + 2B + 2C, the `0.2.1` performance push and
-cross-scope variable access, plus the **unreleased** Stage 2D modules/imports
-work (§14) and the v0.3 surface-syntax overhaul (`()` calls, `in`
-membership/binding, `name():`/`name(params):` declarations, `main:`) — the
-`cstar` in this working tree still reports version `0.2.1`
-(`cstar --version` prints `cstar 0.2.1`). It is derived from
+version `0.3.0` (`cstar --version` prints `cstar 0.3.0`): Milestone 2
+Stages 2A + 2B + 2C, the `0.2.1` performance push and cross-scope variable
+access, and — new in `0.3.0` — the Stage 2D modules/imports work (§14), the
+network and SIMD vector builtins (§5.11.8, §5.11.9) and the v0.3
+surface-syntax overhaul (`()` calls, `in` membership/binding,
+`name():`/`name(params):` declarations, `main:`). It is derived from
 [docs/contracts/m2c-semantics.md](docs/contracts/m2c-semantics.md) (the Stage 2C contract),
 [docs/contracts/m2b-semantics.md](docs/contracts/m2b-semantics.md) (the Stage 2B contract),
 [docs/contracts/m2a-semantics.md](docs/contracts/m2a-semantics.md) (the Stage 2A contract),
@@ -23,7 +23,7 @@ membership/binding, `name():`/`name(params):` declarations, `main:`) — the
 normative) and [docs/contracts/m1-semantics.md](docs/contracts/m1-semantics.md) (the authoritative
 M1 decisions, still normative wherever Stages 2A/2B/2C do not override them).
 If this specification and those contracts disagree, the contracts govern.
-**One carve-out:** the unreleased v0.3 *surface-syntax* overhaul
+**One carve-out:** the v0.3 *surface-syntax* overhaul
 (`f(x)` calls, `in` membership/binding, `name():`/`name(params):` declarations,
 `main:`, `import`/`from`) is front-end-only — AST, semantic analysis and
 generated C are unchanged — so where a contract's examples predate it,
@@ -44,8 +44,9 @@ normative. Tests match on these substrings; do not reword them.
 
 ## 1. Status and scope
 
-Milestone 2 Stages 2A, 2B and 2C, the `0.2.1` drop, and the unreleased
-Stage 2D modules/imports work deliver a small, natively compiled language:
+Milestone 2 Stages 2A, 2B and 2C, the `0.2.1` drop, and the Stage 2D
+modules/imports work released in `0.3.0` deliver a small, natively compiled
+language:
 
 - programs in `.cst` source (the legacy `.pen`/`.pent` are accepted until
   v0.4), compiled to native Linux x86_64 executables — single-file or split
@@ -82,7 +83,7 @@ Stage 2D modules/imports work deliver a small, natively compiled language:
 - cross-scope variable access — `variable.global <name>`,
   `variable.parent <name>` and `variable.<function> <name>` read and
   write bindings in other scopes (§4.1, §8);
-- **modules and imports (Stage 2D, unreleased in the current tree)** —
+- **modules and imports (Stage 2D, since `0.3.0`)** —
   `import m`, `import m as x`, `from m import a [as b]`, dotted specifiers,
   filesystem resolution, per-module names, one-time module initialization,
   and selective loading of only the declarations a program uses (§14);
@@ -97,8 +98,8 @@ Stage 2D modules/imports work deliver a small, natively compiled language:
 see §13):
 
 - **generators and the remaining Stage 2D scope** — imports, multi-file
-  programs and reachability pruning are implemented in the unreleased
-  tree (§14); generators are not;
+  programs and reachability pruning shipped in `0.3.0` (§14); generators
+  have not;
 - **inheritance, user exception hierarchies, class attributes,
   generators and weak references** — classes are methods-and-fields only
   (§5.12; 2C scope);
@@ -1194,7 +1195,7 @@ values/ranges), `AttributeError` (getattr/delattr misses),
 `ZeroDivisionError` (`divmod`/`pow`-adjacent division), `KeyError` (map
 subscript misses), `RuntimeError` (the nine stubs).
 
-#### 5.11.8 Network builtins: `http_get`, `http_post`, `url_encode` (unreleased)
+#### 5.11.8 Network builtins: `http_get`, `http_post`, `url_encode` (0.3.0)
 
 Three libcurl-backed builtins give programs HTTP access. Like the original
 fifteen (§5.11.2) they are call-target-only, take **no** named arguments
@@ -1241,7 +1242,7 @@ which run against a deliberately vulnerable local lab on
 `http://127.0.0.1:8080` (the lab and the full scripts are not included in the
 repository).
 
-#### 5.11.9 SIMD vector builtins: `fvec`, `ivec`, `fvec_fill`, `ivec_fill`, `dot` (unreleased)
+#### 5.11.9 SIMD vector builtins: `fvec`, `ivec`, `fvec_fill`, `ivec_fill`, `dot` (0.3.0)
 
 Two fixed-length vector types carry guaranteed SIMD lanes: **`fvec`**
 (`float` lanes, IEEE-754 double) and **`ivec`** (`int` lanes, 64-bit
@@ -2260,7 +2261,7 @@ cstar run [<file.cst> [args...]]        # compile (cached) + exec, pass [args] t
 cstar build [<file.cst>] [-o out]       # native executable, default: ./<base>
 cstar check [<file.cst>]                # parse + semantic only; silent on success
 cstar --help | -h
-cstar --version | -v                    # prints: cstar 0.2.1
+cstar --version | -v                    # prints: cstar 0.3.0
 ```
 
 - `cstar <file.cst>` with no subcommand is shorthand for `run`. Bare `cstar`
@@ -2549,7 +2550,7 @@ cannot change results, and how it is validated. In brief:
   and code generation, so their bodies cost nothing at compile time or
   run time (§14.4).
 
-## 12. Known limitations (as of `0.2.1`)
+## 12. Known limitations (as of `0.3.0`)
 
 - **The collector is non-moving, mark & sweep, with no finalizers or weak
   references.** Reclamation timing is observable only through `collect()`
@@ -2568,7 +2569,7 @@ cannot change results, and how it is validated. In brief:
   the file methods (§5.11.3); network I/O is limited to the HTTP client
   builtins (§5.11.8); there is no `argv` builtin,
   and `print` is the only output outside files. Programs may span multiple
-  files (§14; unreleased in this tree), but the compiled result is still one
+  files (§14, since `0.3.0`), but the compiled result is still one
   standalone executable.
 - **Class system (2C scope, §13):** no inheritance or MRO, no user
   exception hierarchies (user classes cannot subclass `Exception` or be
@@ -2594,16 +2595,17 @@ specification) are released**, and the post-2C `0.2.1` drop ships the
 performance push (§11.8), cross-scope variable access (§4.1, §8), the
 `input()`/`time()`/`clock()` builtins, and the Python-parity builtin
 set — the 43 implemented entries, nine stubs and the rejected
-`eval`/`exec`/`compile` trio of §5.11.3–§5.11.6. The **unreleased** Stage 2D
-work in this tree adds modules/imports with selective loading (§14) and the
-v0.3 surface-syntax overhaul; generators are still to come:
+`eval`/`exec`/`compile` trio of §5.11.3–§5.11.6. **`0.3.0`** ships the
+Stage 2D modules/imports with selective loading (§14), the network and SIMD
+vector builtins (§5.11.8, §5.11.9) and the v0.3 surface-syntax overhaul;
+generators are still to come:
 
 | Stage | Scope |
 |---|---|
 | **2A — done** | Control flow (`if`/`elif`/`else`, `while`, `for`, `switch`/`case`), expressions (`**`, bitwise set, membership `in`, ternary, `and`/`or`/`not`, eleven compound assignments), `range()`, baseline performance. |
 | **2B — done** | Collections (`list`/`map`/`set`/`tuple`) with indexing, slicing, index assignment, iteration and membership; destructuring and comma-join; `text`/`bytes` with code-point semantics and `encode`/`decode`; Python-style builtin methods; the nine builtins beyond `print`/`range`; default/named/`*args`/`**kwargs` parameters; function values; nested functions and closures; `global`/`nonlocal`. |
 | **2C — done** | Classes with methods and dynamic attributes, attribute read/write, bound methods, object identity `is`/`is not`; exceptions (`try`/`except`/`finally`/`raise`/`as`, nine builtin exception classes, runtime errors as catchable instances); non-moving mark & sweep garbage collection with `collect()`. |
-| **2D — partly** | Modules/imports, multi-file programs and selective-loading reachability analysis are implemented (§14; unreleased in the current tree). Generators remain. |
+| **2D — partly** | Modules/imports, multi-file programs and selective-loading reachability analysis shipped in `0.3.0` (§14). Generators remain. |
 | **2E** | Tooling and performance: diagnostics polish, editor support, benchmarks, and an LLVM backend (Approach B, §11.7) if direct control over code generation becomes necessary. |
 
 Still open beyond those stages:
@@ -2620,16 +2622,15 @@ Still open beyond those stages:
 - **Deferred Python builtins:** `bytearray` (a mutable `bytes` needs a
   real buffer type first), `complex` (no operator surface for it yet)
   and `frozenset` (needs immutable-set semantics distinct from `set`).
-  Everything else in the Python builtin list ships in `0.2.1` (§5.11).
+  Everything else in the Python builtin list ships since `0.2.1` (§5.11).
 - **Portability** beyond Linux x86_64.
 
 ---
 
 ## 14. Modules and imports (Stage 2D)
 
-> **Status:** implemented and normative in the unreleased tree
-> (`cstar --version` still prints `0.2.1`). This section was appended after
-> §13, so existing section numbers are unchanged.
+> **Status:** implemented and normative since `0.3.0`. This section was
+> appended after §13, so existing section numbers are unchanged.
 
 Imports are resolved, expanded and renamed **before semantic analysis and
 code generation**. The result is one flat program: no module objects exist at

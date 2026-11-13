@@ -2,7 +2,7 @@
 
 cstar's HTTP builtins (`http_get`, `http_post`, `url_encode` — see
 [builtins.md](builtins.md) and
-[`SPEC.md`](../../SPEC.md#5118-network-builtins-http_get-http_post-url_encode-unreleased)
+[`SPEC.md`](../../SPEC.md#5118-network-builtins-http_get-http_post-url_encode-030)
 §5.11.8) make classic injection workflows plain `.cst` programs. This page
 walks through two of them. Both run only against a deliberately vulnerable
 **local** lab, so every target stays on `127.0.0.1`. The lab server and the

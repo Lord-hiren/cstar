@@ -2,7 +2,7 @@
 
 cstar is a Python-like language for security tooling that compiles to native
 Linux executables (through C). This is the map of everything written about it.
-Current version: **0.2.1** (`cstar --version`).
+Current version: **0.3.0** (`cstar --version`).
 
 ## Start here
 
@@ -87,7 +87,7 @@ baselines: [M1](performance/baseline-m1.md), [2B](performance/baseline-m2b.md),
 
 1. **Normative:** `SPEC.md`, `contracts/*`, `reference/cross-scope-access.md`. If the
    SPEC and a contract disagree, the contract governs — except that the
-   unreleased v0.3 surface-syntax migration is front-end-only, so SPEC §4
+   v0.3 surface-syntax migration is front-end-only, so SPEC §4
    governs the surface form wherever a contract's examples predate it. Quoted
    error messages are
    normative (tests match on them).

@@ -29,7 +29,7 @@ a topic if the two ever disagree.
 | truthiness, `and`/`or`/`not`, conditional expression | SPEC §6.1, §6.2 |
 | membership `in`, `if`, `while`, `for`, `switch`, `break`/`continue`/`pass`, `range()` | SPEC §6.3–§6.9 |
 | `try`/`except`/`finally`/`raise` and the exception classes | SPEC §6.10 |
-| `import`/`from`, module resolution, selective loading, module initialization | SPEC §14 (unreleased Stage 2D) |
+| `import`/`from`, module resolution, selective loading, module initialization | SPEC §14 (Stage 2D, since 0.3.0) |
 | script-style execution, `main:`, forward references | SPEC §7 |
 | function calls, defaults, named/variadic arguments, closures | SPEC §7.1, §7.2 |
 | the garbage collector as the language sees it | SPEC §7.3 |
@@ -57,14 +57,14 @@ a topic if the two ever disagree.
 | 11 | Implementation and architecture — 11.1 shape, 11.2 pipeline, 11.3 generated-C contract, 11.4 runtime duties, 11.5 source layout, 11.6 cache, 11.7 Approach B, 11.8 performance mechanisms |
 | 12 | Known limitations |
 | 13 | Future work and roadmap |
-| 14 | Modules and imports (Stage 2D, unreleased) — 14.1 syntax, 14.2 resolution, 14.3 names/binding, 14.4 execution/initialization, 14.5 selective loading, 14.6 errors, 14.7 run cache |
+| 14 | Modules and imports (Stage 2D, since 0.3.0) — 14.1 syntax, 14.2 resolution, 14.3 names/binding, 14.4 execution/initialization, 14.5 selective loading, 14.6 errors, 14.7 run cache |
 | A | Appendix A — examples A.1–A.10 |
 
 ## Precedence between documents
 
 1. **`SPEC.md`** and the **stage contracts** in [`../contracts/`](../contracts/README.md)
    are normative. If they disagree, *the contracts govern* — except that the
-   unreleased v0.3 surface-syntax migration is front-end-only, so SPEC §4
+   v0.3 surface-syntax migration is front-end-only, so SPEC §4
    governs the surface form wherever a contract's examples predate it.
 2. [`cross-scope-access.md`](cross-scope-access.md) is normative for `variable.`
    (SPEC §4.1/§8 summarise it).

@@ -8,7 +8,7 @@ program output. This directory holds the mechanisms and the measurements.
 
 | Document | What it is | Status |
 |---|---|---|
-| [optimization.md](optimization.md) | every mechanism (native-int lane, dynamic fast paths, GC safe-point elision, header inlining, artifact caches, pin poisoning, builtin call contract), why each is safe, how changes are validated | **current** (`0.2.1`) |
+| [optimization.md](optimization.md) | every mechanism (native-int lane, dynamic fast paths, GC safe-point elision, header inlining, artifact caches, pin poisoning, builtin call contract), why each is safe, how changes are validated | **current** (`0.3.0`) |
 | [baseline-m1.md](baseline-m1.md) | the M1 compiler's baseline: call-chain workloads, compile-time cliff, stack-depth probe | historical |
 | [baseline-m2b.md](baseline-m2b.md) | Stage 2B: real loops, collections, closures; the optimisations that the baseline itself drove | historical |
 | [baseline-m2c.md](baseline-m2c.md) | Stage 2C: the garbage collector — leak collapse to the RSS floor, and its time cost | historical for *times* (recorded before `0.2.1`); the RSS findings stand |

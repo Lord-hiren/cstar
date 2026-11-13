@@ -7,18 +7,19 @@ blocks, functions, collections, classes, exceptions, a `main:` block); the
 `cstar` toolchain translates them to C and builds a standalone Linux binary, so
 your tools run fast and ship as a single file with no interpreter to install.
 
-**Version `0.2.1`** · Linux x86_64 · toolchain in C++17, runtime in C11 · one
+**Version `0.3.0`** · Linux x86_64 · toolchain in C++17, runtime in C11 · one
 third-party library (libcurl, for the HTTP builtins).
 
 > **Status.** The language core is complete: control flow, collections,
 > text/bytes, functions and closures, classes, exceptions, garbage collection,
 > cross-scope variable access and 78 reserved builtins (43 Python-parity).
-> **In this working tree (unreleased):** multi-file programs — `import`/`from`
-> with selective loading ([guide](docs/guide/modules.md), SPEC §14) — and the
-> `()` call-syntax overhaul. Not yet: generators, inheritance, a standard
-> library (networking is limited to the HTTP client builtins) and non-Linux
-> targets. Some bugs are known and
-> documented — see [known issues](docs/reference/known-issues.md).
+> **New in `0.3.0`:** the cstar name (`cstar`, `.cst`), multi-file programs —
+> `import`/`from` with selective loading ([guide](docs/guide/modules.md), SPEC
+> §14) — the HTTP client and SIMD vector builtins, and the `()` call-syntax
+> overhaul. Not yet: generators, inheritance, a standard library (networking
+> is limited to the HTTP client builtins) and non-Linux targets. No known
+> issue is open — see [known issues](docs/reference/known-issues.md) for the
+> record.
 
 ## Quick start
 
@@ -196,7 +197,7 @@ Everything is indexed in **[docs/README.md](docs/README.md)**. The essentials:
 | `cstar <file>` / `cstar run <file> [args…]` | compile (content-hash cached) and execute |
 | `cstar build <file> [-o out]` | emit a native executable (default `./<basename>`: the source name without its extension, in the current directory) |
 | `cstar check <file>` | parse + semantic analysis only, including every imported declaration (strict); silent on success |
-| `cstar --help`, `--version` | usage; prints `cstar 0.2.1` |
+| `cstar --help`, `--version` | usage; prints `cstar 0.3.0` |
 
 Source files end in `.cst` (the legacy `.pen`/`.pent` work until v0.4). Exit codes: `0` success, `1` compile/runtime
 error, `2` usage error. Full reference: [CLI](docs/guide/cli.md).
@@ -216,9 +217,10 @@ error, `2` usage error. Full reference: [CLI](docs/guide/cli.md).
 
 ## Roadmap
 
-Next, in the order set by the specification (§13): fix the
-[known issues](docs/reference/known-issues.md); finish Stage 2D (generators on
-top of the now-landed modules/imports); Stage 2E — tooling and performance,
-possibly a direct LLVM backend. Beyond that: static typing, a standard library
-(`net`, `web`, `proc`, `parse`, …) and other platforms. See
-[history](docs/history/README.md).
+Next is **v0.4, a cross-platform SDK**: install once on Windows or Linux and run
+programs with no separate compiler. After that: native interop (inline C, FFI,
+direct memory access), a built-in HTTP server with JSON, a package manager,
+tensors with automatic GPU pickup and AI training, and user-defined rules.
+Language work from the specification (§13) continues alongside: generators
+(the rest of Stage 2D), static typing and a standard library (`net`, `web`,
+`proc`, `parse`, …). See [history](docs/history/README.md).

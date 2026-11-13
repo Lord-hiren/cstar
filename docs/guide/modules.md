@@ -5,8 +5,7 @@ are resolved and expanded **before semantic analysis and code generation**, so a
 usable import costs nothing at run time: the compiled program is still one flat
 C translation unit with direct calls, no module objects and no lookup tables.
 
-> **Status (unreleased).** Modules are the Stage 2D feature and are present in
-> this working tree; `cstar --version` still prints `0.2.1`. The normative
+> **Status.** Modules are the Stage 2D feature, released in `0.3.0`. The normative
 > rules are [SPEC §14](../../SPEC.md#14-modules-and-imports-stage-2d); this page
 > is the guided tour.
 > The VSCode extension does not yet highlight `import`/`from` or understand

@@ -4,7 +4,7 @@ These are the **working contracts** each milestone stage was built against.
 They were written *before* the implementation, ratified during it, and remain
 normative where [`SPEC.md`](../../SPEC.md) says so: the SPEC is derived from them,
 and **if the SPEC and a contract disagree, the contract governs** — except for
-one carve-out: the unreleased v0.3 *surface-syntax* overhaul (`()` calls, `in`
+one carve-out: the v0.3 *surface-syntax* overhaul (`()` calls, `in`
 membership/binding, `name():`/`name(params):` declarations, `main:`,
 `import`/`from`) is front-end-only, so where a contract's examples predate it,
 SPEC §4 governs the surface form while the contract remains normative for

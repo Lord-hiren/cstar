@@ -6,7 +6,7 @@ cstar run   [<file.cst> [args...]]      # compile (cached) and execute
 cstar build [<file.cst>] [-o out]       # emit a native executable
 cstar check [<file.cst>]                # parse + analyse only
 cstar --help | -h
-cstar --version | -v                    # prints: cstar 0.2.1
+cstar --version | -v                    # prints: cstar 0.3.0
 ```
 
 The normative statement of this contract is SPEC §10; this page adds the
@@ -37,7 +37,7 @@ becomes `cstar`'s** — except that an uncaught cstar runtime error exits
 `1` by definition.
 
 Extra arguments after the file are passed to the program as `argv[1..]`. Note
-that, as of `0.2.1`, **no builtin can read them** (there is no `argv`
+that, as of `0.3.0`, **no builtin can read them** (there is no `argv`
 builtin), so they are currently inert.
 
 ```bash

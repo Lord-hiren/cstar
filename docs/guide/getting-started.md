@@ -64,7 +64,7 @@ recompiling the runtime (see [optimization §5](../performance/optimization.md#5
 Check it works:
 
 ```bash
-build/cstar --version     # cstar 0.2.1
+build/cstar --version     # cstar 0.3.0
 ```
 
 Optionally put it on your `PATH` (the VSCode extension also looks in

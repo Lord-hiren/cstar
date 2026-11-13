@@ -2,7 +2,7 @@
   "name": "cstar-lang",
   "displayName": "cstar Language",
   "description": "Syntax highlighting, snippets, autocomplete, and live error diagnostics for the cstar programming language (.cst; legacy .pen / .pent until v0.4)",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "publisher": "cstar-lang",
   "license": "MIT",
   "keywords": [
