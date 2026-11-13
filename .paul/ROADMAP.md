@@ -42,7 +42,7 @@ Phases: 3 of 4 complete
 | 1 | Dev environment & repo hygiene | 3/3 | ✅ Complete | 2026-11-04 |
 | 2 | Rename to cstar | 5/5 | ✅ Complete | 2026-11-05 |
 | 3 | Fix known issues | 2/2 | ✅ Complete | 2026-11-13 |
-| 4 | Release v0.3.0 | 1 | Not started | - |
+| 4 | Release v0.3.0 | 0/1 | Planning | - |
 
 ## Phase Details
 
@@ -119,7 +119,7 @@ VSCode extension and docs.
 - Tag the release on GitHub
 
 **Plans:**
-- [ ] 04-01: Version bump, changelog, tag
+- [ ] 04-01: Version bump, changelog, tag — planned 2026-11-13 (publishing at a checkpoint)
 
 ## 📋 Planned Milestones
 
@@ -220,4 +220,4 @@ VSCode extension and docs.
 
 ---
 *Roadmap created: 2026-11-04*
-*Last updated: 2026-11-13 (Phase 3 complete)*
+*Last updated: 2026-11-13 (04-01 planned)*

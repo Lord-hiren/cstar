@@ -16,10 +16,10 @@ See: .paul/PROJECT.md (updated 2026-11-13 after Phase 3)
 ## Current Position
 
 Milestone: v0.3 cstar Foundation (v0.3.0)
-Phase: 4 of 4 (Release v0.3.0) — Not started
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-11-13 — Phase 3 complete (no open known issues), transitioned to Phase 4
+Phase: 4 of 4 (Release v0.3.0) — Planning
+Plan: 04-01 created, awaiting approval
+Status: PLAN created, ready for APPLY
+Last activity: 2026-11-13 — Created 04-01-PLAN.md (version 0.3.0, changelog, tag; publishing at a checkpoint)
 
 Progress:
 - Milestone: [█████████░] 91% (10 of 11 plans; 3 of 4 phases)
@@ -30,7 +30,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ○        ○        ○     [Ready for next PLAN — Phase 4]
+  ✓        ○        ○     [Plan created, awaiting approval]
 ```
 
 ## Accumulated Context
@@ -59,7 +59,7 @@ Full decision log: PROJECT.md → Key Decisions.
 
 | Issue | Origin | Effort | Revisit |
 |-------|--------|--------|---------|
-| D-9: CI not yet run on GitHub (branch not pushed); GitHub `main` still has the broken `file_line_edges.out` | 01-03 | S | Whenever you approve a push |
+| D-9: GitHub `main` (6c82d72) still has the broken `file_line_edges.out` and has never had a CI run; CI ran once, green, on the pushed `phase-2-rename` (60a1f1d, 2026-11-05) | 01-03 | S | 04-01 publishing checkpoint |
 | D-10: keep the real-VS-Code end-to-end test (45 checks) in the repo as a local-only check | 02-03 | S | Optional; any editor plan |
 | D-11: benchmark tooling (tools/hpcbench, bench/ runners, generators and workloads) still uses `.pen` and `build/pentest` (both work until v0.4) | 02-04/02-05 | S | Before the v0.4 legacy removal |
 | D-13: format error parity — cstar accepts a sign/`=`/`,` on text specs and a sign on `c` (Python raises), and rejects `,` with `e`/`g`/`%` (Python allows); documented as SPEC §5.11.5 item 16 (with bool/None-as-text and the shorter malformed-spec messages) | 03-02 | S | When convenient (decide: match Python or keep) |
@@ -68,22 +68,22 @@ Full decision log: PROJECT.md → Key Decisions.
 
 ### Blockers/Concerns
 
-- Phase 4: `main` (local and on GitHub) is three phases behind the local branches, and CI has never run on
-  GitHub (D-9). Tagging v0.3.0 on GitHub means merging and pushing — only when you approve it.
+- Phase 4: `main` (local and on GitHub) is three phases behind; tagging v0.3.0 on GitHub means moving `main`
+  and pushing — decided at the 04-01 publishing checkpoint, only with your approval.
 
 ### Git State
 
-Last commit: the Phase 3 transition commit (after 8f9160a docs(03-02): complete plan 03-02)
-Branch: phase-3-known-issues (from phase-2-rename; local only)
+Last commit: 04-01 plan commit (after 2f0ef06 feat(03-fix-known-issues): Phase 3 complete)
+Branch: phase-4-release (from phase-3-known-issues; local only)
 main: 6c82d72 (local and remote, unchanged)
 Feature branches merged: none (merge into main and push only when you ask)
 
 ## Session Continuity
 
 Last session: 2026-11-13
-Stopped at: Phase 3 complete, ready to plan Phase 4
-Next action: /paul:plan for Phase 4 (04-01: version bump, changelog, tag)
-Resume file: .paul/ROADMAP.md
+Stopped at: Plan 04-01 created
+Next action: Review and approve the plan, then /paul:apply .paul/phases/04-release-v0-3-0/04-01-PLAN.md
+Resume file: .paul/phases/04-release-v0-3-0/04-01-PLAN.md
 
 ---
 *STATE.md — Updated after every significant action*
