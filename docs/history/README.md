@@ -31,6 +31,10 @@ Dates and commits are from the repository history.
 | 2026-10-15 | **Stage 2C** — garbage collector, exceptions, classes and `is`; 23 acceptance cases; VSCode parity; RSS baseline re-recorded; SPEC/README rewrite; tagged `0.2.0-m2c` | `e506be8`, `0ae3810`, `b4ab583`, `5077512`, `cfc633a`, `dcf1c71` |
 | 2026-10-15 → 16 | **`0.2.1`** — optimisation lane, `input`/`time`/`clock`, cross-scope `variable.` access, the Python-parity builtin set | `86deffe`, `c1aa8a7`, `db2d029` |
 | 2026-10-16 | Documentation reorganised (this tree), known issues recorded | — |
+| 2026-11-04 | Builds and tests from Windows through WSL; LF-only, byte-exact repository; `build/` no longer tracked; GitHub Actions CI workflow | `4cb1f9c` |
+| 2026-11-05 | **Renamed to cstar** — the `cstar` CLI, `.cst` sources, cstar in error messages, the `cstar-lang` editor extension, internal names `cstar_rt`/`cs_`; the legacy names work until v0.4 | `fa04b77` |
+| 2026-11-06 → 11 | Known issues #7–#10 fixed: text built in functions grows in place, `format()` padding matches Python, a cache-less run leaves no files, `fvec %` raises `TypeError` | `2a2e17c`, `8e21755`, `d7dc2ac`, `546777d` |
+| 2026-11-13 | **`0.3.0`** — the first release under the cstar name | tag `v0.3.0` |
 
 Stage 2A has no separate commit: its implementation and its contract
 ([m2a-semantics](../contracts/m2a-semantics.md)) were both first committed in the
@@ -61,6 +65,7 @@ first M2 checkpoint (`59666cd`).
 | 0.2.1 | performance lane, cross-scope access, Python-parity builtins | done |
 | 2D | modules/imports and multi-file programs, selective loading, generators | modules/imports + selective loading implemented in the unreleased tree; generators not started |
 | 2E | tooling and performance: diagnostics polish, editor support, benchmarks, possibly a direct LLVM backend | not started |
+| 0.3.0 | the cstar name, modules/imports with selective loading, HTTP and SIMD vector builtins, the v0.3 surface syntax, no open known issues | done (2026-11-13) |
 
 Beyond Milestone 2: static typing, a standard library (`net`, `web`, `bytes`,
 `parallel`, `proc`, `parse`, …), class-system depth (inheritance, user exception
@@ -68,3 +73,8 @@ types), the deferred builtins `bytearray`/`complex`/`frozenset`, and portability
 beyond Linux x86_64. Before any of that, the remaining low-severity entries in
 [known issues](../reference/known-issues.md) (a `format()` padding corner and
 cache-less scratch litter) should be closed.
+
+> **Note (2026-11-13, `0.3.0`).** The text above describes the state at `0.2.1`.
+> Modules/imports and selective loading were released in `0.3.0`, and every
+> known issue it mentions is closed (see the [changelog](../../CHANGELOG.md)).
+> The next milestone is v0.4, the cross-platform SDK.

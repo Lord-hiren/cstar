@@ -9,6 +9,31 @@ the Unreleased section use the names of their time. For the narrative see
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-11-13
+
+The first release under the cstar name (the project was called Pentest before
+v0.3). Highlights:
+
+- **Pentest is now cstar**: the `cstar` command, `.cst` source files,
+  `index.cst` as the default entry, `$CSTAR_PATH` and the
+  `cstar-lang.cstar-lang` editor extension. The old names (`pentest`,
+  `.pen`/`.pent`, `$PENTEST_PATH`, the editor's `pentest.*` settings) keep
+  working until v0.4.
+- **Programs can span files**: `import`/`from` with selective loading, so only
+  the declarations a program uses are compiled (Stage 2D, SPEC §14).
+- **New builtins**: the HTTP client (`http_get`, `http_post`, `url_encode`) and
+  the SIMD vectors (`fvec`, `ivec`, `fvec_fill`, `ivec_fill`, `dot`), for 78
+  builtins in all.
+- **The v0.3 surface syntax**: `f(x)` calls, `in` for membership and `for`
+  binding, `name():`/`name(params):` declarations and `main:`.
+- **Faster**: text built with `s += x` inside a function grows in place (it was
+  quadratic), and vector loops no longer leak their lane buffers.
+- **No open known issues**: `format()` matches Python's padding and grouping, a
+  run without a cache leaves nothing in `$TMPDIR`, and `%` on an `fvec` raises a
+  `TypeError`.
+- **Checked on every change**: 381 tests, the editor smoke test and the docs
+  checker run in GitHub Actions CI.
+
 ### Changed
 - **The CLI is now `cstar`** (the rename from Pentest to cstar begins). The
   old names keep working until v0.4: `pentest` is an alias of the same driver,
@@ -21,7 +46,7 @@ the Unreleased section use the names of their time. For the narrative see
 - **`build` output has no extension**: `cstar build tools/scan.cst` writes
   `./scan` (previously `./scan.pentest`). If that name is an existing
   directory, `build` stops with exit 2 and asks for `-o`.
-- `--version` prints `cstar 0.2.1`. The run cache moved to
+- `--version` prints `cstar 0.3.0`. The run cache moved to
   `$XDG_CACHE_HOME/cstar/` (`<key>.bin`); scratch folders are `cstar-*`. The
   old `~/.cache/pentest/` is no longer used and can be deleted.
 - Error messages name the language **cstar**: `'eval' is not available in
@@ -113,7 +138,7 @@ the Unreleased section use the names of their time. For the narrative see
   history pages for imports and selective loading.
 
 ### Added
-- **Modules and selective imports (Stage 2D, unreleased).** A program may be
+- **Modules and selective imports (Stage 2D).** A program may be
   split across files with `import m`, `import m as x`, `from m import a` and
   `from m import a as b`; specifiers are dotted (`import lib.toolkit` binds
   `toolkit`). Resolution tries the importing file's directory, the working
