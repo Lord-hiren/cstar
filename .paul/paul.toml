@@ -1,5 +1,5 @@
 name = "cstar"
-version = "0.2.1"
+version = "0.3.0"
 status = "active"
 path = "."
 tags = []
@@ -17,17 +17,17 @@ phases = 4
 [phase]
 number = 4
 name = "Release v0.3.0"
-status = "in_progress"
-plans_completed = 0
+status = "complete"
+plans_completed = 1
 
 [loop]
-position = "PLAN"
+position = "IDLE"
 
 [satellite]
 groom = true
 
 [stats]
-total_plans = 10
+total_plans = 11
 total_phases = 36
 phases_completed = 3
-last_activity = "2026-11-13T04:54:18Z"
+last_activity = "2026-11-17T05:22:36Z"
