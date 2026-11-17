@@ -24,9 +24,10 @@ third-party library (libcurl, for the HTTP builtins).
 ## Quick start
 
 Requirements: Linux x86_64, `clang`/`clang++` (developed with clang 21; 14+ is the
-stated minimum), GNU `make`, `sha256sum` and the libcurl dev headers. Details
-in [getting started](docs/guide/getting-started.md) (including Windows through
-WSL).
+stated minimum), GNU `make`, `sha256sum` and the libcurl dev headers.
+Step-by-step installation for Linux and for Windows (through WSL) is in
+**[INSTALL.md](INSTALL.md)**; more detail is in
+[getting started](docs/guide/getting-started.md).
 
 ```bash
 make                                    # builds build/cstar
@@ -177,6 +178,7 @@ Everything is indexed in **[docs/README.md](docs/README.md)**. The essentials:
 
 | | |
 |---|---|
+| [Install](INSTALL.md) | installing on Linux and on Windows (WSL), the editor extension, updating |
 | [Getting started](docs/guide/getting-started.md) | install, first program, where files go |
 | [Language tour](docs/guide/language-tour.md) | the language, with executed examples |
 | [Modules and imports](docs/guide/modules.md) | multi-file programs, selective loading, zero runtime cost |

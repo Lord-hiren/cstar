@@ -9,6 +9,12 @@ the Unreleased section use the names of their time. For the narrative see
 
 ## [Unreleased]
 
+### Documentation
+- New [INSTALL.md](INSTALL.md): step-by-step installation on Linux and on
+  Windows (through WSL), the VS Code extension, updating, uninstalling and
+  troubleshooting. The docs checker now validates it too. Getting started's
+  suite count corrected (381).
+
 ## [0.3.0] — 2026-11-13
 
 The first release under the cstar name (the project was called Pentest before

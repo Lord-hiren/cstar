@@ -44,7 +44,8 @@ FENCE = re.compile(r"^```")
 
 
 def default_files():
-    files = [os.path.join(ROOT, n) for n in ("README.md", "SPEC.md", "CHANGELOG.md")]
+    files = [os.path.join(ROOT, n)
+             for n in ("README.md", "INSTALL.md", "SPEC.md", "CHANGELOG.md")]
     for base, _dirs, names in os.walk(os.path.join(ROOT, "docs")):
         files += [os.path.join(base, n) for n in sorted(names) if n.endswith(".md")]
     files.append(os.path.join(ROOT, "editors", "vscode", "README.md"))

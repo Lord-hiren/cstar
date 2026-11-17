@@ -51,7 +51,7 @@ expected-output comparison.
 
 ```bash
 make            # builds build/cstar
-make test       # optional: runs the 372-check suite (about a minute)
+make test       # optional: runs the 381-check suite (about a minute)
 ```
 
 `make` compiles `src/*.cpp`, precompiles the runtime once with the flags the
