@@ -10,10 +10,11 @@ the Unreleased section use the names of their time. For the narrative see
 ## [Unreleased]
 
 ### Documentation
-- New [INSTALL.md](INSTALL.md): step-by-step installation on Linux and on
-  Windows (through WSL), the VS Code extension, updating, uninstalling and
-  troubleshooting. The docs checker now validates it too. Getting started's
-  suite count corrected (381).
+- New [Installing guide.md](Installing%20guide.md): step-by-step installation
+  on Linux and on Windows (through WSL), the VS Code extension, updating,
+  uninstalling and troubleshooting. The docs checker now validates it too, and
+  decodes percent-encoded link paths (`%20`) the way GitHub does. Getting
+  started's suite count corrected (381).
 
 ## [0.3.0] — 2026-11-13
 

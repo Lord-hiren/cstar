@@ -29,6 +29,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from urllib.parse import unquote
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CSTAR = os.path.join(ROOT, "build", "cstar")
@@ -45,7 +46,7 @@ FENCE = re.compile(r"^```")
 
 def default_files():
     files = [os.path.join(ROOT, n)
-             for n in ("README.md", "INSTALL.md", "SPEC.md", "CHANGELOG.md")]
+             for n in ("README.md", "Installing guide.md", "SPEC.md", "CHANGELOG.md")]
     for base, _dirs, names in os.walk(os.path.join(ROOT, "docs")):
         files += [os.path.join(base, n) for n in sorted(names) if n.endswith(".md")]
     files.append(os.path.join(ROOT, "editors", "vscode", "README.md"))
@@ -133,6 +134,7 @@ def check_links(files):
                     continue
                 n += 1
                 path, _, anchor = target.partition("#")
+                path = unquote(path)  # "Installing%20guide.md", as GitHub resolves it
                 dest = os.path.normpath(os.path.join(os.path.dirname(md), path)) if path else md
                 if not os.path.exists(dest):
                     print(f"BROKEN   {rel(md)}:{no}: {target} (no such file)")

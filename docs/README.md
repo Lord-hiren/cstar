@@ -8,7 +8,7 @@ Current version: **0.3.0** (`cstar --version`).
 
 | If you want to… | Read |
 |---|---|
-| install it on Linux or Windows (WSL) | [INSTALL.md](../INSTALL.md) |
+| install it on Linux or Windows (WSL) | [Installing guide](../Installing%20guide.md) |
 | install it and run a program | [Getting started](guide/getting-started.md) |
 | learn the language | [Language tour](guide/language-tour.md) |
 | look up any feature or builtin on one page | [Quick reference](guide/quick-reference.md) |
