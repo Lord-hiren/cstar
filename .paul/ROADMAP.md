@@ -34,15 +34,15 @@ unlocks the next:
 ## Current Milestone
 
 **v0.3 cstar Foundation** (v0.3.0)
-Status: In progress
-Phases: 3 of 4 complete
+Status: All phases complete — released as cstar 0.3.0 (tag `v0.3.0`, 2026-11-13); milestone close-out next
+Phases: 4 of 4 complete
 
 | Phase | Name | Plans | Status | Completed |
 |-------|------|-------|--------|-----------|
 | 1 | Dev environment & repo hygiene | 3/3 | ✅ Complete | 2026-11-04 |
 | 2 | Rename to cstar | 5/5 | ✅ Complete | 2026-11-05 |
 | 3 | Fix known issues | 2/2 | ✅ Complete | 2026-11-13 |
-| 4 | Release v0.3.0 | 0/1 | Planning | - |
+| 4 | Release v0.3.0 | 1/1 | ✅ Complete | 2026-11-17 |
 
 ## Phase Details
 
@@ -119,7 +119,7 @@ VSCode extension and docs.
 - Tag the release on GitHub
 
 **Plans:**
-- [ ] 04-01: Version bump, changelog, tag — planned 2026-11-13 (publishing at a checkpoint)
+- [x] 04-01: Version bump, changelog, tag — 2026-11-13 (published: GitHub `main` + tag `v0.3.0`, CI green)
 
 ## 📋 Planned Milestones
 
@@ -220,4 +220,4 @@ VSCode extension and docs.
 
 ---
 *Roadmap created: 2026-11-04*
-*Last updated: 2026-11-13 (04-01 planned)*
+*Last updated: 2026-11-17 (Phase 4 complete; v0.3 released as 0.3.0)*

@@ -8,18 +8,18 @@ about: "cstar"
 
 ## Project Reference
 
-See: .paul/PROJECT.md (updated 2026-11-13 after Phase 3)
+See: .paul/PROJECT.md (updated 2026-11-17 after Phase 4)
 
 **Core value:** Write code as freely as JavaScript or Python and get speed that matches or beats C, on Windows and Linux.
-**Current focus:** v0.3 cstar Foundation — Phase 4: Release v0.3.0
+**Current focus:** v0.3 cstar Foundation — complete, released as cstar 0.3.0; milestone close-out next
 
 ## Current Position
 
-Milestone: v0.3 cstar Foundation (v0.3.0)
+Milestone: v0.3 cstar Foundation (v0.3.0) — all phases complete
 Phase: 4 of 4 (Release v0.3.0) — Complete
 Plan: 04-01 complete
-Status: Loop complete; Phase 4 complete, transition next
-Last activity: 2026-11-17 — Unified 04-01 (cstar 0.3.0 released: tag v0.3.0, main on GitHub, CI green)
+Status: Milestone complete — ready for /paul:complete-milestone
+Last activity: 2026-11-17 — Phase 4 complete (cstar 0.3.0 released: tag v0.3.0, GitHub main, CI green)
 
 Progress:
 - Milestone: [██████████] 100% (11 of 11 plans; 4 of 4 phases)
@@ -30,7 +30,7 @@ Progress:
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Loop complete - Phase 4 complete]
+  ✓        ✓        ✓     [Loop complete - milestone v0.3 complete]
 ```
 
 ## Accumulated Context
@@ -76,8 +76,8 @@ Full decision log: PROJECT.md → Key Decisions.
 
 ### Git State
 
-Last commit: d31f120 docs(04-01): changelog 0.3.0 (04-01: ef6e49e plan, ac82bba, d31f120) — the release commit
-Branch: phase-4-release (from phase-3-known-issues)
+Last commit: the Phase 4 transition commit (after 2e3f712 docs(04-01): complete plan 04-01); release commit d31f120
+Branch: phase-4-release (from phase-3-known-issues); ahead of GitHub main by the PAUL metadata commits only
 main: d31f120 (local and GitHub; fast-forwarded from 6c82d72 at your approval, 2026-11-13)
 Tag: v0.3.0 (annotated) → d31f120, on GitHub; CI run 43374607457 on main: success
 Feature branches merged: phases 1–4 reach main by fast-forward (no merge commits)
@@ -85,9 +85,9 @@ Feature branches merged: phases 1–4 reach main by fast-forward (no merge commi
 ## Session Continuity
 
 Last session: 2026-11-17
-Stopped at: Plan 04-01 unified (Phase 4 complete)
-Next action: Phase 4 transition, then /paul:complete-milestone (v0.3)
-Resume file: .paul/phases/04-release-v0-3-0/04-01-SUMMARY.md
+Stopped at: Phase 4 complete — milestone v0.3 complete (released as 0.3.0)
+Next action: /paul:complete-milestone (close v0.3), then plan v0.4 Cross-platform SDK
+Resume file: .paul/ROADMAP.md
 
 ---
 *STATE.md — Updated after every significant action*
