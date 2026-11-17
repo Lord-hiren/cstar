@@ -23,7 +23,7 @@ and Linux, with servers, packages and low-level memory access built in.
 |-----------|-------|
 | Type | Application (programming language + toolchain) |
 | Version | 0.3.0 (`cstar --version`), released 2026-11-13 — tag `v0.3.0` on GitHub |
-| Status | Working compiler on Linux (and on Windows through WSL); milestone v0.3 cstar Foundation complete — the project is cstar everywhere, no known issue is open, CI is green on GitHub `main`; v0.4 Cross-platform SDK next |
+| Status | Working compiler on Linux (and on Windows through WSL); milestone v0.3 cstar Foundation complete and closed — the project is cstar everywhere, no known issue is open, CI is green on GitHub `main`; v0.4 Cross-platform SDK next |
 | Last Updated | 2026-11-17 |
 
 ## Requirements
@@ -50,14 +50,14 @@ and Linux, with servers, packages and low-level memory access built in.
 - [x] SPEC specifies all 78 builtins, including the SIMD vectors (§5.11.9) — Phase 2
 - [x] No open known issues, each fix guarded by a test that fails on the old build: text built with `s += x` in functions is amortized (#9); `format()` matches Python on its whole subset — zero-padded regrouping, sign placement, fills, code points (#7 and its cluster); a run without a cache leaves nothing in `$TMPDIR` (#8); `fvec %` raises the scalar `TypeError` (#10) — Phase 3
 - [x] Released as **cstar 0.3.0**: version string, SPEC and docs describe it as released, CHANGELOG `[0.3.0] — 2026-11-13`, annotated tag `v0.3.0`, GitHub `main` fast-forwarded to the release with its first green CI run — Phase 4
+- [x] **Milestone v0.3 cstar Foundation** — complete 2026-11-17 (4 phases, 11 plans; see `.paul/MILESTONES.md`)
 
 ### Active (In Progress)
 
-- [x] v0.3 cstar Foundation — all 4 phases done, released as 0.3.0; milestone close-out (`/paul:complete-milestone`) next
+- [ ] v0.4 Cross-platform SDK — next; define it with /paul:discuss-milestone or /paul:milestone (phases 5–10 are outlined in ROADMAP.md)
 
 ### Planned (Next)
 
-- [ ] v0.4 Cross-platform SDK
 - [ ] v0.5 Native Interop
 - [ ] v0.6 Built-in Server & JSON
 - [ ] v0.7 Package Manager
@@ -152,4 +152,4 @@ and Linux, with servers, packages and low-level memory access built in.
 
 ---
 *PROJECT.md — Updated when requirements or context change*
-*Last updated: 2026-11-17 after Phase 4 (v0.3 released)*
+*Last updated: 2026-11-17 after v0.3 cstar Foundation*

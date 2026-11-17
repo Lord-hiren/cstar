@@ -22,8 +22,8 @@ unlocks the next:
 
 | # | Version | Name | Phases | Status |
 |---|---------|------|--------|--------|
-| 1 | v0.3 | cstar Foundation | 1–4 | 🚧 In Progress |
-| 2 | v0.4 | Cross-platform SDK | 5–10 | 📋 Planned |
+| 1 | v0.3 | cstar Foundation | 1–4 | ✅ Complete (2026-11-17; released 0.3.0) |
+| 2 | v0.4 | Cross-platform SDK | 5–10 | 📋 Next |
 | 3 | v0.5 | Native Interop | 11–14 | 📋 Planned |
 | 4 | v0.6 | Built-in Server & JSON | 15–19 | 📋 Planned |
 | 5 | v0.7 | Package Manager | 20–23 | 📋 Planned |
@@ -34,92 +34,30 @@ unlocks the next:
 ## Current Milestone
 
 **v0.3 cstar Foundation** (v0.3.0)
-Status: All phases complete — released as cstar 0.3.0 (tag `v0.3.0`, 2026-11-13); milestone close-out next
-Phases: 4 of 4 complete
+Status: ✅ Complete
+Completed: 2026-11-17 (released as cstar 0.3.0 on 2026-11-13, tag `v0.3.0`)
 
-| Phase | Name | Plans | Status | Completed |
-|-------|------|-------|--------|-----------|
-| 1 | Dev environment & repo hygiene | 3/3 | ✅ Complete | 2026-11-04 |
-| 2 | Rename to cstar | 5/5 | ✅ Complete | 2026-11-05 |
-| 3 | Fix known issues | 2/2 | ✅ Complete | 2026-11-13 |
-| 4 | Release v0.3.0 | 1/1 | ✅ Complete | 2026-11-17 |
+## Next Milestone
 
-## Phase Details
+**v0.4 Cross-platform SDK** (phases 5–10, outlined under Planned Milestones below).
+Run /paul:discuss-milestone or /paul:milestone to define it in detail.
 
-### Phase 1: Dev environment & repo hygiene
+## Completed Milestones
 
-**Goal:** The project builds and passes its tests on a Linux toolchain reachable from this Windows machine,
-and the repo stops tracking build output.
-**Depends on:** Nothing (first phase)
-**Research:** Unlikely (standard setup)
+<details>
+<summary>v0.3 cstar Foundation — 2026-11-17 (4 phases, 11 plans; released as 0.3.0)</summary>
 
-**Scope:**
-- Linux toolchain access (WSL Ubuntu + clang, make, libcurl dev) and a recorded baseline of `make test` and the smoke test
-- Stop tracking `build/` and add it to `.gitignore`; remove the committed `scan.log`
-- Fix stale claims in the docs: "no third-party dependencies", "no networking yet", test counts
-- Linux CI on GitHub Actions running `make test` and the smoke test
+| Phase | Name | Plans | Completed |
+|-------|------|-------|-----------|
+| 1 | Dev environment & repo hygiene | 3/3 | 2026-11-04 |
+| 2 | Rename to cstar | 5/5 | 2026-11-05 |
+| 3 | Fix known issues | 2/2 | 2026-11-13 |
+| 4 | Release v0.3.0 | 1/1 | 2026-11-17 |
 
-**Plans:**
-- [x] 01-01: Toolchain setup, LF line endings (`.gitattributes`) and baseline test run — 2026-11-04
-- [x] 01-02: Repo hygiene and stale-doc fixes — 2026-11-04
-- [x] 01-03: Linux CI — 2026-11-04 (workflow ready; not yet pushed, so not yet run on GitHub)
+Full phase details: [milestones/v0.3.0-ROADMAP.md](milestones/v0.3.0-ROADMAP.md); summary in
+[MILESTONES.md](MILESTONES.md).
 
-### Phase 2: Rename to cstar
-
-**Goal:** Everything user-facing says cstar: the CLI, source extension, environment variables, cache folder,
-VSCode extension and docs.
-**Depends on:** Phase 1 (a passing baseline to compare against)
-**Research:** Unlikely (mechanical, about 1,060 mentions in 114 files)
-
-**Decided (2026-11-05):**
-- Source extension `.cst`
-- Old names (`.pen`/`.pent`, `PENTEST_PATH`, a `pentest` command alias) keep working until v0.4
-- `index.cst` is the default entry file; build output is the source name without its extension
-- Internal names are renamed too
-
-**Scope:**
-- Driver: `cstar` binary (+ `pentest` alias), `--version`, usage text, extension checks, `index.cst`, output naming, `CSTAR_PATH`, cache folder
-- Tests: harness, `.err` expectations, the extension checks; test files `.pen` → `.cst`
-- Language name in error messages (normative: code + SPEC + tests together)
-- VSCode extension: language id, `.cst` association, grammar, snippets, smoke test
-- Internal names: C++ namespace, runtime `pt_` prefixes, `pentest_rt.*`, mangling prefix
-- Docs, SPEC, README, CHANGELOG (SPEC section numbers unchanged)
-
-**Plans:**
-- [x] 02-01: `cstar` CLI — binary + alias, `.cst`, `index.cst`, output naming, `CSTAR_PATH`, cache; harness, CI, SPEC CLI sections — 2026-11-05
-- [x] 02-02: Language name in error messages (code + SPEC + tests), test files `.pen` → `.cst` — 2026-11-05
-- [x] 02-03: VSCode extension: `cstar` language id, `.cst`, `cstar.*` settings, grammar scopes, D-7 vector builtins — 2026-11-05
-- [x] 02-04: Internal names (namespace, `pt_` prefixes, runtime files) — 2026-11-05
-- [x] 02-05: Docs and SPEC wording; SPEC §5.11.9 vector builtins and the 78 count (D-6) — 2026-11-05
-
-### Phase 3: Fix known issues
-
-**Goal:** The four open known issues are closed, each with a regression test.
-**Depends on:** Phase 2
-**Research:** Unlikely (#9 may need a design spike)
-
-**Scope:**
-- #9: text concatenation in a loop is O(n²). It matters for servers, which build a lot of text.
-- #8: a run that can't use the cache leaves its binary in the temp folder
-- #7: `format` zero-padding combined with grouping doesn't regroup
-- #10: `%` on an `fvec` returns wrong values instead of a `TypeError` (found in 02-05; SPEC §5.11.9 has the rule)
-
-**Plans:**
-- [x] 03-01: In-place text growth (#9) — 2026-11-06
-- [x] 03-02: `format` regrouping (#7) and padding parity, cache-less cleanup (#8) and `fvec %` (#10) — 2026-11-11 (no known issue open)
-
-### Phase 4: Release v0.3.0
-
-**Goal:** A tagged v0.3.0 release under the cstar name.
-**Depends on:** Phase 3
-**Research:** Unlikely
-
-**Scope:**
-- Bump the version to `cstar 0.3.0`; update the CHANGELOG and the counts in the docs
-- Tag the release on GitHub
-
-**Plans:**
-- [x] 04-01: Version bump, changelog, tag — 2026-11-13 (published: GitHub `main` + tag `v0.3.0`, CI green)
+</details>
 
 ## 📋 Planned Milestones
 
@@ -220,4 +158,4 @@ VSCode extension and docs.
 
 ---
 *Roadmap created: 2026-11-04*
-*Last updated: 2026-11-17 (Phase 4 complete; v0.3 released as 0.3.0)*
+*Last updated: 2026-11-17 (v0.3 milestone complete)*

@@ -8,29 +8,28 @@ about: "cstar"
 
 ## Project Reference
 
-See: .paul/PROJECT.md (updated 2026-11-17 after Phase 4)
+See: .paul/PROJECT.md (updated 2026-11-17 after v0.3 cstar Foundation)
 
 **Core value:** Write code as freely as JavaScript or Python and get speed that matches or beats C, on Windows and Linux.
-**Current focus:** v0.3 cstar Foundation — complete, released as cstar 0.3.0; milestone close-out next
+**Current focus:** Between milestones — v0.3 closed (cstar 0.3.0); v0.4 Cross-platform SDK next
 
 ## Current Position
 
-Milestone: v0.3 cstar Foundation (v0.3.0) — all phases complete
-Phase: 4 of 4 (Release v0.3.0) — Complete
-Plan: 04-01 complete
-Status: Milestone complete — ready for /paul:complete-milestone
-Last activity: 2026-11-17 — Phase 4 complete (cstar 0.3.0 released: tag v0.3.0, GitHub main, CI green)
+Milestone: Awaiting next milestone (v0.4 Cross-platform SDK is outlined in ROADMAP.md)
+Phase: None active
+Plan: None
+Status: Milestone v0.3 cstar Foundation complete — ready for next
+Last activity: 2026-11-17 — Milestone v0.3 completed (MILESTONES.md entry, roadmap archive)
 
 Progress:
-- Milestone: [██████████] 100% (11 of 11 plans; 4 of 4 phases)
-- Phase 4: [██████████] 100% (1 of 1 plans)
+- v0.3 cstar Foundation: [██████████] 100% ✓ (4 phases, 11 plans; released as 0.3.0)
 
 ## Loop Position
 
 Current loop state:
 ```
 PLAN ──▶ APPLY ──▶ UNIFY
-  ✓        ✓        ✓     [Loop complete - milestone v0.3 complete]
+  ○        ○        ○     [Milestone complete - ready for next]
 ```
 
 ## Accumulated Context
@@ -76,7 +75,7 @@ Full decision log: PROJECT.md → Key Decisions.
 
 ### Git State
 
-Last commit: the Phase 4 transition commit (after 2e3f712 docs(04-01): complete plan 04-01); release commit d31f120
+Last commit: the milestone close-out commit (after 947610a, the Phase 4 transition); release commit d31f120
 Branch: phase-4-release (from phase-3-known-issues); ahead of GitHub main by the PAUL metadata commits only
 main: d31f120 (local and GitHub; fast-forwarded from 6c82d72 at your approval, 2026-11-13)
 Tag: v0.3.0 (annotated) → d31f120, on GitHub; CI run 43374607457 on main: success
@@ -85,9 +84,9 @@ Feature branches merged: phases 1–4 reach main by fast-forward (no merge commi
 ## Session Continuity
 
 Last session: 2026-11-17
-Stopped at: Phase 4 complete — milestone v0.3 complete (released as 0.3.0)
-Next action: /paul:complete-milestone (close v0.3), then plan v0.4 Cross-platform SDK
-Resume file: .paul/ROADMAP.md
+Stopped at: Milestone v0.3 cstar Foundation complete
+Next action: /paul:discuss-milestone or /paul:milestone (v0.4 Cross-platform SDK)
+Resume file: .paul/MILESTONES.md
 
 ---
 *STATE.md — Updated after every significant action*
