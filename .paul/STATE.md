@@ -67,17 +67,17 @@ Full decision log: PROJECT.md → Key Decisions.
 
 ### Blockers/Concerns
 
-- GitHub `main` is the release commit `d31f120`; the PAUL metadata commits after it (04-01 UNIFY, the Phase 4
-  transition) are on `phase-4-release` only. Pushing them needs your yes.
 - The GitHub Release page for `v0.3.0` is yours to create (no `gh` here); notes in the scratchpad
   (`p0401/release-notes-v0.3.0.md`).
-- `backup/phase-1-dev-environment` and `backup/phase-2-rename` wait for your yes to delete.
+- `backup/phase-1-dev-environment` and `backup/phase-2-rename` (pre-rewrite history with the removed co-author
+  trailers) stay local only — never pushed — and wait for your yes to delete.
 
 ### Git State
 
-Last commit: the milestone close-out commit (after 947610a, the Phase 4 transition); release commit d31f120
-Branch: phase-4-release (from phase-3-known-issues); ahead of GitHub main by the PAUL metadata commits only
-main: d31f120 (local and GitHub; fast-forwarded from 6c82d72 at your approval, 2026-11-13)
+Last commit: the "record the push" commit (after 65d3f7d, the milestone close-out); release commit d31f120
+Branch: phase-4-release = main
+main: the same commit, local and GitHub (6c82d72 → d31f120 on 2026-11-13; metadata commits pushed 2026-11-17 at your request)
+Pushed branches: main, phase-1-dev-environment, phase-2-rename, phase-3-known-issues, phase-4-release (backup/* stay local)
 Tag: v0.3.0 (annotated) → d31f120, on GitHub; CI run 43374607457 on main: success
 Feature branches merged: phases 1–4 reach main by fast-forward (no merge commits)
 
